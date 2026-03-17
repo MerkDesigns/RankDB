@@ -3,12 +3,11 @@
     <NuxtRouteAnnouncer />
     <main class="px-3 py-5 lg:px-5">
       <div class="overflow-x-auto">
-        <div class="w-fit" :style="{ minWidth: gridMinWidth, zoom: `${uiZoom / 100}` }">
+        <div class="w-fit" :style="{ minWidth: gridMinWidth, zoom: `${uiZoom / 125}` }">
           <section class="mb-3 grid gap-3" :style="{ gridTemplateColumns: rowColumns }">
             <div class="h-11 w-full rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 flex items-center justify-between gap-2.5">
               <div class="flex min-w-0 items-center gap-2.5">
                 <img :src="overwatchIcon" alt="Overwatch" class="h-6 w-6 object-contain">
-                <span class="truncate text-[15px] font-semibold tracking-tight text-slate-100/95">Overwatch Accounts</span>
               </div>
               <button
                 type="button"
@@ -95,7 +94,7 @@
               />
               <div class="relative z-[1] grid h-full items-center gap-3" :style="{ gridTemplateColumns: rowColumns }">
                 <div class="min-w-0 flex items-center gap-3 px-2.5">
-                  <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-[6px] border border-[#323744] text-[30px] font-semibold leading-none text-slate-100/90 hover:bg-[#181c26]" title="Copy account name" @click="copyAccountName(account.accountName)">#</button>
+                  <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-[6px] border border-[#323744] text-slate-100/90 hover:bg-[#181c26]" title="Copy battletag" @click="copyAccountName(account.accountName)"><img :src="battlenetIcon" alt="Copy battletag" class="h-9 w-9 object-contain" draggable="false"></button>
                   <div class="min-w-0 flex-1">
                     <input v-if="isEditingName(account.id)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="text" class="h-auto w-full border-b border-slate-400/80 bg-transparent px-0 pb-0.5 text-[24px] font-semibold leading-none text-slate-100 outline-none" @blur="commitActiveEditor" @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
                     <span v-else class="truncate text-[24px] font-semibold text-slate-100" @contextmenu.prevent.stop="beginNameEdit(account.id)">{{ getDisplayAccountName(account.accountName) }}</span>
@@ -186,7 +185,7 @@
           class="inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
           @click="showNonRankColumns = !showNonRankColumns"
         >
-          <span class="tracking-tight">Credits</span>
+          <span class="tracking-tight">Currency</span>
           <span
             class="inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
             :class="showNonRankColumns ? 'bg-cyan-500/80' : 'bg-slate-600/80'"
@@ -203,7 +202,7 @@
           class="mt-3 inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
           @click="showSixV6 = !showSixV6"
         >
-          <span class="tracking-tight">6v6 Column</span>
+          <span class="tracking-tight">6v6 Ranks</span>
           <span
             class="inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
             :class="showSixV6 ? 'bg-cyan-500/80' : 'bg-slate-600/80'"
@@ -224,11 +223,35 @@
             v-model.number="uiZoom"
             type="range"
             min="80"
-            max="125"
+            max="120"
             step="5"
             class="w-full accent-cyan-400"
           >
         </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            class="inline-flex h-11 w-full items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+            @click="exportData"
+          >
+            Export Data
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-11 w-full items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+            @click="triggerImportData"
+          >
+            Import Data
+          </button>
+        </div>
+        <input
+          ref="importFileInput"
+          type="file"
+          accept="application/json"
+          class="hidden"
+          @change="handleImportData"
+        >
 
         <div class="mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500/55">
           made by merk
@@ -329,6 +352,7 @@ import damageRoleIcon from '~~/assets/Icons/Damage_Icon.png'
 import supportRoleIcon from '~~/assets/Icons/Support_Icon.png'
 import flexRoleIcon from '~~/assets/Icons/Flex_Icon.png'
 import overwatchIcon from '~~/assets/Icons/Overwatch_Icon.png'
+import battlenetIcon from '~~/assets/Icons/Battlenet_Icon.png'
 import mythicPrismsIcon from '~~/assets/Icons/MythicPrisms.png'
 import overwatchCoinsIcon from '~~/assets/Icons/OverwatchCoins.png'
 import overwatchCreditsIcon from '~~/assets/Icons/OverwatchCredits.png'
@@ -396,6 +420,7 @@ const settingsMenuOpen = ref(false)
 const activeEditor = ref<EditableField | null>(null)
 const activeEditorValue = ref('')
 const draggedAccountId = ref<number | null>(null)
+const importFileInput = ref<HTMLInputElement | null>(null)
 const pointerDrag = ref<{
   accountId: number
   pointerId: number
@@ -403,6 +428,7 @@ const pointerDrag = ref<{
   currentY: number
   height: number
   anchorOffsetY: number
+  clonePointerOffsetY: number
 } | null>(null)
 const dragLayout = ref<Array<{ accountId: number; top: number; height: number }>>([])
 let dragElements = new Map<number, HTMLElement>()
@@ -416,7 +442,8 @@ const pickerDivision = ref<number>(1)
 const pickerPredicted = ref(false)
 const rankPickerPositionStyle = ref<Record<string, string>>({})
 const STORAGE_KEY = 'rankdb_accounts_v2'
-const UI_SETTINGS_KEY = 'rankdb_ui_settings_v1'
+const UI_SETTINGS_KEY = 'rankdb_ui_settings_v2'
+const LEGACY_UI_SETTINGS_KEY = 'rankdb_ui_settings_v1'
 const roleTemplate = [
   { role: 'T', color: 'text-emerald-300' },
   { role: 'D', color: 'text-lime-400' },
@@ -429,7 +456,7 @@ const emptyValuesB = [0, 0]
 const DEFAULT_ROW_COUNT = 5
 const DEFAULT_UI_ZOOM = 100
 const MIN_UI_ZOOM = 80
-const MAX_UI_ZOOM = 125
+const MAX_UI_ZOOM = 120
 const UI_ZOOM_STEP = 5
 
 const buildEmptyAccount = (id: number): AccountRow => ({
@@ -478,6 +505,15 @@ const normalizeUiZoom = (value: unknown) => {
   return Math.min(MAX_UI_ZOOM, Math.max(MIN_UI_ZOOM, steppedValue))
 }
 
+const normalizeLegacyUiZoom = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return DEFAULT_UI_ZOOM
+  }
+
+  return normalizeUiZoom(numberValue * 1.25)
+}
+
 const loadStoredUiSettings = () => {
   if (!import.meta.client) {
     return {
@@ -489,7 +525,17 @@ const loadStoredUiSettings = () => {
 
   try {
     const rawSettings = localStorage.getItem(UI_SETTINGS_KEY)
-    if (!rawSettings) {
+    if (rawSettings) {
+      const parsed = JSON.parse(rawSettings)
+      return {
+        showSixV6: typeof parsed?.showSixV6 === 'boolean' ? parsed.showSixV6 : true,
+        showNonRankColumns: typeof parsed?.showNonRankColumns === 'boolean' ? parsed.showNonRankColumns : true,
+        uiZoom: normalizeUiZoom(parsed?.uiZoom)
+      }
+    }
+
+    const legacyRawSettings = localStorage.getItem(LEGACY_UI_SETTINGS_KEY)
+    if (!legacyRawSettings) {
       return {
         showSixV6: true,
         showNonRankColumns: true,
@@ -497,11 +543,11 @@ const loadStoredUiSettings = () => {
       }
     }
 
-    const parsed = JSON.parse(rawSettings)
+    const parsed = JSON.parse(legacyRawSettings)
     return {
       showSixV6: typeof parsed?.showSixV6 === 'boolean' ? parsed.showSixV6 : true,
       showNonRankColumns: typeof parsed?.showNonRankColumns === 'boolean' ? parsed.showNonRankColumns : true,
-      uiZoom: normalizeUiZoom(parsed?.uiZoom)
+      uiZoom: normalizeLegacyUiZoom(parsed?.uiZoom)
     }
   } catch {
     return {
@@ -619,29 +665,36 @@ const creditsSectionWidth = computed(() => {
 
 const accounts = ref<AccountRow[]>(loadStoredAccounts())
 
+const buildAccountsPayload = () => accounts.value.map((account) => ({
+  id: account.id,
+  accountName: account.accountName,
+  ranks: account.ranks.map((rank) => ({
+    tier: rank.tier,
+    division: rank.division,
+    predicted: rank.predicted
+  })),
+  sixV6Rank: {
+    tier: account.sixV6Rank.tier,
+    division: account.sixV6Rank.division,
+    predicted: account.sixV6Rank.predicted
+  },
+  valuesA: [...account.valuesA],
+  valuesB: [...account.valuesB]
+}))
+
+const buildUiSettingsPayload = () => ({
+  showSixV6: showSixV6.value,
+  showNonRankColumns: showNonRankColumns.value,
+  uiZoom: normalizeUiZoom(uiZoom.value)
+})
+const currentUiScale = computed(() => uiZoom.value / 125)
+
 const saveAccounts = () => {
   if (!import.meta.client) {
     return
   }
 
-  const payload = accounts.value.map((account) => ({
-    id: account.id,
-    accountName: account.accountName,
-    ranks: account.ranks.map((rank) => ({
-      tier: rank.tier,
-      division: rank.division,
-      predicted: rank.predicted
-    })),
-    sixV6Rank: {
-      tier: account.sixV6Rank.tier,
-      division: account.sixV6Rank.division,
-      predicted: account.sixV6Rank.predicted
-    },
-    valuesA: [...account.valuesA],
-    valuesB: [...account.valuesB]
-  }))
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(buildAccountsPayload()))
 }
 
 onMounted(() => {
@@ -678,6 +731,75 @@ watch([showSixV6, showNonRankColumns, uiZoom], ([sixV6Value, nonRankColumnsValue
     uiZoom: normalizeUiZoom(zoomValue)
   }))
 })
+
+const exportData = () => {
+  if (!import.meta.client) {
+    return
+  }
+
+  const exportPayload = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    accounts: buildAccountsPayload(),
+    uiSettings: buildUiSettingsPayload()
+  }
+
+  const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `rankdb-export-${new Date().toISOString().slice(0, 10)}.json`
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+const triggerImportData = () => {
+  importFileInput.value?.click()
+}
+
+const handleImportData = async (event: Event) => {
+  if (!import.meta.client) {
+    return
+  }
+
+  const input = event.target as HTMLInputElement | null
+  const file = input?.files?.[0]
+  if (!file) {
+    return
+  }
+
+  try {
+    const raw = await file.text()
+    const parsed = JSON.parse(raw)
+    const importedAccounts = Array.isArray(parsed?.accounts) ? parsed.accounts : null
+    if (!importedAccounts) {
+      throw new Error('Invalid data file')
+    }
+
+    const normalizedAccounts = importedAccounts
+      .filter((entry: unknown) => entry && typeof entry === 'object')
+      .map((entry: unknown, idx: number) => normalizeStoredAccount(entry, idx + 1))
+
+    accounts.value = normalizedAccounts.length > 0 ? normalizedAccounts : buildEmptyAccounts()
+
+    const importedUiSettings = parsed?.uiSettings && typeof parsed.uiSettings === 'object'
+      ? parsed.uiSettings
+      : null
+    showSixV6.value = typeof importedUiSettings?.showSixV6 === 'boolean' ? importedUiSettings.showSixV6 : true
+    showNonRankColumns.value = typeof importedUiSettings?.showNonRankColumns === 'boolean' ? importedUiSettings.showNonRankColumns : true
+    uiZoom.value = normalizeUiZoom(importedUiSettings?.uiZoom)
+
+    saveAccounts()
+    localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(buildUiSettingsPayload()))
+    closeSettingsMenu()
+  } catch {
+    window.alert('Could not import data from that file.')
+  } finally {
+    if (input) {
+      input.value = ''
+    }
+  }
+}
 
 const getEditorId = (editor: EditableField | null | undefined) => {
   if (!editor) {
@@ -930,17 +1052,21 @@ const handleBarPointerDown = (accountId: number, event: PointerEvent) => {
 
   dragSourceElement = sourceElement
   dragCloneElement = sourceElement.cloneNode(true) as HTMLElement
+  const cloneScale = currentUiScale.value
+  const pointerOffsetY = event.clientY - sourceRect.top
   dragCloneElement.style.position = 'fixed'
   dragCloneElement.style.left = `${sourceRect.left}px`
-  dragCloneElement.style.top = `${sourceRect.top}px`
-  dragCloneElement.style.width = `${sourceRect.width}px`
-  dragCloneElement.style.height = `${sourceRect.height}px`
+  dragCloneElement.style.top = `${event.clientY - pointerOffsetY}px`
+  dragCloneElement.style.width = `${sourceRect.width / cloneScale}px`
+  dragCloneElement.style.height = `${sourceRect.height / cloneScale}px`
   dragCloneElement.style.zIndex = '60'
   dragCloneElement.style.pointerEvents = 'none'
   dragCloneElement.style.margin = '0'
   dragCloneElement.style.opacity = '1'
   dragCloneElement.style.boxShadow = '0 12px 24px rgba(0,0,0,0.28)'
   dragCloneElement.style.transition = 'none'
+  dragCloneElement.style.transformOrigin = 'top left'
+  dragCloneElement.style.transform = `scale(${cloneScale})`
   document.body.appendChild(dragCloneElement)
 
   dragSourceElement.style.opacity = '0'
@@ -950,7 +1076,8 @@ const handleBarPointerDown = (accountId: number, event: PointerEvent) => {
     startY: event.clientY,
     currentY: event.clientY,
     height: sourceRect.height,
-    anchorOffsetY: sourceRect.height / 2
+    anchorOffsetY: sourceRect.height / 2,
+    clonePointerOffsetY: pointerOffsetY
   }
   dragLayout.value = accounts.value.map((account) => {
     const element = dragElements.get(account.id)
@@ -996,7 +1123,7 @@ const handleWindowPointerMove = (event: PointerEvent) => {
     const dragAnchorY = (pointerDrag.value.currentY - pointerDrag.value.anchorOffsetY) + (pointerDrag.value.height / 2)
     updateDragTarget(dragAnchorY)
     if (dragCloneElement) {
-      dragCloneElement.style.top = `${pointerDrag.value.currentY - pointerDrag.value.anchorOffsetY}px`
+      dragCloneElement.style.top = `${pointerDrag.value.currentY - pointerDrag.value.clonePointerOffsetY}px`
     }
   })
 }

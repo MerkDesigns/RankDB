@@ -2,6 +2,18 @@
 
 RankDB is a multi-account Rank-Tracker for Overwatch players that are too far gone.
 
+## HOW TO INSTALL FOR NOOBS.
+
+- on the right side go to "Releases" to find the .exe installer
+
+## Windows warning !!!
+
+This app is currently not code-signed, so Windows Defender / SmartScreen may show a warning like “Unknown Publisher” or “Windows protected your PC.”
+
+This happens because the app does not yet have a digital code-signing certificate. These certificates are usually paid and can be expensive for small indie or personal projects.
+
+Because of that missing digital signing license/certificate, Windows may flag the installer even though it is not malicious.
+
 ## What The App Tracks
 
 Each account row can store:

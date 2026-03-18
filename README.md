@@ -1,6 +1,6 @@
 # RankDB
 
-RankDB is for Overwatch player that are too far gone.
+RankDB is a multi-account Rank-Tracker for Overwatch players that are too far gone.
 
 ## What The App Tracks
 
@@ -9,8 +9,7 @@ Each account row can store:
 - Battletag
 - Email / Password with easy copy paste access
 - Custom notes for the Account
-- Ranks for `Tank`, `Damage`, and `Support`
-- `6v6` rank
+- Ranks for `Tank`, `Damage`, `Support` and `6v6` rank
 - Trackable currency: MythicPrisms, Yellow/White Coins, Both Comp points
 
 ## Main Functions
@@ -34,9 +33,9 @@ Each account row can store:
 ### Sorting
 
 - Click a role icon in the header to cycle sorting:
-  1. highest to lowest
-  2. lowest to highest
-  3. custom order
+  1 - highest to lowest
+  2 - lowest to highest
+  3 - custom order
 - Right-click a role icon to jump straight back to custom order
 
 ### Banned Accounts

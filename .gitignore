@@ -22,3 +22,17 @@ logs
 .env
 .env.*
 !.env.example
+
+# Local browser / test profiles
+.edge-headless/
+
+# Root-level screenshots and mockups
+/*.png
+/*.jpg
+/*.jpeg
+
+# Local notes
+PROJECT_LOG.md
+
+# Accidental local files
+src-tauri/2

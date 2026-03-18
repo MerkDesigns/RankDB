@@ -26,11 +26,6 @@ logs
 # Local browser / test profiles
 .edge-headless/
 
-# Root-level screenshots and mockups
-/*.png
-/*.jpg
-/*.jpeg
-
 # Local notes
 PROJECT_LOG.md
 

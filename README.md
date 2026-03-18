@@ -14,6 +14,8 @@ This happens because the app does not yet have a digital code-signing certificat
 
 Because of that missing digital signing license/certificate, Windows may flag the installer even though it is not malicious.
 
+![Screenshot](Screenshot.png)
+
 ## What The App Tracks
 
 Each account row can store:

@@ -32,9 +32,9 @@ Each account row can store:
 
 - Add / Remove accounts
 - Drag accounts to reorder them
-- Copy battletags, emails, and passwords directly from the row
+- Copy battletags, emails, and passwords directly from the account bar
 - Edit account credentials by rightclicking on the account
-- Edit account info such as country, notes, and banned status
+- Edit account info such as country, notes, and banned status by rightclicking on the account
 
 ### Rank Management
 
@@ -71,6 +71,8 @@ The settings include:
 - Export data
 - Import data
 
+  Also feel free to resize the window how you want to account for the ui zoom slider.
+
 ## Data Behavior
 
 - Data is stored locally in browser/local app storage
@@ -78,9 +80,3 @@ The settings include:
 - In the Tauri app, credentials also integrate with Windows Credential Manager
 - Changes save automatically
 
-## Tech Stack
-
-- Nuxt 4
-- Vue 3
-- Tailwind CSS
-- Tauri

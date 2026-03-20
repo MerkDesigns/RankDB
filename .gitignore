@@ -31,3 +31,9 @@ PROJECT_LOG.md
 
 # Accidental local files
 src-tauri/2
+
+# Aider files
+.aider/
+
+# Tauri auto-update temporary files
+tauri-app-updater/

@@ -41,6 +41,36 @@ fn app_database_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(app_data_dir.join("rankdb.sqlite3"))
 }
 
+fn backup_existing_file(path: &PathBuf, suffix: &str) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let backup_path = path.with_file_name(format!(
+        "{}.{}",
+        path.file_name()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| "Could not resolve database file name.".to_string())?,
+        suffix
+    ));
+
+    fs::rename(path, backup_path).map_err(|error| error.to_string())
+}
+
+fn reset_app_database(app: &AppHandle) -> Result<(), String> {
+    let database_path = app_database_path(app)?;
+    let timestamp = current_unix_timestamp();
+    let backup_suffix = format!("legacy-backup-{timestamp}");
+    let wal_path = PathBuf::from(format!("{}-wal", database_path.display()));
+    let shm_path = PathBuf::from(format!("{}-shm", database_path.display()));
+
+    backup_existing_file(&database_path, &backup_suffix)?;
+    backup_existing_file(&wal_path, &backup_suffix)?;
+    backup_existing_file(&shm_path, &backup_suffix)?;
+
+    Ok(())
+}
+
 fn open_app_database(app: &AppHandle) -> Result<Connection, String> {
     let connection = Connection::open(app_database_path(app)?).map_err(|error| error.to_string())?;
     initialize_app_database(&connection)?;
@@ -473,38 +503,54 @@ fn store_local_key(connection: &Connection, local_key: &[u8]) -> Result<(), Stri
 
 #[tauri::command]
 fn ensure_app_storage_ready(app: AppHandle, state: State<AppState>) -> Result<(), String> {
-    let connection = open_app_database(&app)?;
-    let has_existing_state = has_stored_app_state(&connection)?;
-    let local_key = if let Some(meta) = load_app_meta(&connection)? {
-        if let Some(protected_key) = meta.protected_key {
-            if protected_key.is_empty() {
+    let attempt_prepare_storage = || -> Result<Vec<u8>, String> {
+        let connection = open_app_database(&app)?;
+        let has_existing_state = has_stored_app_state(&connection)?;
+        let local_key = if let Some(meta) = load_app_meta(&connection)? {
+            if let Some(protected_key) = meta.protected_key {
+                if protected_key.is_empty() {
+                    let key = secure_payload::random_bytes::<AES_KEY_LENGTH>()?.to_vec();
+                    store_local_key(&connection, &key)?;
+                    key
+                } else {
+                    match secure_payload::unprotect_local_key(&protected_key) {
+                        Ok(key) => key,
+                        Err(_) if !has_existing_state => {
+                            let key = secure_payload::random_bytes::<AES_KEY_LENGTH>()?.to_vec();
+                            store_local_key(&connection, &key)?;
+                            key
+                        }
+                        Err(error) => {
+                            return Err(format!(
+                                "Could not unlock the protected database. Resetting the old local desktop database is required. {error}"
+                            ));
+                        }
+                    }
+                }
+            } else {
                 let key = secure_payload::random_bytes::<AES_KEY_LENGTH>()?.to_vec();
                 store_local_key(&connection, &key)?;
                 key
-            } else {
-                match secure_payload::unprotect_local_key(&protected_key) {
-                    Ok(key) => key,
-                    Err(error) if !has_existing_state => {
-                        let key = secure_payload::random_bytes::<AES_KEY_LENGTH>()?.to_vec();
-                        store_local_key(&connection, &key)?;
-                        key
-                    }
-                    Err(error) => {
-                        return Err(format!(
-                            "Could not unlock the protected database. Existing encrypted data is present, so the local key could not be regenerated safely. {error}"
-                        ));
-                    }
-                }
             }
         } else {
             let key = secure_payload::random_bytes::<AES_KEY_LENGTH>()?.to_vec();
             store_local_key(&connection, &key)?;
             key
+        };
+
+        Ok(local_key)
+    };
+
+    let local_key = match attempt_prepare_storage() {
+        Ok(key) => key,
+        Err(initial_error) => {
+            reset_app_database(&app)?;
+            attempt_prepare_storage().map_err(|retry_error| {
+                format!(
+                    "{initial_error} The automatic reset also failed: {retry_error}"
+                )
+            })?
         }
-    } else {
-        let key = secure_payload::random_bytes::<AES_KEY_LENGTH>()?.to_vec();
-        store_local_key(&connection, &key)?;
-        key
     };
 
     *state

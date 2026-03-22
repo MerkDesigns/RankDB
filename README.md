@@ -1,19 +1,19 @@
 # RankDB
 
-RankDB is a multi-account Rank-Tracker for Overwatch players that are too far gone.
+RankDB is a multi-account rank tracker for Overwatch players.
 
-## HOW TO INSTALL FOR NOOBS.
+## Install
 
-- on the right side go to "Releases" to find the .exe installer
-- after the first install, future desktop updates can come through the app's `Settings -> Check for Updates` button once GitHub release updates are configured
+- Go to `Releases` on the right side of the GitHub repo and download the Windows installer.
+- After the first install, future desktop updates can come through the app's `Settings -> Check for Updates` button once GitHub release updates are published.
 
-## Windows warning !!!
+## Windows Warning
 
-This app is currently not code-signed, so Windows Defender / SmartScreen may show a warning like “Unknown Publisher” or “Windows protected your PC.”
+This app is currently not code-signed, so Windows Defender / SmartScreen may show a warning like `Unknown Publisher` or `Windows protected your PC`.
 
-This happens because the app does not yet have a digital code-signing certificate. These certificates are usually paid and can be expensive for small indie or personal projects.
+This happens because the app does not yet have a digital code-signing certificate. Those certificates are usually paid and can be expensive for small indie or personal projects.
 
-Because of that missing digital signing license/certificate, Windows may flag the installer even though it is not malicious.
+Because of that missing code-signing certificate, Windows may flag the installer even though it is not malicious.
 
 ![Screenshot](Screenshot.png)
 
@@ -22,35 +22,31 @@ Because of that missing digital signing license/certificate, Windows may flag th
 Each account row can store:
 
 - Battletag
-- Email / Password with easy copy paste access
-- Custom notes for the Account
-- Ranks for `Tank`, `Damage`, `Support` and `6v6` rank
-- Trackable currency: MythicPrisms, Yellow/White Coins, Both Comp points
+- Email / Password with easy copy-paste access
+- Custom notes for the account
+- Ranks for `Tank`, `Damage`, `Support`, and `6v6`
+- Trackable currency: Mythic Prisms, Overwatch Coins, Overwatch Credits, and both Competitive Point types
 
 ## Main Functions
 
 ### Account Management
 
-- Add / Remove accounts
+- Add and remove accounts
 - Drag accounts to reorder them
 - Copy battletags, emails, and passwords directly from the account bar
-- Edit account credentials by rightclicking on the account
-- Edit account info such as country, notes, and banned status by rightclicking on the account
+- Edit account credentials by right-clicking an account
+- Edit account info such as country, notes, and banned status by right-clicking an account
 
 ### Rank Management
 
 - Click a rank badge to open the rank picker
 - Set tier and division for each role
-- "P" rank stand for Predicted and is 50% less opacity visually
-- Track `6v6` separately from role queue 
-  (you hide 6v6 tab if you don't care about the mode)
+- `P` rank stands for Predicted and is shown with lower opacity
+- Track `6v6` separately from role queue
 
 ### Sorting
 
-- Click a role icon in the header to cycle sorting:
-  1 - highest to lowest
-  2 - lowest to highest
-  3 - custom order
+- Click a role icon in the header to cycle sorting from highest to lowest, then lowest to highest, then back to custom order
 - Right-click a role icon to jump straight back to custom order
 
 ### Banned Accounts
@@ -64,22 +60,29 @@ Each account row can store:
 
 The settings include:
 
-- Toggle for Currency columns
+- Toggle for currency columns
 - Toggle for `6v6` ranks
 - Toggle for rank badge animations
 - UI zoom slider
 - Clipboard auto-clear timer
-- Export data
-- Import data
-
-  Import/export now uses the app's encrypted `.rankdb-export` backup format only.
-
-  Also feel free to resize the window how you want to account for the ui zoom slider.
+- Encrypted backup export
+- Encrypted backup import
+- Manual `Check for Updates` button in the desktop app
 
 ## Data Behavior
 
-- Data is stored locally in browser/local app storage
+- Data is stored locally on your machine
 - UI settings are stored separately from account data
-- In the Tauri app, data is stored in RankDB's own protected local database
+- In the desktop app, data is stored in RankDB's own protected local database
 - Changes save automatically
 
+## Backup Format
+
+- Import and export use the app's encrypted `.rankdb-export` backup format only
+- Legacy plain JSON backups are no longer supported
+
+## Migration Notes
+
+- Legacy Windows Credential Manager migration is no longer supported
+- Existing users should expect to re-enter their credentials one final time
+- After that, use encrypted `.rankdb-export` backups going forward

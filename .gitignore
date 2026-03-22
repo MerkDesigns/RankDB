@@ -15,8 +15,10 @@ logs
 
 # Misc
 .DS_Store
+.vscode
 .fleet
 .idea
+Thumbs.db
 
 # Local env files
 .env
@@ -34,6 +36,12 @@ src-tauri/2
 
 # Aider files
 .aider/
+.aider.*
 
 # Tauri auto-update temporary files
 tauri-app-updater/
+
+# Tauri updater signing keys
+*.key
+*.key.pub
+*.pem

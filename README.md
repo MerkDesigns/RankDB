@@ -5,6 +5,7 @@ RankDB is a multi-account Rank-Tracker for Overwatch players that are too far go
 ## HOW TO INSTALL FOR NOOBS.
 
 - on the right side go to "Releases" to find the .exe installer
+- after the first install, future desktop updates can come through the app's `Settings -> Check for Updates` button once GitHub release updates are configured
 
 ## Windows warning !!!
 
@@ -71,12 +72,14 @@ The settings include:
 - Export data
 - Import data
 
+  Import/export now uses the app's encrypted `.rankdb-export` backup format only.
+
   Also feel free to resize the window how you want to account for the ui zoom slider.
 
 ## Data Behavior
 
 - Data is stored locally in browser/local app storage
 - UI settings are stored separately from account data
-- In the Tauri app, credentials also integrate with Windows Credential Manager
+- In the Tauri app, data is stored in RankDB's own protected local database
 - Changes save automatically
 

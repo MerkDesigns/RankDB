@@ -1000,6 +1000,18 @@ const buildOwApiHeaders = () => ({
   'Accept-Language': 'en-US,en;q=0.9'
 })
 
+const buildDefaultUiSettings = () => ({
+  showSixV6: true,
+  showNonRankColumns: true,
+  showLeadButtons: true,
+  badgeAnimationsEnabled: true,
+  uiZoom: DEFAULT_UI_ZOOM,
+  clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
+  rankNumberOffsetX: DEFAULT_RANK_NUMBER_OFFSET_X,
+  rankNumberOffsetY: DEFAULT_RANK_NUMBER_OFFSET_Y,
+  rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE
+})
+
 const getOwApiRatings = (payload: OwApiProfilePayload) => (
   Array.isArray(payload.ratings) ? payload.ratings : []
 )
@@ -1134,18 +1146,8 @@ const fetchOwApiProfile = async (playerId: string): Promise<OwApiProfileFetchRes
 }
 
 const loadStoredUiSettings = () => {
-  if (!import.meta.client) {
-    return {
-      showSixV6: true,
-      showNonRankColumns: true,
-      showLeadButtons: true,
-      badgeAnimationsEnabled: true,
-      uiZoom: DEFAULT_UI_ZOOM,
-      clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
-      rankNumberOffsetX: DEFAULT_RANK_NUMBER_OFFSET_X,
-      rankNumberOffsetY: DEFAULT_RANK_NUMBER_OFFSET_Y,
-      rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE
-    }
+  if (!import.meta.client || tauriDesktop) {
+    return buildDefaultUiSettings()
   }
 
   try {
@@ -1167,17 +1169,7 @@ const loadStoredUiSettings = () => {
 
     const legacyRawSettings = localStorage.getItem(LEGACY_UI_SETTINGS_KEY)
     if (!legacyRawSettings) {
-      return {
-        showSixV6: true,
-        showNonRankColumns: true,
-        showLeadButtons: true,
-        badgeAnimationsEnabled: true,
-        uiZoom: DEFAULT_UI_ZOOM,
-        clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
-        rankNumberOffsetX: DEFAULT_RANK_NUMBER_OFFSET_X,
-        rankNumberOffsetY: DEFAULT_RANK_NUMBER_OFFSET_Y,
-        rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE
-      }
+      return buildDefaultUiSettings()
     }
 
     const parsed = JSON.parse(legacyRawSettings)
@@ -1193,17 +1185,7 @@ const loadStoredUiSettings = () => {
       rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE
     }
   } catch {
-    return {
-      showSixV6: true,
-      showNonRankColumns: true,
-      showLeadButtons: true,
-      badgeAnimationsEnabled: true,
-      uiZoom: DEFAULT_UI_ZOOM,
-      clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
-      rankNumberOffsetX: DEFAULT_RANK_NUMBER_OFFSET_X,
-      rankNumberOffsetY: DEFAULT_RANK_NUMBER_OFFSET_Y,
-      rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE
-    }
+    return buildDefaultUiSettings()
   }
 }
 
@@ -1468,7 +1450,7 @@ const normalizeStoredAccount = (fromStorage: any, fallbackId: number): AccountRo
 }
 
 const loadStoredAccounts = () => {
-  if (!import.meta.client) {
+  if (!import.meta.client || tauriDesktop) {
     return buildEmptyAccounts()
   }
 
@@ -1492,6 +1474,16 @@ const loadStoredAccounts = () => {
   } catch {
     return buildEmptyAccounts()
   }
+}
+
+const clearLegacyBrowserStorage = () => {
+  if (!import.meta.client) {
+    return
+  }
+
+  localStorage.removeItem(STORAGE_KEY)
+  localStorage.removeItem(UI_SETTINGS_KEY)
+  localStorage.removeItem(LEGACY_UI_SETTINGS_KEY)
 }
 
 const initialUiSettings = loadStoredUiSettings()
@@ -1989,8 +1981,12 @@ const loadTauriStoredAppState = async () => {
     accounts.value = normalizedAccounts.length > 0 ? normalizedAccounts : buildEmptyAccounts()
     applyStoredUiSettings(storedAppState.uiSettings)
   } else {
+    accounts.value = buildEmptyAccounts()
+    applyStoredUiSettings(null)
     await persistAppStorage()
   }
+
+  clearLegacyBrowserStorage()
 }
 
 onMounted(() => {

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="h-screen overflow-hidden bg-[#0b0d13] text-slate-100"
+    class="h-screen overflow-hidden bg-[#07090f] text-slate-100"
     :style="{
       '--rank-number-offset-x': `${rankNumberOffsetX}`,
       '--rank-number-offset-y': `${rankNumberOffsetY}`,
@@ -46,13 +46,17 @@
 
           <div ref="accountListViewport" class="account-list-viewport min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
             <TransitionGroup tag="section" name="bar-list" class="space-y-4 pb-[20px]">
+              <template v-for="entry in renderEntries" :key="entry.key">
               <div
-                v-if="bannedAccounts.length > 0 && normalAccounts.length === 0"
-                key="banned-divider-top"
+                v-if="entry.kind === 'banned-divider'"
                 class="relative h-10"
+                :class="entry.key === 'banned-divider' ? 'mt-[52px]' : ''"
                 :style="{ width: fullGridWidth }"
               >
-                <div class="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center gap-3">
+                <div
+                  class="top-bar-anchored absolute left-0 top-1/2 flex -translate-y-1/2 items-center gap-3"
+                  :style="{ width: visibleGridWidth }"
+                >
                   <div class="h-px flex-1 bg-[#4a2630]" />
                   <span class="rounded-full border border-[#4a2630] bg-[#221018] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-200/90">
                     Banned Accounts
@@ -60,25 +64,25 @@
                   <div class="h-px flex-1 bg-[#4a2630]" />
                 </div>
               </div>
-              <template v-for="account in accounts" :key="account.id">
               <article
-                :data-bar-id="account.id"
+                v-else
+                :data-bar-id="entry.account.id"
                 class="bar-shell relative h-16 cursor-grab touch-none select-none"
-                :class="[draggedAccountId === account.id ? 'cursor-grabbing' : '']"
+                :class="[draggedAccountId === entry.account.id ? 'cursor-grabbing' : '']"
                 :style="{ width: fullGridWidth }"
-                @pointerdown="handleBarPointerDown(account.id, $event)"
+                @pointerdown="handleBarPointerDown(entry.account.id, $event)"
               >
               <div class="absolute inset-y-0 left-0 z-0 overflow-hidden" :style="{ width: `${leadColumnWidth}px` }">
                 <div class="flex h-full items-center pl-0 pr-0">
                   <div
-                    class="flex w-full items-center justify-center gap-0 transition-[opacity,transform,filter] duration-260 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                    class="-ml-[2px] flex w-full items-center justify-center gap-0 transition-[opacity,transform,filter] duration-260 ease-[cubic-bezier(0.22,1,0.36,1)]"
                     :class="showLeadButtons ? 'translate-x-0 opacity-100 blur-0' : 'translate-x-4 opacity-0 blur-[2px]'"
                   >
                     <button
                       type="button"
                       class="inline-flex h-[56px] w-[46px] items-center justify-center rounded-l-[12px] rounded-r-none border border-r-0 border-[#323744] bg-[#0d1118] text-slate-100/78"
                       title="Copy email"
-                      @click.stop="copyAccountCredential(account.id, 'email')"
+                      @click.stop="copyAccountCredential(entry.account.id, 'email')"
                     >
                       <User class="h-[22px] w-[22px] translate-y-[0.5px]" :stroke-width="2.25" aria-hidden="true" />
                     </button>
@@ -86,7 +90,7 @@
                       type="button"
                       class="inline-flex h-[56px] w-[46px] items-center justify-center rounded-r-[12px] rounded-l-none border border-[#323744] bg-[#0d1118] text-slate-100/78"
                       title="Copy password"
-                      @click.stop="copyAccountCredential(account.id, 'password')"
+                      @click.stop="copyAccountCredential(entry.account.id, 'password')"
                     >
                       <KeyRound class="h-[22px] w-[22px] translate-y-[0.5px]" :stroke-width="2.25" aria-hidden="true" />
                     </button>
@@ -106,17 +110,17 @@
                   :style="{ left: mainCreditsSectionLeft, width: creditsSectionWidth }"
                 />
                 <div class="relative grid h-full items-center gap-3" :style="{ gridTemplateColumns: mainColumns }">
-                <div class="min-w-0 flex items-center gap-3 px-2.5" @contextmenu.prevent.stop="openAccountContextMenu(account.id, $event)">
-                  <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-[6px] border border-[#323744] text-slate-100/90 hover:bg-[#181c26]" title="Copy battletag" @click="copyAccountName(account.accountName)"><img :src="battlenetIcon" alt="Copy battletag" class="h-9 w-9 object-contain" draggable="false"></button>
+                <div class="min-w-0 flex items-center gap-3 px-2.5" @contextmenu.prevent.stop="openAccountContextMenu(entry.account.id, $event)">
+                  <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-[6px] border border-[#323744] text-slate-100/90 hover:bg-[#181c26]" title="Copy battletag" @click="copyAccountName(entry.account.accountName)"><img :src="battlenetIcon" alt="Copy battletag" class="h-9 w-9 object-contain" draggable="false"></button>
                   <div class="min-w-0 flex-1">
-                    <input v-if="isEditingName(account.id)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="text" class="h-auto w-full border-b border-slate-400/80 bg-transparent px-0 pb-0.5 text-[24px] font-semibold leading-none text-slate-100 outline-none" @blur="commitActiveEditor" @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
-                    <span v-else class="truncate text-[24px] font-semibold text-slate-100">{{ getDisplayAccountName(account.accountName) }}</span>
+                    <input v-if="isEditingName(entry.account.id)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="text" class="h-auto w-full border-b border-slate-400/80 bg-transparent px-0 pb-0.5 text-[24px] font-semibold leading-none text-slate-100 outline-none" @blur="commitActiveEditor" @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
+                    <span v-else class="truncate text-[24px] font-semibold text-slate-100">{{ getDisplayAccountName(entry.account.accountName) }}</span>
                   </div>
                 </div>
-                <div class="role-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(account.id, $event)">
+                <div class="role-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(entry.account.id, $event)">
                   <div class="role-lane role-lane-body">
-                    <div v-for="(rank, rankIndex) in account.ranks" :key="`${account.id}-${rank.role}`" class="flex items-center justify-center">
-                      <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-hidden rounded-[2px] transition hover:brightness-110" :class="[rank.predicted ? 'opacity-[0.35]' : rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeShineClass(rank.tier), getRankBadgeSparkleClass(rank.tier)]" :style="getRankBadgeMaskStyle(rank.tier)" @click="openRankPicker(account.id, rankIndex, $event)">
+                    <div v-for="(rank, rankIndex) in entry.account.ranks" :key="`${entry.account.id}-${rank.role}`" class="flex items-center justify-center">
+                      <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-hidden rounded-[2px] transition hover:brightness-110" :class="[rank.predicted ? 'opacity-[0.35]' : rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeShineClass(rank.tier), getRankBadgeSparkleClass(rank.tier)]" :style="getRankBadgeMaskStyle(rank.tier)" @click="openRankPicker(entry.account.id, rankIndex, $event)">
                         <img :src="rankIcons[rank.tier]" :alt="`${rank.tier} ${rank.division}`" class="h-full w-full object-contain [image-rendering:-webkit-optimize-contrast]" draggable="false">
                         <span v-if="hasRankBadgeShine(rank.tier)" class="rank-badge-shine" aria-hidden="true" />
                         <span v-if="hasRankBadgeSparkles(rank.tier)" class="rank-badge-sparkles" aria-hidden="true" />
@@ -126,50 +130,36 @@
                     </div>
                   </div>
                 </div>
-                <div v-if="showSixV6" class="sixv6-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(account.id, $event)">
+                <div v-if="showSixV6" class="sixv6-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(entry.account.id, $event)">
                   <div class="single-rank-lane">
-                    <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-hidden rounded-[2px] transition hover:brightness-110" :class="[account.sixV6Rank.predicted ? 'opacity-[0.35]' : account.sixV6Rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeShineClass(account.sixV6Rank.tier), getRankBadgeSparkleClass(account.sixV6Rank.tier)]" :style="getRankBadgeMaskStyle(account.sixV6Rank.tier)" @click="openSixV6Picker(account.id, $event)">
-                      <img :src="rankIcons[account.sixV6Rank.tier]" :alt="`${account.sixV6Rank.tier} ${account.sixV6Rank.division}`" class="h-full w-full object-contain [image-rendering:-webkit-optimize-contrast]" draggable="false">
-                      <span v-if="hasRankBadgeShine(account.sixV6Rank.tier)" class="rank-badge-shine" aria-hidden="true" />
-                      <span v-if="hasRankBadgeSparkles(account.sixV6Rank.tier)" class="rank-badge-sparkles" aria-hidden="true" />
-                      <span v-if="hasRankBadgeExtraSparkles(account.sixV6Rank.tier)" class="rank-badge-sparkles rank-badge-sparkles-secondary" aria-hidden="true" />
-                      <span v-if="account.sixV6Rank.tier !== 'Unranked'" class="absolute left-[76.5%] top-[calc(45%+1px)] rank-badge-number rank-division-number">{{ account.sixV6Rank.division }}</span>
+                    <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-hidden rounded-[2px] transition hover:brightness-110" :class="[entry.account.sixV6Rank.predicted ? 'opacity-[0.35]' : entry.account.sixV6Rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeShineClass(entry.account.sixV6Rank.tier), getRankBadgeSparkleClass(entry.account.sixV6Rank.tier)]" :style="getRankBadgeMaskStyle(entry.account.sixV6Rank.tier)" @click="openSixV6Picker(entry.account.id, $event)">
+                      <img :src="rankIcons[entry.account.sixV6Rank.tier]" :alt="`${entry.account.sixV6Rank.tier} ${entry.account.sixV6Rank.division}`" class="h-full w-full object-contain [image-rendering:-webkit-optimize-contrast]" draggable="false">
+                      <span v-if="hasRankBadgeShine(entry.account.sixV6Rank.tier)" class="rank-badge-shine" aria-hidden="true" />
+                      <span v-if="hasRankBadgeSparkles(entry.account.sixV6Rank.tier)" class="rank-badge-sparkles" aria-hidden="true" />
+                      <span v-if="hasRankBadgeExtraSparkles(entry.account.sixV6Rank.tier)" class="rank-badge-sparkles rank-badge-sparkles-secondary" aria-hidden="true" />
+                      <span v-if="entry.account.sixV6Rank.tier !== 'Unranked'" class="absolute left-[76.5%] top-[calc(45%+1px)] rank-badge-number rank-division-number">{{ entry.account.sixV6Rank.division }}</span>
                     </button>
                   </div>
                 </div>
-                <div v-if="showNonRankColumns" class="values-a-column h-full px-2.5">
+                <div v-if="showNonRankColumns" class="values-a-column h-full px-2.5" @pointerdown.stop>
                   <div class="values-a-lane values-lane-body">
-                    <span v-for="(value, valueIndex) in account.valuesA" :key="`${account.id}-a-${valueIndex}`" class="flex h-full w-full items-center justify-center text-[15px] font-semibold text-slate-100/95">
-                      <input v-if="isEditingValue(account.id, 'valuesA', valueIndex)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="number" class="h-auto w-full border-b border-slate-400/80 bg-transparent px-0 pb-0.5 text-center text-[20px] font-semibold leading-none tabular-nums text-slate-100 outline-none" @blur="commitActiveEditor" @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
-                      <span v-else class="inline-flex h-9 items-center text-[20px] font-semibold leading-none tabular-nums" @contextmenu.prevent.stop="beginValueEdit(account.id, 'valuesA', valueIndex)">{{ value }}</span>
+                    <span v-for="(value, valueIndex) in entry.account.valuesA" :key="`${entry.account.id}-a-${valueIndex}`" class="flex h-full w-full items-center justify-center text-[15px] font-semibold text-slate-100/95">
+                      <input v-if="isEditingValue(entry.account.id, 'valuesA', valueIndex)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="number" class="h-full w-full border-b border-slate-400/80 bg-transparent px-1 pb-0.5 text-center text-[20px] font-semibold leading-none tabular-nums text-slate-100 outline-none" @blur="commitActiveEditor" @pointerdown.stop @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
+                      <span v-else class="inline-flex h-full w-full items-center justify-center px-1 text-[20px] font-semibold leading-none tabular-nums" @pointerdown.stop @click.stop="beginValueEdit(entry.account.id, 'valuesA', valueIndex)">{{ formatCompactValue(value) }}</span>
                     </span>
                   </div>
                 </div>
-                <div v-if="showNonRankColumns" class="values-b-column h-full px-2.5">
+                <div v-if="showNonRankColumns" class="values-b-column h-full px-2.5" @pointerdown.stop>
                   <div class="values-b-lane values-lane-body">
-                    <span v-for="(value, valueIndex) in account.valuesB" :key="`${account.id}-b-${valueIndex}`" class="flex h-full w-full min-w-0 items-center justify-center text-[15px] font-semibold text-slate-100/95">
-                      <input v-if="isEditingValue(account.id, 'valuesB', valueIndex)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="number" class="h-auto w-full min-w-0 border-b border-slate-400/80 bg-transparent px-0 pb-0.5 text-center text-[20px] font-semibold leading-none tabular-nums text-slate-100 outline-none" @blur="commitActiveEditor" @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
-                      <span v-else class="inline-flex h-9 items-center text-[20px] font-semibold leading-none tabular-nums" @contextmenu.prevent.stop="beginValueEdit(account.id, 'valuesB', valueIndex)">{{ value }}</span>
+                    <span v-for="(value, valueIndex) in entry.account.valuesB" :key="`${entry.account.id}-b-${valueIndex}`" class="flex h-full w-full min-w-0 items-center justify-center text-[15px] font-semibold text-slate-100/95">
+                      <input v-if="isEditingValue(entry.account.id, 'valuesB', valueIndex)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="number" class="h-full w-full min-w-0 border-b border-slate-400/80 bg-transparent px-1 pb-0.5 text-center text-[20px] font-semibold leading-none tabular-nums text-slate-100 outline-none" @blur="commitActiveEditor" @pointerdown.stop @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
+                      <span v-else class="inline-flex h-full w-full items-center justify-center px-1 text-[20px] font-semibold leading-none tabular-nums" @pointerdown.stop @click.stop="beginValueEdit(entry.account.id, 'valuesB', valueIndex)">{{ formatCompactValue(value) }}</span>
                     </span>
                   </div>
                 </div>
                 </div>
               </div>
               </article>
-              <div
-                v-if="shouldRenderBannedDividerAfter(account.id)"
-                :key="`banned-divider-${account.id}`"
-                class="relative h-10"
-                :style="{ width: fullGridWidth }"
-              >
-                <div class="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center gap-3">
-                  <div class="h-px flex-1 bg-[#4a2630]" />
-                  <span class="rounded-full border border-[#4a2630] bg-[#221018] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-200/90">
-                    Banned Accounts
-                  </span>
-                  <div class="h-px flex-1 bg-[#4a2630]" />
-                </div>
-              </div>
               </template>
 
               <div class="bar-shell relative h-16" :style="{ width: fullGridWidth }">
@@ -189,6 +179,71 @@
     </main>
 
     <RankDbNotifications :notifications="notifications" @remove="removeNotification" />
+
+    <div
+      v-if="createGroupModalOpen"
+      class="fixed inset-0 z-40 bg-black/55"
+      @click="closeCreateGroupModal"
+    >
+      <div
+        class="absolute left-1/2 top-1/2 w-[340px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+        @click.stop
+      >
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h2 class="text-[16px] font-semibold tracking-tight text-slate-100">{{ groupModalMode === 'edit' ? 'Edit Group' : 'New Group' }}</h2>
+          <button
+            type="button"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]"
+            aria-label="Close create group"
+            @click="closeCreateGroupModal"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="h-5 w-5"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <label class="block text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-400/80">Name</label>
+        <input
+          v-model="createGroupNameDraft"
+          type="text"
+          :maxlength="maxGroupNameLength"
+          class="mt-2 h-11 w-full rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[14px] text-slate-100 outline-none focus:border-slate-400/70"
+          placeholder="Smurfs, Sales, Ranked Ready..."
+          @keydown.enter.prevent="createGroup"
+        >
+        <p class="mt-2 text-[12px] leading-5 text-slate-400/80">
+          {{ groupModalMode === 'edit' ? 'Rename the group without changing its accounts or position.' : 'This creates a collapsible full-width section without changing the row layout.' }}
+        </p>
+        <div class="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]"
+            @click="closeCreateGroupModal"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-cyan-400/20 bg-cyan-500/15 px-4 text-[13px] font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="!normalizeGroupName(createGroupNameDraft)"
+            @click="createGroup"
+          >
+            {{ groupModalMode === 'edit' ? 'Save' : 'Create' }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div
       v-if="settingsMenuOpen"
@@ -655,7 +710,7 @@ import { LogicalSize } from '@tauri-apps/api/dpi'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check as checkForUpdate } from '@tauri-apps/plugin-updater'
 import { currentMonitor, getCurrentWindow } from '@tauri-apps/api/window'
-import { ClipboardClock, Download, KeyRound, Upload, User, ZoomIn } from 'lucide-vue-next'
+import { ChevronDown, ClipboardClock, Download, KeyRound, Upload, User, ZoomIn } from 'lucide-vue-next'
 import 'flag-icons/css/flag-icons.min.css'
 import RankDbAccountContextMenu from '~~/app/components/rankdb/RankDbAccountContextMenu.vue'
 import RankDbAccountInfoModal from '~~/app/components/rankdb/RankDbAccountInfoModal.vue'
@@ -717,6 +772,7 @@ import type {
   EditableField,
   ModalOption,
   NotificationToast,
+  AccountGroup,
   RankEntry,
   RankTier,
   RoleSortState
@@ -725,6 +781,7 @@ import type {
 type AppUpdate = NonNullable<Awaited<ReturnType<typeof checkForUpdate>>>
 type PersistedAppStoragePayload = {
   accounts?: unknown
+  groups?: unknown
   uiSettings?: unknown
 }
 type PersistedAppStorageEnvelope = {
@@ -770,6 +827,9 @@ const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; descript
 }
 const rankPicker = ref<{ accountId: number; target: 'role' | 'sixv6'; rankIndex?: number } | null>(null)
 const settingsMenuOpen = ref(false)
+const createGroupModalOpen = ref(false)
+const groupActionMenu = ref<{ groupId: string } | null>(null)
+const groupActionMenuPositionStyle = ref<Record<string, string>>({})
 const accountContextMenu = ref<{ accountId: number } | null>(null)
 const accountContextMenuPositionStyle = ref<Record<string, string>>({})
 const deleteAccountModal = ref<{ accountId: number } | null>(null)
@@ -782,6 +842,9 @@ const credentialsPasswordVisible = ref(false)
 const accountInfoCountryDraft = ref('')
 const accountInfoBannedDraft = ref(false)
 const accountInfoNotesDraft = ref('')
+const createGroupNameDraft = ref('')
+const groupModalMode = ref<'create' | 'edit'>('create')
+const editingGroupId = ref('')
 const notifications = ref<NotificationToast[]>([])
 const rankRefreshBusy = ref(false)
 const storageAccessMode = ref<'ready'>('ready')
@@ -801,6 +864,7 @@ const whatsNewModalOpen = ref(false)
 const activeEditor = ref<EditableField | null>(null)
 const activeEditorValue = ref('')
 const draggedAccountId = ref<number | null>(null)
+const draggedGroupEntryKey = ref<string | null>(null)
 const importFileInput = ref<HTMLInputElement | null>(null)
 let pendingImportFile: File | null = null
 const pointerDrag = ref<{
@@ -812,13 +876,41 @@ const pointerDrag = ref<{
   anchorOffsetY: number
   clonePointerOffsetY: number
 } | null>(null)
+const groupPointerDrag = ref<{
+  groupId: string
+  entryKey: string
+  section: 'normal' | 'banned'
+  pointerId: number
+  startY: number
+  currentY: number
+  height: number
+  anchorOffsetY: number
+  clonePointerOffsetY: number
+  sourceRect: DOMRect
+} | null>(null)
 const dragLayout = ref<Array<{ accountId: number; top: number; height: number }>>([])
+const groupDragLayout = ref<Array<{
+  entryKey: string
+  groupId: string
+  section: 'normal' | 'banned'
+  targetKind: 'group' | 'account'
+  accountId: number | null
+  top: number
+  height: number
+}>>([])
 let dragElements = new Map<number, HTMLElement>()
+let groupDragElements = new Map<string, HTMLElement>()
 let dragCloneElement: HTMLElement | null = null
 let dragSourceElement: HTMLElement | null = null
 let dragPointerElement: HTMLElement | null = null
+let groupDragCloneElement: HTMLElement | null = null
+let groupDragSourceElement: HTMLElement | null = null
+let groupDragPointerElement: HTMLElement | null = null
+let suppressGroupHeaderClickKey: string | null = null
 let pendingPointerY: number | null = null
+let pendingGroupPointerY: number | null = null
 let pointerFrameId: number | null = null
+let groupPointerFrameId: number | null = null
 let nextNotificationId = 1
 const notificationTimeouts = new Map<number, ReturnType<typeof setTimeout>>()
 const clipboardExpiryTimeouts = new Map<'email' | 'password', ReturnType<typeof setTimeout>>()
@@ -826,12 +918,48 @@ const pickerTier = ref<RankTier>('Bronze')
 const pickerDivision = ref<number>(1)
 const pickerPredicted = ref(false)
 const rankPickerPositionStyle = ref<Record<string, string>>({})
+const maxGroupNameLength = 40
+const buildGroupId = () => `group-${Math.random().toString(36).slice(2, 10)}`
+const normalizeGroupName = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return value.trim().slice(0, maxGroupNameLength)
+}
+const normalizeStoredGroup = (value: unknown, fallbackIndex: number): AccountGroup | null => {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  const payload = value as Record<string, unknown>
+  const name = normalizeGroupName(payload.name)
+  if (!name) {
+    return null
+  }
+
+  const rawId = typeof payload.id === 'string' ? payload.id.trim() : ''
+  const section = payload.section === 'banned' ? 'banned' : 'normal'
+  const anchorAccountId = typeof payload.anchorAccountId === 'number' && Number.isFinite(payload.anchorAccountId)
+    ? Math.trunc(payload.anchorAccountId)
+    : null
+  const anchorPosition = payload.anchorPosition === 'before' ? 'before' : 'after'
+  return {
+    id: rawId || `group-${fallbackIndex}`,
+    name,
+    collapsed: Boolean(payload.collapsed),
+    section,
+    anchorAccountId,
+    anchorPosition
+  }
+}
 const buildEmptyAccount = (id: number): AccountRow => ({
   id,
   accountName: 'Battletag#0000',
   email: '',
   password: '',
   countryCode: '',
+  groupId: null,
   isBanned: false,
   notes: '',
   ranks: roleTemplate.map((role) => ({
@@ -1349,6 +1477,7 @@ const savePersistedAppStorage = async () => {
   await invoke('save_app_storage', {
     payload: buildPersistedAppStorageEnvelope({
       accounts: buildAccountsPayload(),
+      groups: buildGroupsPayload(),
       uiSettings: buildUiSettingsPayload()
     })
   })
@@ -1416,6 +1545,7 @@ const parsePersistedAppStorage = (value: unknown): { payload: PersistedAppStorag
     return {
       payload: {
         accounts: payload.accounts,
+        groups: payload.groups,
         uiSettings: payload.uiSettings
       },
       migratedLegacy: false
@@ -1425,6 +1555,7 @@ const parsePersistedAppStorage = (value: unknown): { payload: PersistedAppStorag
   return {
     payload: {
       accounts: value.accounts,
+      groups: value.groups,
       uiSettings: value.uiSettings
     },
     migratedLegacy: true
@@ -1437,6 +1568,27 @@ const getClipboardClearDurationMs = () => {
   }
 
   return clipboardClearTimerSeconds.value * 1000
+}
+
+const formatCompactValue = (value: number) => {
+  const absoluteValue = Math.abs(value)
+  const compactUnits = [
+    { limit: 1_000_000, suffix: 'm' },
+    { limit: 1_000, suffix: 'k' }
+  ] as const
+
+  for (const unit of compactUnits) {
+    if (absoluteValue >= unit.limit) {
+      const shortened = value / unit.limit
+      const formatted = Number.isInteger(shortened)
+        ? String(shortened)
+        : shortened.toFixed(1).replace(/\.0$/, '')
+
+      return `${formatted}${unit.suffix}`
+    }
+  }
+
+  return String(value)
 }
 
 const scheduleClipboardExpiry = (field: 'email' | 'password', value: string) => {
@@ -1488,6 +1640,7 @@ const normalizeStoredAccount = (fromStorage: any, fallbackId: number): AccountRo
     email: typeof fromStorage?.email === 'string' ? fromStorage.email : emptyAccount.email,
     password: typeof fromStorage?.password === 'string' ? fromStorage.password : emptyAccount.password,
     countryCode: typeof fromStorage?.countryCode === 'string' ? fromStorage.countryCode.toUpperCase() : emptyAccount.countryCode,
+    groupId: typeof fromStorage?.groupId === 'string' && fromStorage.groupId.trim() ? fromStorage.groupId.trim() : null,
     isBanned: Boolean(fromStorage?.isBanned ?? fromStorage?.banned),
     notes: typeof fromStorage?.notes === 'string' ? fromStorage.notes : emptyAccount.notes,
     ranks: roleTemplate.map((role, rankIdx) => {
@@ -1543,6 +1696,36 @@ const loadStoredAccounts = () => {
     return rowsFromStorage.map((entry, idx) => normalizeStoredAccount(entry, idx + 1))
   } catch {
     return buildEmptyAccounts()
+  }
+}
+
+const loadStoredGroups = (storedAccounts: AccountRow[]) => {
+  if (!import.meta.client || tauriDesktop) {
+    return [] as AccountGroup[]
+  }
+
+  const raw = localStorage.getItem(UI_SETTINGS_KEY)
+  if (!raw) {
+    return [] as AccountGroup[]
+  }
+
+  try {
+    const parsed = JSON.parse(raw)
+    const storedGroups = Array.isArray(parsed?.groups) ? parsed.groups : []
+    const normalizedGroups = storedGroups
+      .map((entry: unknown, idx: number) => normalizeStoredGroup(entry, idx + 1))
+      .filter((entry): entry is AccountGroup => Boolean(entry))
+
+    const validGroupIds = new Set(normalizedGroups.map((group) => group.id))
+    for (const account of storedAccounts) {
+      if (account.groupId && !validGroupIds.has(account.groupId)) {
+        account.groupId = null
+      }
+    }
+
+    return normalizedGroups
+  } catch {
+    return [] as AccountGroup[]
   }
 }
 
@@ -1654,12 +1837,23 @@ const rankNumberPlatformOffsetX = import.meta.client && isTauri() ? -1 : 0
 const rankNumberPlatformOffsetY = import.meta.client && isTauri() ? 1 : 0
 const rankNumberPlatformFontAdjust = import.meta.client && isTauri() ? -1 : 0
 
-const accounts = ref<AccountRow[]>(loadStoredAccounts())
+const initialAccounts = loadStoredAccounts()
+const accounts = ref<AccountRow[]>(initialAccounts)
+const accountGroups = ref<AccountGroup[]>(loadStoredGroups(initialAccounts))
 const activeRoleSort = ref<RoleSortState | null>(null)
 const customAccountOrderIds = ref<number[]>(accounts.value.map((account) => account.id))
 const normalAccounts = computed(() => accounts.value.filter((account) => !account.isBanned))
 const bannedAccounts = computed(() => accounts.value.filter((account) => account.isBanned))
 const lastNormalAccountId = computed(() => normalAccounts.value.at(-1)?.id ?? null)
+
+type RenderEntry =
+  | { key: string; kind: 'group-block'; group: AccountGroup; isBanned: boolean; accountCount: number; accounts: AccountRow[] }
+  | { key: string; kind: 'account'; account: AccountRow }
+  | { key: string; kind: 'banned-divider' }
+
+type SectionLayoutSlot =
+  | { kind: 'ungrouped-slot' }
+  | { kind: 'group'; groupId: string }
 
 const sortableRoleHeaders = [
   { index: 0, label: 'Tank', icon: tankRoleIcon },
@@ -1706,9 +1900,148 @@ const getSectionedAccounts = (sourceAccounts: AccountRow[]) => {
   ]
 }
 
-const shouldRenderBannedDividerAfter = (accountId: number) => (
-  bannedAccounts.value.length > 0 && lastNormalAccountId.value === accountId
-)
+const buildSectionLayoutSlots = (sourceAccounts: AccountRow[], isBanned: boolean) => {
+  const groupsById = new Map(accountGroups.value.map((group) => [group.id, group] as const))
+  const customOrderedAccounts = getAccountCustomOrder(sourceAccounts)
+  const slots: SectionLayoutSlot[] = []
+  const seenGroupIds = new Set<string>()
+  const section = isBanned ? 'banned' : 'normal'
+  const sectionAccountIds = new Set(customOrderedAccounts.map((account) => account.id))
+  const emptyGroupsBeforeAccount = new Map<number, string[]>()
+  const emptyGroupsAfterAccount = new Map<number, string[]>()
+  const trailingEmptyGroupIds: string[] = []
+
+  for (const account of customOrderedAccounts) {
+    const groupId = account.groupId
+    if (groupId && groupsById.has(groupId)) {
+      seenGroupIds.add(groupId)
+    }
+  }
+
+  for (const group of accountGroups.value) {
+    if (seenGroupIds.has(group.id) || group.section !== section) {
+      continue
+    }
+
+    if (group.anchorAccountId !== null && sectionAccountIds.has(group.anchorAccountId)) {
+      const targetBucket = group.anchorPosition === 'before' ? emptyGroupsBeforeAccount : emptyGroupsAfterAccount
+      const existingGroupIds = targetBucket.get(group.anchorAccountId) ?? []
+      existingGroupIds.push(group.id)
+      targetBucket.set(group.anchorAccountId, existingGroupIds)
+      continue
+    }
+
+    trailingEmptyGroupIds.push(group.id)
+  }
+
+  for (const account of customOrderedAccounts) {
+    const groupsBeforeAccount = emptyGroupsBeforeAccount.get(account.id) ?? []
+    for (const groupId of groupsBeforeAccount) {
+      slots.push({ kind: 'group', groupId })
+    }
+
+    const groupId = account.groupId
+    if (!groupId || !groupsById.has(groupId)) {
+      slots.push({ kind: 'ungrouped-slot' })
+    } else if (!slots.some((slot) => slot.kind === 'group' && slot.groupId === groupId)) {
+      slots.push({ kind: 'group', groupId })
+    }
+
+    const groupsAfterAccount = emptyGroupsAfterAccount.get(account.id) ?? []
+    for (const emptyGroupId of groupsAfterAccount) {
+      slots.push({ kind: 'group', groupId: emptyGroupId })
+    }
+  }
+
+  for (const groupId of trailingEmptyGroupIds) {
+    slots.push({ kind: 'group', groupId })
+  }
+
+  return {
+    customOrderedAccounts,
+    groupsById,
+    slots
+  }
+}
+
+const buildRenderEntriesForSection = (sectionAccounts: AccountRow[], isBanned: boolean): RenderEntry[] => {
+  const entries: RenderEntry[] = []
+  const { customOrderedAccounts, groupsById, slots } = buildSectionLayoutSlots(sectionAccounts, isBanned)
+  const ungroupedAccounts = customOrderedAccounts.filter((account) => !account.groupId || !groupsById.has(account.groupId))
+  const groupedAccountsById = new Map<string, AccountRow[]>()
+
+  for (const account of customOrderedAccounts) {
+    if (!account.groupId) {
+      continue
+    }
+
+    const group = groupsById.get(account.groupId)
+    if (!group) {
+      continue
+    }
+
+    const existingGroupAccounts = groupedAccountsById.get(group.id) ?? []
+    existingGroupAccounts.push(account)
+    groupedAccountsById.set(group.id, existingGroupAccounts)
+  }
+
+  for (const slot of slots) {
+    if (slot.kind === 'ungrouped-slot') {
+      const account = ungroupedAccounts.shift()
+      if (!account) {
+        continue
+      }
+      entries.push({
+        key: `account-${account.id}`,
+        kind: 'account',
+        account
+      })
+      continue
+    }
+
+    const group = groupsById.get(slot.groupId)
+    if (!group) {
+      continue
+    }
+    const groupAccounts = groupedAccountsById.get(group.id) ?? []
+
+    entries.push({
+      key: `group-${isBanned ? 'b' : 'n'}-${group.id}`,
+      kind: 'group-block',
+      group,
+      isBanned,
+      accountCount: groupAccounts.length,
+      accounts: groupAccounts
+    })
+  }
+
+  return entries
+}
+
+const renderEntries = computed<RenderEntry[]>(() => {
+  const orderedAccounts = getSectionedAccounts(accounts.value)
+  const entries: RenderEntry[] = orderedAccounts
+    .filter((account) => !account.isBanned)
+    .map((account) => ({
+      key: `account-${account.id}`,
+      kind: 'account',
+      account
+    }))
+  if (normalAccounts.value.length === 0 && bannedAccounts.value.length > 0) {
+    entries.push({ key: 'banned-divider-top', kind: 'banned-divider' })
+  } else if (lastNormalAccountId.value !== null && bannedAccounts.value.length > 0) {
+    entries.push({ key: 'banned-divider', kind: 'banned-divider' })
+  }
+
+  entries.push(...orderedAccounts
+    .filter((account) => account.isBanned)
+    .map((account) => ({
+      key: `account-${account.id}`,
+      kind: 'account',
+      account
+    })))
+  return entries
+})
 
 const getRankSortScore = (rank: RankEntry) => {
   const tierScore = rankTierSortValue[rank.tier] ?? 0
@@ -1784,6 +2117,7 @@ const buildAccountsPayload = () => accounts.value.map((account) => ({
   email: account.email,
   password: account.password,
   countryCode: account.countryCode,
+  groupId: account.groupId,
   isBanned: account.isBanned,
   notes: account.notes,
   ranks: account.ranks.map((rank) => ({
@@ -1800,6 +2134,15 @@ const buildAccountsPayload = () => accounts.value.map((account) => ({
   valuesB: [...account.valuesB]
 }))
 
+const buildGroupsPayload = () => accountGroups.value.map((group) => ({
+  id: group.id,
+  name: group.name,
+  collapsed: group.collapsed,
+  section: group.section,
+  anchorAccountId: group.anchorAccountId,
+  anchorPosition: group.anchorPosition
+}))
+
 const buildUiSettingsPayload = () => ({
   showSixV6: showSixV6.value,
   showNonRankColumns: showNonRankColumns.value,
@@ -1809,7 +2152,8 @@ const buildUiSettingsPayload = () => ({
   clipboardClearTimerSeconds: normalizeClipboardClearTimer(clipboardClearTimerSeconds.value),
   rankNumberOffsetX: normalizeRankNumberOffset(rankNumberOffsetX.value),
   rankNumberOffsetY: normalizeRankNumberOffset(rankNumberOffsetY.value),
-  rankNumberFontSize: normalizeRankNumberFontSize(rankNumberFontSize.value)
+  rankNumberFontSize: normalizeRankNumberFontSize(rankNumberFontSize.value),
+  groups: buildGroupsPayload()
 })
 const currentUiScale = computed(() => uiZoom.value / 125)
 
@@ -2042,6 +2386,27 @@ const applyStoredUiSettings = (storedUiSettings: unknown) => {
   rankNumberFontSize.value = normalizeRankNumberFontSize(importedUiSettings?.rankNumberFontSize)
 }
 
+const applyStoredGroups = (storedGroups: unknown, storedUiSettings?: unknown) => {
+  const rawGroups = Array.isArray(storedGroups)
+    ? storedGroups
+    : Array.isArray((storedUiSettings as Record<string, unknown> | null | undefined)?.groups)
+      ? (storedUiSettings as Record<string, unknown>).groups as unknown[]
+      : []
+
+  const normalizedGroups = rawGroups
+    .map((entry: unknown, idx: number) => normalizeStoredGroup(entry, idx + 1))
+    .filter((entry): entry is AccountGroup => Boolean(entry))
+
+  const validGroupIds = new Set(normalizedGroups.map((group) => group.id))
+  for (const account of accounts.value) {
+    if (account.groupId && !validGroupIds.has(account.groupId)) {
+      account.groupId = null
+    }
+  }
+
+  accountGroups.value = normalizedGroups
+}
+
 const loadTauriStoredAppState = async () => {
   const parsedStoredAppState = parsePersistedAppStorage(await loadPersistedAppStorage())
   const storedAppState = parsedStoredAppState.payload
@@ -2051,12 +2416,14 @@ const loadTauriStoredAppState = async () => {
       .filter((entry: unknown) => entry && typeof entry === 'object')
       .map((entry: unknown, idx: number) => normalizeStoredAccount(entry, idx + 1))
     accounts.value = normalizedAccounts.length > 0 ? normalizedAccounts : buildEmptyAccounts()
+    applyStoredGroups(storedAppState.groups, storedAppState.uiSettings)
     applyStoredUiSettings(storedAppState.uiSettings)
     if (parsedStoredAppState.migratedLegacy) {
       await persistAppStorage()
     }
   } else {
     accounts.value = buildEmptyAccounts()
+    accountGroups.value = []
     applyStoredUiSettings(null)
     await persistAppStorage()
   }
@@ -2164,26 +2531,25 @@ watch(accounts, () => {
   }
 }, { deep: true })
 
+watch(accountGroups, () => {
+  schedulePersistAppStorage()
+  if (!import.meta.client || isTauri()) {
+    return
+  }
+
+  localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(buildUiSettingsPayload()))
+}, { deep: true })
+
 watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, uiZoom, () => accounts.value.length], () => {
   scheduleTauriWindowResize()
 })
 
-watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, uiZoom, clipboardClearTimerSeconds, rankNumberOffsetX, rankNumberOffsetY, rankNumberFontSize], ([sixV6Value, nonRankColumnsValue, leadButtonsValue, badgeAnimationsValue, zoomValue, clipboardTimerValue, rankOffsetXValue, rankOffsetYValue, rankFontSizeValue]) => {
+watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, uiZoom, clipboardClearTimerSeconds, rankNumberOffsetX, rankNumberOffsetY, rankNumberFontSize], () => {
   if (!import.meta.client) {
     return
   }
   if (!isTauri()) {
-    localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify({
-      showSixV6: sixV6Value,
-      showNonRankColumns: nonRankColumnsValue,
-      showLeadButtons: leadButtonsValue,
-      badgeAnimationsEnabled: badgeAnimationsValue,
-      uiZoom: normalizeUiZoom(zoomValue),
-      clipboardClearTimerSeconds: normalizeClipboardClearTimer(clipboardTimerValue),
-      rankNumberOffsetX: normalizeRankNumberOffset(rankOffsetXValue),
-      rankNumberOffsetY: normalizeRankNumberOffset(rankOffsetYValue),
-      rankNumberFontSize: normalizeRankNumberFontSize(rankFontSizeValue)
-    }))
+    localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(buildUiSettingsPayload()))
   }
   schedulePersistAppStorage()
 })
@@ -2532,6 +2898,11 @@ const closeAccountContextMenu = () => {
   accountContextMenuPositionStyle.value = {}
 }
 
+const closeGroupActionMenu = () => {
+  groupActionMenu.value = null
+  groupActionMenuPositionStyle.value = {}
+}
+
 const closeDeleteAccountModal = () => {
   deleteAccountModal.value = null
 }
@@ -2551,16 +2922,151 @@ const closeAccountInfoModal = () => {
   accountInfoNotesDraft.value = ''
 }
 
+const openCreateGroupModal = () => {
+  groupModalMode.value = 'create'
+  editingGroupId.value = ''
+  createGroupNameDraft.value = ''
+  requestAnimationFrame(() => {
+    createGroupModalOpen.value = true
+  })
+}
+
+const closeCreateGroupModal = () => {
+  createGroupModalOpen.value = false
+  createGroupNameDraft.value = ''
+  groupModalMode.value = 'create'
+  editingGroupId.value = ''
+}
+
+const createGroup = () => {
+  const groupName = normalizeGroupName(createGroupNameDraft.value)
+  if (!groupName) {
+    return
+  }
+
+  const duplicateGroup = accountGroups.value.find((group) => (
+    group.name.toLowerCase() === groupName.toLowerCase()
+    && group.id !== editingGroupId.value
+  ))
+  if (duplicateGroup) {
+    pushNotification('Group already exists', {
+      message: `Using the existing ${duplicateGroup.name} group instead.`,
+      kind: 'info'
+    })
+    return
+  }
+
+  if (groupModalMode.value === 'edit') {
+    const group = accountGroups.value.find((entry) => entry.id === editingGroupId.value)
+    if (!group) {
+      return
+    }
+
+    group.name = groupName
+    closeCreateGroupModal()
+    schedulePersistAppStorage()
+    pushNotification('Group updated', {
+      message: `${groupName} was renamed.`,
+      kind: 'success'
+    })
+    return
+  }
+
+  accountGroups.value.push({
+    id: buildGroupId(),
+    name: groupName,
+    collapsed: false,
+    section: 'normal',
+    anchorAccountId: null,
+    anchorPosition: 'after'
+  })
+  closeCreateGroupModal()
+  schedulePersistAppStorage()
+  pushNotification('Group created', {
+    message: `${groupName} is ready for accounts.`,
+    kind: 'success'
+  })
+}
+
+const toggleGroupCollapsed = (groupId: string) => {
+  const group = accountGroups.value.find((entry) => entry.id === groupId)
+  if (!group) {
+    return
+  }
+
+  group.collapsed = !group.collapsed
+}
+
+const removeGroup = (groupId: string) => {
+  closeGroupActionMenu()
+  const group = accountGroups.value.find((entry) => entry.id === groupId)
+  if (!group) {
+    return
+  }
+
+  for (const account of accounts.value) {
+    if (account.groupId === groupId) {
+      account.groupId = null
+    }
+  }
+
+  accountGroups.value = accountGroups.value.filter((entry) => entry.id !== groupId)
+  if (!activeRoleSort.value) {
+    syncCustomAccountOrderFromAccounts()
+  }
+  schedulePersistAppStorage()
+  pushNotification('Group removed', {
+    message: `${group.name} was deleted and its accounts were moved out.`,
+    kind: 'info'
+  })
+}
+
 const closeMenus = () => {
   closeSettingsMenu()
+  closeGroupActionMenu()
   closeAccountContextMenu()
+}
+
+const openGroupActionMenu = (groupId: string, event: MouseEvent) => {
+  commitActiveEditor()
+  closeMenus()
+  closeRankPicker()
+
+  const menuWidth = 180
+  const menuHeight = 88
+  const viewportPadding = 10
+  const maxLeft = window.innerWidth - menuWidth - viewportPadding
+  const maxTop = window.innerHeight - menuHeight - viewportPadding
+  const left = Math.max(viewportPadding, Math.min(event.clientX, maxLeft))
+  const top = Math.max(viewportPadding, Math.min(event.clientY, maxTop))
+
+  groupActionMenuPositionStyle.value = {
+    left: `${left}px`,
+    top: `${top}px`
+  }
+  groupActionMenu.value = { groupId }
+}
+
+const requestEditGroup = (groupId: string) => {
+  const group = accountGroups.value.find((entry) => entry.id === groupId)
+  if (!group) {
+    return
+  }
+
+  closeGroupActionMenu()
+  groupModalMode.value = 'edit'
+  editingGroupId.value = group.id
+  createGroupNameDraft.value = group.name
+  requestAnimationFrame(() => {
+    createGroupModalOpen.value = true
+  })
 }
 
 const toggleSettingsMenu = () => {
   settingsMenuOpen.value = !settingsMenuOpen.value
 }
 
-const applyImportedAppData = (parsed: { accounts?: unknown; uiSettings?: unknown }) => {
+const applyImportedAppData = (parsed: { accounts?: unknown; groups?: unknown; uiSettings?: unknown }) => {
   const importedAccounts = Array.isArray(parsed?.accounts) ? parsed.accounts : null
   if (!importedAccounts) {
     throw new Error('Invalid data file')
@@ -2571,6 +3077,7 @@ const applyImportedAppData = (parsed: { accounts?: unknown; uiSettings?: unknown
     .map((entry: unknown, idx: number) => normalizeStoredAccount(entry, idx + 1))
 
   accounts.value = normalizedAccounts.length > 0 ? normalizedAccounts : buildEmptyAccounts()
+  applyStoredGroups(parsed?.groups, parsed?.uiSettings)
   applyStoredUiSettings(parsed?.uiSettings)
   schedulePersistAppStorage(0)
   closeSettingsMenu()
@@ -2599,6 +3106,7 @@ const submitBackupTransfer = async () => {
         version: 2,
         exportedAt: new Date().toISOString(),
         accounts: buildAccountsPayload(),
+        groups: buildGroupsPayload(),
         uiSettings: buildUiSettingsPayload()
       }
 
@@ -2734,6 +3242,31 @@ const saveAccountInfo = () => {
   })
 }
 
+const moveAccountToGroup = (accountId: number, groupId: string) => {
+  const account = accounts.value.find((entry) => entry.id === accountId)
+  if (!account) {
+    closeAccountContextMenu()
+    return
+  }
+
+  const nextGroupId = accountGroups.value.some((group) => group.id === groupId) ? groupId : null
+  account.groupId = nextGroupId
+  if (activeRoleSort.value) {
+    applyRoleSort(activeRoleSort.value.roleIndex, activeRoleSort.value.direction)
+  } else {
+    restoreCustomAccountOrder()
+    syncCustomAccountOrderFromAccounts()
+  }
+  schedulePersistAppStorage()
+  closeAccountContextMenu()
+  pushNotification('Group updated', {
+    message: nextGroupId
+      ? `${getAccountNameForDisplay(account.id)} moved to ${accountGroups.value.find((group) => group.id === nextGroupId)?.name ?? 'group'}.`
+      : `${getAccountNameForDisplay(account.id)} moved to no group.`,
+    kind: 'success'
+  })
+}
+
 const saveCredentials = async () => {
   if (!credentialsModal.value) {
     return
@@ -2782,6 +3315,7 @@ const moveBar = (sourceAccountId: number, targetAccountId: number, position: 'be
   if (sourceIndex === -1 || targetIndex === -1) {
     return
   }
+
   const sourceAccount = accounts.value[sourceIndex]
   const targetAccount = accounts.value[targetIndex]
   if (!sourceAccount || !targetAccount || sourceAccount.isBanned !== targetAccount.isBanned) {
@@ -2803,6 +3337,413 @@ const moveBar = (sourceAccountId: number, targetAccountId: number, position: 'be
   }
 }
 
+const getSectionBoundaryInsertIndex = (
+  sourceAccounts: AccountRow[],
+  section: 'normal' | 'banned',
+  edge: 'start' | 'end'
+) => {
+  const isBanned = section === 'banned'
+  if (edge === 'start') {
+    const firstSectionIndex = sourceAccounts.findIndex((account) => account.isBanned === isBanned)
+    return firstSectionIndex === -1 ? sourceAccounts.length : firstSectionIndex
+  }
+
+  const sectionAccounts = sourceAccounts.filter((account) => account.isBanned === isBanned)
+  const lastSectionAccount = sectionAccounts.at(-1)
+  if (!lastSectionAccount) {
+    return getSectionBoundaryInsertIndex(sourceAccounts, section, 'start')
+  }
+
+  const lastSectionIndex = sourceAccounts.findIndex((account) => account.id === lastSectionAccount.id)
+  return lastSectionIndex === -1 ? sourceAccounts.length : lastSectionIndex + 1
+}
+
+const getRenderEntryIndexForGroup = (groupId: string, section: 'normal' | 'banned') => renderEntries.value.findIndex((entry) => (
+  entry.kind === 'group-block'
+  && entry.group.id === groupId
+  && (entry.isBanned ? 'banned' : 'normal') === section
+))
+
+const findNextSectionAccountIdFromRenderIndex = (section: 'normal' | 'banned', startIndex: number) => {
+  for (let index = startIndex + 1; index < renderEntries.value.length; index += 1) {
+    const entry = renderEntries.value[index]
+    if (entry?.kind === 'account' && (entry.account.isBanned ? 'banned' : 'normal') === section) {
+      return entry.account.id
+    }
+  }
+
+  return null
+}
+
+const findPreviousSectionAccountIdFromRenderIndex = (section: 'normal' | 'banned', startIndex: number) => {
+  for (let index = startIndex - 1; index >= 0; index -= 1) {
+    const entry = renderEntries.value[index]
+    if (entry?.kind === 'account' && (entry.account.isBanned ? 'banned' : 'normal') === section) {
+      return entry.account.id
+    }
+  }
+
+  return null
+}
+
+const getInsertIndexBeforeAccount = (sourceAccounts: AccountRow[], accountId: number) => {
+  const index = sourceAccounts.findIndex((account) => account.id === accountId)
+  return index === -1 ? -1 : index
+}
+
+const getInsertIndexAfterAccount = (sourceAccounts: AccountRow[], accountId: number) => {
+  const index = sourceAccounts.findIndex((account) => account.id === accountId)
+  return index === -1 ? -1 : index + 1
+}
+
+const resolveEmptyGroupOuterInsertIndex = (
+  sourceAccounts: AccountRow[],
+  section: 'normal' | 'banned',
+  groupId: string,
+  position: 'before' | 'after'
+) => {
+  const renderIndex = getRenderEntryIndexForGroup(groupId, section)
+  if (renderIndex === -1) {
+    return getSectionBoundaryInsertIndex(sourceAccounts, section, 'end')
+  }
+
+  const nextAccountId = findNextSectionAccountIdFromRenderIndex(section, renderIndex)
+  const previousAccountId = findPreviousSectionAccountIdFromRenderIndex(section, renderIndex)
+  if (position === 'before') {
+    if (previousAccountId !== null) {
+      return getInsertIndexAfterAccount(sourceAccounts, previousAccountId)
+    }
+    if (nextAccountId !== null) {
+      return getInsertIndexBeforeAccount(sourceAccounts, nextAccountId)
+    }
+    return getSectionBoundaryInsertIndex(sourceAccounts, section, 'start')
+  }
+
+  if (nextAccountId !== null) {
+    return getInsertIndexBeforeAccount(sourceAccounts, nextAccountId)
+  }
+  if (previousAccountId !== null) {
+    return getInsertIndexAfterAccount(sourceAccounts, previousAccountId)
+  }
+  return getSectionBoundaryInsertIndex(sourceAccounts, section, 'end')
+}
+
+const resolveEmptyGroupInsideInsertIndex = (
+  sourceAccounts: AccountRow[],
+  section: 'normal' | 'banned',
+  groupId: string
+) => {
+  const renderIndex = getRenderEntryIndexForGroup(groupId, section)
+  if (renderIndex === -1) {
+    return getSectionBoundaryInsertIndex(sourceAccounts, section, 'end')
+  }
+
+  const nextAccountId = findNextSectionAccountIdFromRenderIndex(section, renderIndex)
+  if (nextAccountId !== null) {
+    return getInsertIndexBeforeAccount(sourceAccounts, nextAccountId)
+  }
+
+  const previousAccountId = findPreviousSectionAccountIdFromRenderIndex(section, renderIndex)
+  if (previousAccountId !== null) {
+    return getInsertIndexAfterAccount(sourceAccounts, previousAccountId)
+  }
+
+  return getSectionBoundaryInsertIndex(sourceAccounts, section, 'end')
+}
+
+const moveAccountByTarget = (
+  sourceAccountId: number,
+  target: { targetKind: 'account' | 'group' | 'group-inside'; accountId: number | null; groupId: string; section: 'normal' | 'banned' },
+  position: 'before' | 'after'
+) => {
+  const sourceIndex = accounts.value.findIndex((account) => account.id === sourceAccountId)
+  if (sourceIndex === -1) {
+    return
+  }
+
+  const sourceAccount = accounts.value[sourceIndex]
+  if (!sourceAccount || (sourceAccount.isBanned ? 'banned' : 'normal') !== target.section) {
+    return
+  }
+
+  const nextAccounts = [...accounts.value]
+  const [movedAccount] = nextAccounts.splice(sourceIndex, 1)
+  if (!movedAccount) {
+    return
+  }
+
+  let nextGroupId: string | null = null
+  let insertIndex = -1
+  let targetEmptyGroupPlacement: { groupId: string; anchorAccountId: number; anchorPosition: 'before' | 'after'; section: 'normal' | 'banned' } | null = null
+
+  if (target.targetKind === 'account' && target.accountId !== null) {
+    const targetAccount = nextAccounts.find((account) => account.id === target.accountId)
+    if (!targetAccount || targetAccount.isBanned !== sourceAccount.isBanned) {
+      return
+    }
+
+    nextGroupId = targetAccount.groupId
+    insertIndex = position === 'before'
+      ? getInsertIndexBeforeAccount(nextAccounts, targetAccount.id)
+      : getInsertIndexAfterAccount(nextAccounts, targetAccount.id)
+  } else if (target.targetKind === 'group-inside') {
+    const targetGroup = accountGroups.value.find((group) => group.id === target.groupId)
+    if (!targetGroup || targetGroup.section !== target.section) {
+      return
+    }
+
+    nextGroupId = target.groupId
+    const targetGroupAccounts = nextAccounts.filter((account) => (
+      account.groupId === target.groupId
+      && account.isBanned === sourceAccount.isBanned
+    ))
+
+    if (targetGroupAccounts.length > 0) {
+      const boundaryAccountId = position === 'before'
+        ? (targetGroupAccounts[0]?.id ?? null)
+        : (targetGroupAccounts.at(-1)?.id ?? null)
+      if (boundaryAccountId !== null) {
+        insertIndex = position === 'before'
+          ? getInsertIndexBeforeAccount(nextAccounts, boundaryAccountId)
+          : getInsertIndexAfterAccount(nextAccounts, boundaryAccountId)
+      }
+    } else {
+      insertIndex = resolveEmptyGroupInsideInsertIndex(nextAccounts, target.section, target.groupId)
+    }
+  } else if (target.targetKind === 'group') {
+    nextGroupId = null
+    const targetGroupAccounts = nextAccounts.filter((account) => (
+      account.groupId === target.groupId
+      && account.isBanned === sourceAccount.isBanned
+    ))
+
+    if (targetGroupAccounts.length > 0) {
+      const boundaryAccountId = position === 'before'
+        ? (targetGroupAccounts[0]?.id ?? null)
+        : (targetGroupAccounts.at(-1)?.id ?? null)
+      if (boundaryAccountId !== null) {
+        insertIndex = position === 'before'
+          ? getInsertIndexBeforeAccount(nextAccounts, boundaryAccountId)
+          : getInsertIndexAfterAccount(nextAccounts, boundaryAccountId)
+      }
+    } else {
+      const groupRenderIndex = getRenderEntryIndexForGroup(target.groupId, target.section)
+      if (groupRenderIndex !== -1) {
+        const adjacentAccountId = position === 'before'
+          ? findPreviousSectionAccountIdFromRenderIndex(target.section, groupRenderIndex)
+          : findNextSectionAccountIdFromRenderIndex(target.section, groupRenderIndex)
+        if (adjacentAccountId === sourceAccountId) {
+          return
+        }
+      }
+
+      insertIndex = resolveEmptyGroupOuterInsertIndex(nextAccounts, target.section, target.groupId, position)
+      targetEmptyGroupPlacement = {
+        groupId: target.groupId,
+        section: target.section,
+        anchorAccountId: movedAccount.id,
+        anchorPosition: position === 'before' ? 'after' : 'before'
+      }
+    }
+  }
+
+  if (insertIndex === -1) {
+    insertIndex = getSectionBoundaryInsertIndex(nextAccounts, target.section, 'end')
+  }
+
+  const sourceGroupId = sourceAccount.groupId
+  const shouldAnchorSourceGroup = Boolean(sourceGroupId) && sourceGroupId !== nextGroupId && accounts.value.filter((account) => (
+    account.groupId === sourceGroupId
+    && account.isBanned === sourceAccount.isBanned
+  )).length === 1
+
+  if (shouldAnchorSourceGroup && sourceGroupId) {
+    const nextSameSectionAccount = nextAccounts.find((account, index) => index >= sourceIndex && account.isBanned === sourceAccount.isBanned)
+    const previousSameSectionAccount = [...nextAccounts]
+      .slice(0, sourceIndex)
+      .reverse()
+      .find((account) => account.isBanned === sourceAccount.isBanned)
+
+    updateGroupPlacement(sourceGroupId, {
+      section: sourceAccount.isBanned ? 'banned' : 'normal',
+      anchorAccountId: nextSameSectionAccount?.id ?? previousSameSectionAccount?.id ?? null,
+      anchorPosition: nextSameSectionAccount ? 'before' : 'after'
+    })
+  }
+
+  movedAccount.groupId = nextGroupId
+  nextAccounts.splice(insertIndex, 0, movedAccount)
+  accounts.value = nextAccounts
+
+  if (targetEmptyGroupPlacement) {
+    updateGroupPlacement(targetEmptyGroupPlacement.groupId, {
+      section: targetEmptyGroupPlacement.section,
+      anchorAccountId: targetEmptyGroupPlacement.anchorAccountId,
+      anchorPosition: targetEmptyGroupPlacement.anchorPosition
+    })
+  }
+
+  if (nextGroupId) {
+    const targetGroup = accountGroups.value.find((group) => group.id === nextGroupId)
+    if (targetGroup) {
+      updateGroupPlacement(nextGroupId, {
+        section: targetGroup.section,
+        anchorAccountId: null
+      })
+    }
+  }
+
+  if (activeRoleSort.value) {
+    applyRoleSort(activeRoleSort.value.roleIndex, activeRoleSort.value.direction)
+  } else {
+    syncCustomAccountOrderFromAccounts()
+  }
+  schedulePersistAppStorage()
+}
+
+const moveGroup = (sourceGroupId: string, targetGroupId: string, position: 'before' | 'after') => {
+  if (sourceGroupId === targetGroupId) {
+    return
+  }
+
+  const sourceIndex = accountGroups.value.findIndex((group) => group.id === sourceGroupId)
+  const targetIndex = accountGroups.value.findIndex((group) => group.id === targetGroupId)
+  if (sourceIndex === -1 || targetIndex === -1) {
+    return
+  }
+
+  const nextGroups = [...accountGroups.value]
+  const [movedGroup] = nextGroups.splice(sourceIndex, 1)
+  if (!movedGroup) {
+    return
+  }
+
+  const adjustedTargetIndex = nextGroups.findIndex((group) => group.id === targetGroupId)
+  const insertIndex = position === 'before' ? adjustedTargetIndex : adjustedTargetIndex + 1
+  nextGroups.splice(insertIndex, 0, movedGroup)
+  accountGroups.value = nextGroups
+  schedulePersistAppStorage()
+}
+
+const updateGroupPlacement = (
+  groupId: string,
+  placement: Partial<Pick<AccountGroup, 'section' | 'anchorAccountId' | 'anchorPosition'>>
+) => {
+  const groupIndex = accountGroups.value.findIndex((group) => group.id === groupId)
+  if (groupIndex === -1) {
+    return
+  }
+
+  const nextGroups = [...accountGroups.value]
+  const group = nextGroups[groupIndex]
+  if (!group) {
+    return
+  }
+
+  nextGroups[groupIndex] = {
+    ...group,
+    ...placement
+  }
+  accountGroups.value = nextGroups
+  schedulePersistAppStorage()
+}
+
+const moveGroupBlock = (
+  sourceGroupId: string,
+  sourceSection: 'normal' | 'banned',
+  target: { kind: 'group'; groupId: string } | { kind: 'account'; accountId: number },
+  position: 'before' | 'after'
+) => {
+  const sourceIsBanned = sourceSection === 'banned'
+  const sourceGroupAccounts = accounts.value.filter((account) => account.isBanned === sourceIsBanned && account.groupId === sourceGroupId)
+  const sourceGroup = accountGroups.value.find((group) => group.id === sourceGroupId)
+  if (!sourceGroup) {
+    return
+  }
+
+  if (sourceGroupAccounts.length === 0) {
+    if (target.kind === 'account') {
+      const targetAccount = accounts.value.find((account) => account.id === target.accountId)
+      if (!targetAccount) {
+        return
+      }
+
+      updateGroupPlacement(sourceGroupId, {
+        section: targetAccount.isBanned ? 'banned' : 'normal',
+        anchorAccountId: targetAccount.id,
+        anchorPosition: position
+      })
+      return
+    }
+
+    if (target.kind === 'group') {
+      const targetGroupAccounts = accounts.value.filter((account) => (
+        account.isBanned === sourceIsBanned
+        && account.groupId === target.groupId
+      ))
+      if (targetGroupAccounts.length > 0) {
+        updateGroupPlacement(sourceGroupId, {
+          section: sourceSection,
+          anchorAccountId: position === 'before'
+            ? (targetGroupAccounts[0]?.id ?? null)
+            : (targetGroupAccounts.at(-1)?.id ?? null),
+          anchorPosition: position
+        })
+      } else {
+        const targetGroup = accountGroups.value.find((group) => group.id === target.groupId)
+        updateGroupPlacement(sourceGroupId, {
+          section: targetGroup?.section ?? sourceGroup.section,
+          anchorAccountId: targetGroup?.anchorAccountId ?? null,
+          anchorPosition: targetGroup?.anchorPosition ?? 'after'
+        })
+      }
+      moveGroup(sourceGroupId, target.groupId, position)
+    }
+    return
+  }
+
+  const sourceGroupIds = new Set(sourceGroupAccounts.map((account) => account.id))
+  const nextAccounts = accounts.value.filter((account) => !sourceGroupIds.has(account.id))
+  let insertIndex = -1
+
+  if (target.kind === 'account') {
+    const targetIndex = nextAccounts.findIndex((account) => account.id === target.accountId)
+    if (targetIndex !== -1) {
+      insertIndex = position === 'before' ? targetIndex : targetIndex + 1
+    }
+  } else {
+    const targetGroupAccounts = nextAccounts.filter((account) => account.isBanned === sourceIsBanned && account.groupId === target.groupId)
+    if (targetGroupAccounts.length > 0) {
+      const firstTargetIndex = nextAccounts.findIndex((account) => account.id === targetGroupAccounts[0]?.id)
+      const lastTargetIndex = nextAccounts.findIndex((account) => account.id === targetGroupAccounts.at(-1)?.id)
+      insertIndex = position === 'before' ? firstTargetIndex : lastTargetIndex + 1
+    }
+  }
+
+  if (insertIndex === -1) {
+    const sectionAccounts = nextAccounts.filter((account) => account.isBanned === sourceIsBanned)
+    const fallbackTarget = position === 'before' ? sectionAccounts[0] : sectionAccounts.at(-1)
+    if (!fallbackTarget) {
+      accounts.value = sourceIsBanned
+        ? [...nextAccounts.filter((account) => !account.isBanned), ...sourceGroupAccounts]
+        : [...sourceGroupAccounts, ...nextAccounts.filter((account) => account.isBanned)]
+    } else {
+      const fallbackIndex = nextAccounts.findIndex((account) => account.id === fallbackTarget.id)
+      insertIndex = position === 'before' ? fallbackIndex : fallbackIndex + 1
+    }
+  }
+
+  if (insertIndex !== -1) {
+    nextAccounts.splice(insertIndex, 0, ...sourceGroupAccounts)
+    accounts.value = nextAccounts
+  }
+
+  if (!activeRoleSort.value) {
+    syncCustomAccountOrderFromAccounts()
+  }
+  schedulePersistAppStorage()
+}
+
 const isInteractiveDragTarget = (target: EventTarget | null) => {
   if (!(target instanceof Element)) {
     return false
@@ -2810,6 +3751,17 @@ const isInteractiveDragTarget = (target: EventTarget | null) => {
 
   return Boolean(target.closest('button, input'))
 }
+
+const buildAccountDragLayout = () => accounts.value.map((account) => {
+  const element = dragElements.get(account.id) ?? document.querySelector<HTMLElement>(`[data-bar-id="${account.id}"]`)
+  const rect = element?.getBoundingClientRect()
+
+  return {
+    accountId: account.id,
+    top: rect?.top ?? 0,
+    height: rect?.height ?? 0
+  }
+})
 
 const updateDragTarget = (clientY: number) => {
   if (!import.meta.client || !draggedAccountId.value) {
@@ -2847,16 +3799,103 @@ const updateDragTarget = (clientY: number) => {
 
   moveBar(draggedAccountId.value, targetAccountId, position)
   nextTick(() => {
-    dragLayout.value = accounts.value.map((account) => {
-      const element = dragElements.get(account.id) ?? document.querySelector<HTMLElement>(`[data-bar-id="${account.id}"]`)
-      const rect = element?.getBoundingClientRect()
+    dragLayout.value = buildAccountDragLayout()
+  })
+}
 
-      return {
-        accountId: account.id,
-        top: rect?.top ?? 0,
-        height: rect?.height ?? 0
-      }
-    })
+const syncGroupDragLayout = (section: 'normal' | 'banned') => {
+  groupDragLayout.value = renderEntries.value.flatMap((entry) => {
+    if (
+      (entry.kind === 'group-block' && (entry.isBanned ? 'banned' : 'normal') !== section)
+      || (entry.kind === 'account' && section !== (entry.account.isBanned ? 'banned' : 'normal'))
+      || entry.kind === 'banned-divider'
+    ) {
+      return []
+    }
+
+    const groupExists = entry.kind === 'account' && accountGroups.value.some((group) => group.id === entry.account.groupId)
+    if (entry.kind === 'account' && groupExists) {
+      return []
+    }
+
+    const element = groupDragElements.get(entry.key) ?? document.querySelector<HTMLElement>(
+      entry.kind === 'group-block'
+        ? `[data-group-entry-key="${entry.key}"]`
+        : `[data-bar-id="${entry.account.id}"]`
+    )
+    const rect = element?.getBoundingClientRect()
+    return [{
+      entryKey: entry.key,
+      groupId: entry.kind === 'group-block' ? entry.group.id : '',
+      section,
+      targetKind: entry.kind === 'group-block' ? 'group' : 'account',
+      accountId: entry.kind === 'account' ? entry.account.id : null,
+      top: rect?.top ?? 0,
+      height: rect?.height ?? 0
+    }]
+  })
+}
+
+const createGroupDragClone = (sourceElement: HTMLElement, sourceRect: DOMRect, event: PointerEvent) => {
+  groupDragSourceElement = sourceElement
+  groupDragCloneElement = sourceElement.cloneNode(true) as HTMLElement
+  const cloneScale = currentUiScale.value
+  const pointerOffsetY = event.clientY - sourceRect.top
+  groupDragCloneElement.style.position = 'fixed'
+  groupDragCloneElement.style.left = `${sourceRect.left}px`
+  groupDragCloneElement.style.top = `${event.clientY - pointerOffsetY}px`
+  groupDragCloneElement.style.width = `${sourceRect.width / cloneScale}px`
+  groupDragCloneElement.style.height = `${sourceRect.height / cloneScale}px`
+  groupDragCloneElement.style.zIndex = '60'
+  groupDragCloneElement.style.pointerEvents = 'none'
+  groupDragCloneElement.style.margin = '0'
+  groupDragCloneElement.style.opacity = '1'
+  groupDragCloneElement.style.boxShadow = '0 12px 24px rgba(0,0,0,0.28)'
+  groupDragCloneElement.style.transition = 'none'
+  groupDragCloneElement.style.transformOrigin = 'top left'
+  groupDragCloneElement.style.transform = `scale(${cloneScale})`
+  document.body.appendChild(groupDragCloneElement)
+  groupDragSourceElement.style.opacity = '0'
+}
+
+const updateGroupDragTarget = (clientY: number) => {
+  if (!import.meta.client || !groupPointerDrag.value || !draggedGroupEntryKey.value) {
+    return
+  }
+
+  const barElements = groupDragLayout.value.filter((entry) => (
+    entry.entryKey !== groupPointerDrag.value?.entryKey
+    && entry.section === groupPointerDrag.value?.section
+  ))
+  if (barElements.length === 0) {
+    return
+  }
+
+  let targetEntry = barElements[barElements.length - 1]
+  let position: 'before' | 'after' = 'after'
+
+  for (const entry of barElements) {
+    const { top, height } = entry
+    const midpoint = top + (height / 2)
+    if (clientY < midpoint) {
+      targetEntry = entry
+      position = 'before'
+      break
+    }
+  }
+
+  moveGroupBlock(
+    groupPointerDrag.value.groupId,
+    groupPointerDrag.value.section,
+    targetEntry.targetKind === 'group'
+      ? { kind: 'group', groupId: targetEntry.groupId }
+      : { kind: 'account', accountId: targetEntry.accountId ?? -1 },
+    position
+  )
+  nextTick(() => {
+    if (groupPointerDrag.value) {
+      syncGroupDragLayout(groupPointerDrag.value.section)
+    }
   })
 }
 
@@ -2895,6 +3934,43 @@ const resetDragState = () => {
     cancelAnimationFrame(pointerFrameId)
   }
   pointerFrameId = null
+}
+
+const resetGroupDragState = () => {
+  if (import.meta.client) {
+    document.removeEventListener('pointermove', handleWindowGroupPointerMove)
+    document.removeEventListener('pointerup', handleWindowGroupPointerUp)
+    document.removeEventListener('pointercancel', handleWindowGroupPointerUp)
+  }
+
+  for (const element of groupDragElements.values()) {
+    element.style.opacity = ''
+  }
+  if (groupDragSourceElement) {
+    groupDragSourceElement.style.opacity = ''
+  }
+
+  if (groupDragCloneElement) {
+    groupDragCloneElement.remove()
+  }
+
+  draggedGroupEntryKey.value = null
+  groupPointerDrag.value = null
+  groupDragLayout.value = []
+  groupDragElements = new Map()
+  groupDragCloneElement = null
+  groupDragSourceElement = null
+  if (groupDragPointerElement) {
+    groupDragPointerElement.removeEventListener('pointermove', handleWindowGroupPointerMove)
+    groupDragPointerElement.removeEventListener('pointerup', handleWindowGroupPointerUp)
+    groupDragPointerElement.removeEventListener('pointercancel', handleWindowGroupPointerUp)
+  }
+  groupDragPointerElement = null
+  pendingGroupPointerY = null
+  if (import.meta.client && groupPointerFrameId !== null) {
+    cancelAnimationFrame(groupPointerFrameId)
+  }
+  groupPointerFrameId = null
 }
 
 const handleBarPointerDown = (accountId: number, event: PointerEvent) => {
@@ -2960,16 +4036,76 @@ const handleBarPointerDown = (accountId: number, event: PointerEvent) => {
     anchorOffsetY: sourceRect.height / 2,
     clonePointerOffsetY: pointerOffsetY
   }
-  dragLayout.value = accounts.value.map((account) => {
-    const element = dragElements.get(account.id)
-    const rect = element?.getBoundingClientRect()
+  dragLayout.value = buildAccountDragLayout()
+}
 
-    return {
-      accountId: account.id,
-      top: rect?.top ?? 0,
-      height: rect?.height ?? 0
-    }
-  })
+const handleGroupHeaderClick = (groupId: string, entryKey: string, event: MouseEvent) => {
+  if (suppressGroupHeaderClickKey === entryKey) {
+    suppressGroupHeaderClickKey = null
+    event.preventDefault()
+    return
+  }
+
+  if (isInteractiveDragTarget(event.target)) {
+    return
+  }
+
+  toggleGroupCollapsed(groupId)
+}
+
+const handleGroupHeaderPointerDown = (groupId: string, entryKey: string, section: 'normal' | 'banned', event: PointerEvent) => {
+  if (event.button !== 0 || isInteractiveDragTarget(event.target)) {
+    return
+  }
+
+  commitActiveEditor()
+  closeMenus()
+  closeRankPicker()
+
+  const sourceElement = ((event.currentTarget as HTMLElement | null)?.closest('[data-group-entry-key]')) as HTMLElement | null
+  const sourceRect = sourceElement?.getBoundingClientRect()
+  if (!sourceElement || !sourceRect) {
+    return
+  }
+
+  groupDragElements = new Map(
+    renderEntries.value.flatMap((entry) => {
+      if (entry.kind !== 'group-block' || (entry.isBanned ? 'banned' : 'normal') !== section) {
+        return []
+      }
+
+      const element = document.querySelector<HTMLElement>(`[data-group-entry-key="${entry.key}"]`)
+      return element ? [[entry.key, element] as const] : []
+    })
+  )
+  groupDragElements.set(entryKey, sourceElement)
+
+  try {
+    sourceElement.setPointerCapture(event.pointerId)
+  } catch {
+    // Pointer capture is optional; drag still works if the browser rejects it.
+  }
+  document.addEventListener('pointermove', handleWindowGroupPointerMove)
+  document.addEventListener('pointerup', handleWindowGroupPointerUp)
+  document.addEventListener('pointercancel', handleWindowGroupPointerUp)
+  sourceElement.addEventListener('pointermove', handleWindowGroupPointerMove)
+  sourceElement.addEventListener('pointerup', handleWindowGroupPointerUp)
+  sourceElement.addEventListener('pointercancel', handleWindowGroupPointerUp)
+  groupDragPointerElement = sourceElement
+
+  groupPointerDrag.value = {
+    groupId,
+    entryKey,
+    section,
+    pointerId: event.pointerId,
+    startY: event.clientY,
+    currentY: event.clientY,
+    height: sourceRect.height,
+    anchorOffsetY: sourceRect.height / 2,
+    clonePointerOffsetY: event.clientY - sourceRect.top,
+    sourceRect
+  }
+  syncGroupDragLayout(section)
 }
 
 const handleWindowPointerMove = (event: PointerEvent) => {
@@ -3009,6 +4145,48 @@ const handleWindowPointerMove = (event: PointerEvent) => {
   })
 }
 
+const handleWindowGroupPointerMove = (event: PointerEvent) => {
+  if (!groupPointerDrag.value || event.pointerId !== groupPointerDrag.value.pointerId) {
+    return
+  }
+
+  event.preventDefault()
+  pendingGroupPointerY = event.clientY
+
+  if (groupPointerFrameId !== null) {
+    return
+  }
+
+  groupPointerFrameId = requestAnimationFrame(() => {
+    groupPointerFrameId = null
+
+    if (!groupPointerDrag.value || pendingGroupPointerY === null) {
+      return
+    }
+
+    groupPointerDrag.value.currentY = pendingGroupPointerY
+
+    if (!draggedGroupEntryKey.value && Math.abs(groupPointerDrag.value.currentY - groupPointerDrag.value.startY) > 6) {
+      draggedGroupEntryKey.value = groupPointerDrag.value.entryKey
+      suppressGroupHeaderClickKey = groupPointerDrag.value.entryKey
+      const sourceElement = groupDragElements.get(groupPointerDrag.value.entryKey)
+      if (sourceElement) {
+        createGroupDragClone(sourceElement, groupPointerDrag.value.sourceRect, event)
+      }
+    }
+
+    if (!draggedGroupEntryKey.value) {
+      return
+    }
+
+    const dragAnchorY = (groupPointerDrag.value.currentY - groupPointerDrag.value.anchorOffsetY) + (groupPointerDrag.value.height / 2)
+    updateGroupDragTarget(dragAnchorY)
+    if (groupDragCloneElement) {
+      groupDragCloneElement.style.top = `${groupPointerDrag.value.currentY - groupPointerDrag.value.clonePointerOffsetY}px`
+    }
+  })
+}
+
 const handleWindowPointerUp = (event: PointerEvent) => {
   if (!pointerDrag.value || event.pointerId !== pointerDrag.value.pointerId) {
     return
@@ -3020,6 +4198,19 @@ const handleWindowPointerUp = (event: PointerEvent) => {
     // Ignore browsers that do not keep pointer capture active here.
   }
   resetDragState()
+}
+
+const handleWindowGroupPointerUp = (event: PointerEvent) => {
+  if (!groupPointerDrag.value || event.pointerId !== groupPointerDrag.value.pointerId) {
+    return
+  }
+
+  try {
+    groupDragSourceElement?.releasePointerCapture(event.pointerId)
+  } catch {
+    // Ignore browsers that do not keep pointer capture active here.
+  }
+  resetGroupDragState()
 }
 
 const addRow = () => {

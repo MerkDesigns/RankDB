@@ -51,12 +51,22 @@ export type AccountRow = {
   email: string
   password: string
   countryCode: string
+  groupId: string | null
   isBanned: boolean
   notes: string
   ranks: RankEntry[]
   sixV6Rank: RankEntry
   valuesA: number[]
   valuesB: number[]
+}
+
+export type AccountGroup = {
+  id: string
+  name: string
+  collapsed: boolean
+  section: 'normal' | 'banned'
+  anchorAccountId: number | null
+  anchorPosition: 'before' | 'after'
 }
 
 export type EditableField =

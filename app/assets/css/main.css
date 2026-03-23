@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "RankBadgeNumber";
+  src: url("../../../assets/futura-no2-d-demi-bold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+}
+
 :root {
   color-scheme: dark;
 }
@@ -35,7 +43,7 @@ input[type="number"]::-webkit-inner-spin-button {
 
 .rank-division-number {
   color: #111827;
-  font-family: "DIN Alternate", "Segoe UI Variable Display", "Segoe UI", "Arial Narrow", Arial, sans-serif;
+  font-family: "RankBadgeNumber", sans-serif;
   font-size: 28px;
   font-weight: 700;
   line-height: 1;
@@ -45,6 +53,7 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .rank-picker-division-number {
+  font-family: "RankBadgeNumber", sans-serif;
   font-size: 27px;
   font-weight: 600;
   color: #f8fafc;

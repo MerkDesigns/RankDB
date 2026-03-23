@@ -29,7 +29,7 @@ export type NotificationToast = {
   id: number
   title: string
   message?: string
-  kind: 'success' | 'error' | 'info'
+  kind: 'success' | 'error' | 'info' | 'loading'
   duration: number
   showTimer: boolean
 }

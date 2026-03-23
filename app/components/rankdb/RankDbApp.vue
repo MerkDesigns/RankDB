@@ -343,12 +343,19 @@
         <button
           v-if="tauriDesktop"
           type="button"
-          class="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 text-[13px] font-semibold text-fuchsia-100 transition hover:bg-fuchsia-500/18 disabled:cursor-wait disabled:opacity-70"
+          class="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border px-3 text-[13px] font-semibold transition disabled:cursor-wait disabled:opacity-70"
+          :class="hasPendingAppUpdate
+            ? 'border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-100 hover:bg-fuchsia-500/18'
+            : 'border-[#272b35] bg-[#11141b] text-slate-100/95 hover:bg-[#181c26]'"
           :disabled="updateCheckBusy"
-          @click="checkForAppUpdates(false)"
+          @click="handleUpdateButtonClick"
         >
-          <span class="h-2.5 w-2.5 rounded-full bg-fuchsia-300/90" aria-hidden="true" />
-          {{ updateCheckBusy ? 'Checking for Updates...' : 'Check for Updates' }}
+          <span
+            class="h-2.5 w-2.5 rounded-full"
+            :class="hasPendingAppUpdate ? 'bg-fuchsia-300/90 shadow-[0_0_14px_rgba(244,114,182,0.7)]' : 'bg-slate-400/75'"
+            aria-hidden="true"
+          />
+          {{ updateCheckBusy ? 'Checking for Updates...' : hasPendingAppUpdate ? 'Update Available' : 'Check for Updates' }}
         </button>
 
         <input
@@ -446,6 +453,126 @@
       </div>
     </div>
 
+    <div
+      v-if="updateModalOpen && availableAppUpdate"
+      class="fixed inset-0 z-[56] bg-black/60"
+      @click="closeUpdateModal"
+    >
+      <div
+        class="absolute left-1/2 top-1/2 w-[460px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[12px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+        @click.stop
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-[18px] font-semibold tracking-tight text-slate-100">Update Available</h2>
+            <p class="mt-1 text-[13px] text-slate-300/85">
+              RankDB {{ availableAppUpdate.version }} is available.
+              Current version: {{ availableAppUpdate.currentVersion }}
+            </p>
+          </div>
+          <button
+            type="button"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]"
+            aria-label="Close update modal"
+            @click="closeUpdateModal"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="h-5 w-5"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]"
+            @click="closeUpdateModal"
+          >
+            Later
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-fuchsia-400/20 bg-fuchsia-500/15 px-4 text-[13px] font-semibold text-fuchsia-100 hover:bg-fuchsia-500/25 disabled:cursor-wait disabled:opacity-70"
+            :disabled="updateInstallBusy"
+            @click="installAvailableUpdate"
+          >
+            {{ updateInstallBusy ? 'Installing...' : 'Update Now' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="whatsNewModalOpen"
+      class="fixed inset-0 z-[57] bg-black/60"
+      @click="closeWhatsNewModal"
+    >
+      <div
+        class="absolute left-1/2 top-1/2 w-[500px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[12px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+        @click.stop
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-[18px] font-semibold tracking-tight text-slate-100">What&apos;s New</h2>
+            <p class="mt-1 text-[13px] text-slate-300/85">New in {{ appVersionLabel }}</p>
+          </div>
+          <button
+            type="button"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]"
+            aria-label="Close what's new modal"
+            @click="closeWhatsNewModal"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="h-5 w-5"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="mt-4 space-y-3">
+          <div
+            v-for="item in whatsNewItems"
+            :key="item.title"
+            class="rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 py-3"
+          >
+            <div class="text-[14px] font-semibold text-slate-100">{{ item.title }}</div>
+            <p class="mt-1 text-[13px] leading-6 text-slate-300/90">{{ item.description }}</p>
+          </div>
+        </div>
+
+        <div class="mt-5 flex justify-end">
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]"
+            @click="closeWhatsNewModal"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <RankDbRankPicker
       :divisions="divisions"
       :get-modal-option-opacity-class="getModalOptionOpacityClass"
@@ -463,11 +590,13 @@
     <RankDbAccountContextMenu
       :account-id="accountContextMenu?.accountId ?? null"
       :position-style="accountContextMenuPositionStyle"
+      :rank-refresh-busy="rankRefreshBusy"
       @account-info="requestAccountInfo"
       @close="closeAccountContextMenu"
       @delete-account="requestDeleteAccount"
       @edit-battletag="requestEditBattletag"
       @edit-credentials="requestEditCredentials"
+      @refresh-rank="refreshSingleAccountRank"
     />
 
     <RankDbDeleteModal
@@ -527,7 +656,7 @@ import RankDbDeleteModal from '~~/app/components/rankdb/RankDbDeleteModal.vue'
 import RankDbHeader from '~~/app/components/rankdb/RankDbHeader.vue'
 import RankDbNotifications from '~~/app/components/rankdb/RankDbNotifications.vue'
 import RankDbRankPicker from '~~/app/components/rankdb/RankDbRankPicker.vue'
-import rankBadgeFontUrl from '~~/assets/futura-no2-d-demi-bold.ttf?url'
+import tauriConfig from '~~/src-tauri/tauri.conf.json'
 import {
   BASE_MIN_WINDOW_WIDTH,
   DEFAULT_CLIPBOARD_CLEAR_SECONDS,
@@ -585,20 +714,41 @@ import type {
   RoleSortState
 } from '~~/app/types/rankdb'
 
+type AppUpdate = NonNullable<Awaited<ReturnType<typeof checkForUpdate>>>
+
 useHead({
   link: [
-    { rel: 'preload', href: rankBadgeFontUrl, as: 'font', type: 'font/ttf', crossorigin: '' },
     ...assetWarmupSources.slice(0, 10).map((href) => ({ rel: 'preload', href, as: 'image' as const }))
-  ],
-  style: [
-    {
-      key: 'rank-badge-font-face',
-      children: `@font-face{font-family:'Futura No2 Demi';src:url('${rankBadgeFontUrl}') format('truetype');font-weight:600;font-style:normal;font-display:swap;}`
-    }
   ]
 })
 
 const tauriDesktop = import.meta.client && isTauri()
+const WHATS_NEW_VERSION_KEY = 'rankdb_last_seen_version_v1'
+const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
+const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
+  [CURRENT_WHATS_NEW_VERSION]: [
+    {
+      title: 'Refresh Rank',
+      description: 'You can now refresh ranks from the account right-click menu instead of relying on manual updates.'
+    },
+    {
+      title: 'OWAPI Rank Sync',
+      description: 'Rank refresh now uses OWAPI for tank, offense, and support, with better handling for private profiles and API failures.'
+    },
+    {
+      title: 'Smarter Feedback',
+      description: 'Rank refresh now shows a loading toast first, then updates it with the final result instead of feeling unresponsive.'
+    },
+    {
+      title: 'Duplicate Account Protection',
+      description: 'Adding the same Battletag twice is now blocked so duplicate account rows do not slip into the list.'
+    },
+    {
+      title: 'Updater UI',
+      description: 'The update button only lights up when an update is available, and the install flow now opens a cleaner update modal.'
+    }
+  ]
+}
 const rankPicker = ref<{ accountId: number; target: 'role' | 'sixv6'; rankIndex?: number } | null>(null)
 const settingsMenuOpen = ref(false)
 const accountContextMenu = ref<{ accountId: number } | null>(null)
@@ -614,6 +764,7 @@ const accountInfoCountryDraft = ref('')
 const accountInfoBannedDraft = ref(false)
 const accountInfoNotesDraft = ref('')
 const notifications = ref<NotificationToast[]>([])
+const rankRefreshBusy = ref(false)
 const storageAccessMode = ref<'ready'>('ready')
 const backupTransferModalMode = ref<'export' | 'import' | null>(null)
 const backupTransferPassword = ref('')
@@ -622,7 +773,11 @@ const backupTransferBusy = ref(false)
 const backupTransferError = ref('')
 const backupTransferFileName = ref('')
 const updateCheckBusy = ref(false)
+const updateInstallBusy = ref(false)
+const updateModalOpen = ref(false)
+const availableAppUpdate = ref<AppUpdate | null>(null)
 const appVersionLabel = ref('v0.1.0')
+const whatsNewModalOpen = ref(false)
 const activeEditor = ref<EditableField | null>(null)
 const activeEditorValue = ref('')
 const draggedAccountId = ref<number | null>(null)
@@ -685,6 +840,60 @@ const normalizeTier = (value: unknown): RankTier => (
   rankTiers.includes(value as RankTier) ? value as RankTier : emptyRankTier
 )
 
+const normalizeApiRankTier = (value: unknown): RankTier => {
+  if (typeof value !== 'string') {
+    return emptyRankTier
+  }
+
+  const normalizedValue = value.trim().toLowerCase().replace(/[\s_-]+/g, '')
+  switch (normalizedValue) {
+    case 'bronze':
+      return 'Bronze'
+    case 'silver':
+      return 'Silver'
+    case 'gold':
+      return 'Gold'
+    case 'platinum':
+      return 'Platinum'
+    case 'diamond':
+      return 'Diamond'
+    case 'master':
+      return 'Master'
+    case 'grandmaster':
+      return 'Grandmaster'
+    case 'champion':
+    case 'ultimate':
+      return 'Champion'
+    case 'unranked':
+      return 'Unranked'
+    default:
+      return emptyRankTier
+  }
+}
+
+const normalizeApiDivision = (value: unknown) => {
+  if (typeof value === 'string') {
+    const normalizedValue = value.trim().toUpperCase()
+    if (normalizedValue === 'I') {
+      return 1
+    }
+    if (normalizedValue === 'II') {
+      return 2
+    }
+    if (normalizedValue === 'III') {
+      return 3
+    }
+    if (normalizedValue === 'IV') {
+      return 4
+    }
+    if (normalizedValue === 'V') {
+      return 5
+    }
+  }
+
+  return normalizeDivision(value)
+}
+
 const normalizeDivision = (value: unknown) => {
   const numberValue = Number(value)
   if (!Number.isFinite(numberValue)) {
@@ -745,6 +954,183 @@ const normalizeRankNumberFontSize = (value: unknown) => {
 
   const roundedValue = Math.round(numberValue * 2) / 2
   return Math.min(MAX_RANK_NUMBER_FONT_SIZE, Math.max(MIN_RANK_NUMBER_FONT_SIZE, roundedValue))
+}
+
+type OwApiProfilePayload = {
+  private?: unknown
+  ratings?: unknown
+}
+
+type OwApiProfileResponse = {
+  status: number
+  content_type?: string | null
+  body_text: string
+}
+
+type OwApiProfileFetchResult =
+  | {
+    kind: 'success'
+    payload: OwApiProfilePayload
+  }
+  | {
+    kind: 'not_found' | 'private' | 'unavailable'
+    message: string
+    status: number
+  }
+
+const OWAPI_PROFILE_BASE_URL = 'https://www.owapi.eu/stats'
+const OWAPI_ROLE_KEYS = {
+  T: ['tank'],
+  D: ['damage', 'dps', 'offense'],
+  S: ['support', 'healer', 'heal']
+} as const
+
+const buildOwApiPlayerId = (accountName: string) => {
+  const trimmedAccountName = accountName.trim()
+  if (!trimmedAccountName || !trimmedAccountName.includes('#')) {
+    return null
+  }
+
+  return encodeURIComponent(trimmedAccountName.replace('#', '-'))
+}
+
+const buildOwApiHeaders = () => ({
+  Accept: 'application/json, text/plain, */*',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+  'Accept-Language': 'en-US,en;q=0.9'
+})
+
+const getOwApiRatings = (payload: OwApiProfilePayload) => (
+  Array.isArray(payload.ratings) ? payload.ratings : []
+)
+
+const getOwApiVisibleRank = (
+  ratingsPayload: unknown[],
+  keys: readonly string[]
+) => {
+  for (const entry of ratingsPayload) {
+    if (!entry || typeof entry !== 'object') {
+      continue
+    }
+
+    const payload = entry as Record<string, unknown>
+    const roleValue = typeof payload.role === 'string' ? payload.role.trim().toLowerCase() : ''
+    if (!keys.includes(roleValue)) {
+      continue
+    }
+
+    const tier = normalizeApiRankTier(
+      typeof payload.group === 'string'
+        ? payload.group
+        : typeof payload.rank === 'string'
+          ? payload.rank
+          : null
+    )
+    if (tier === 'Unranked') {
+      continue
+    }
+
+    return {
+      tier,
+      division: normalizeApiDivision(payload.tier ?? payload.level)
+    }
+  }
+
+  return null
+}
+
+const applyVisibleOrPredictedRank = (
+  currentRank: RankEntry,
+  visibleRank: { tier: RankTier; division: number } | null
+) => {
+  if (visibleRank) {
+    currentRank.tier = visibleRank.tier
+    currentRank.division = visibleRank.division
+    currentRank.predicted = false
+    return 'visible'
+  }
+
+  if (currentRank.predicted && currentRank.tier !== 'Unranked') {
+    return 'predicted'
+  }
+
+  currentRank.tier = 'Unranked'
+  currentRank.division = emptyDivision
+  currentRank.predicted = false
+  return 'empty'
+}
+
+const fetchOwApiProfile = async (playerId: string): Promise<OwApiProfileFetchResult> => {
+  const parseResponsePayload = (payload: unknown, status: number): OwApiProfileFetchResult => {
+    if (!payload || typeof payload !== 'object') {
+      return {
+        kind: 'unavailable',
+        message: `OWAPI returned invalid JSON (${status}).`,
+        status
+      }
+    }
+
+    const profilePayload = payload as OwApiProfilePayload
+    if (profilePayload.private === true) {
+      return {
+        kind: 'private',
+        message: 'The Overwatch profile is private.',
+        status
+      }
+    }
+
+    return {
+      kind: 'success',
+      payload: profilePayload
+    }
+  }
+
+  if (isTauri()) {
+    const response = await invoke<OwApiProfileResponse>('fetch_owapi_profile', {
+      platform: 'pc',
+      playerId
+    })
+
+    if (response.status === 404) {
+      return {
+        kind: 'not_found',
+        message: 'OWAPI could not match that Battletag.',
+        status: response.status
+      }
+    }
+
+    if (response.status < 200 || response.status >= 300) {
+      return {
+        kind: 'unavailable',
+        message: `OWAPI returned ${response.status}.`,
+        status: response.status
+      }
+    }
+
+    return parseResponsePayload(JSON.parse(response.body_text), response.status)
+  }
+
+  const response = await fetch(`${OWAPI_PROFILE_BASE_URL}/pc/${playerId}/profile`, {
+    headers: buildOwApiHeaders()
+  })
+
+  if (response.status === 404) {
+    return {
+      kind: 'not_found',
+      message: 'OWAPI could not match that Battletag.',
+      status: response.status
+    }
+  }
+
+  if (!response.ok) {
+    return {
+      kind: 'unavailable',
+      message: `OWAPI returned ${response.status}.`,
+      status: response.status
+    }
+  }
+
+  return parseResponsePayload(await response.json() as OwApiProfilePayload, response.status)
 }
 
 const loadStoredUiSettings = () => {
@@ -847,9 +1233,53 @@ const pushNotification = (
 
   notifications.value = [notification, ...notifications.value]
 
+  if (duration <= 0) {
+    return notificationId
+  }
+
   const timeoutHandle = setTimeout(() => {
     removeNotification(notificationId)
   }, duration)
+
+  notificationTimeouts.set(notificationId, timeoutHandle)
+  return notificationId
+}
+
+const updateNotification = (
+  notificationId: number,
+  options: { title?: string; message?: string; kind?: NotificationToast['kind']; duration?: number; showTimer?: boolean }
+) => {
+  const notificationIndex = notifications.value.findIndex((toast) => toast.id === notificationId)
+  if (notificationIndex === -1) {
+    return
+  }
+
+  const existingTimeout = notificationTimeouts.get(notificationId)
+  if (existingTimeout) {
+    clearTimeout(existingTimeout)
+    notificationTimeouts.delete(notificationId)
+  }
+
+  const currentNotification = notifications.value[notificationIndex]
+  const nextDuration = options.duration ?? currentNotification.duration
+  const nextNotification: NotificationToast = {
+    ...currentNotification,
+    title: options.title ?? currentNotification.title,
+    message: options.message ?? currentNotification.message,
+    kind: options.kind ?? currentNotification.kind,
+    duration: nextDuration,
+    showTimer: options.showTimer ?? currentNotification.showTimer
+  }
+
+  notifications.value.splice(notificationIndex, 1, nextNotification)
+
+  if (nextDuration <= 0) {
+    return
+  }
+
+  const timeoutHandle = setTimeout(() => {
+    removeNotification(notificationId)
+  }, nextDuration)
 
   notificationTimeouts.set(notificationId, timeoutHandle)
 }
@@ -1579,7 +2009,9 @@ onMounted(() => {
   if (tauriDesktop) {
     void getVersion()
       .then((version) => {
-        appVersionLabel.value = `v${version}`
+        const versionLabel = `v${version}`
+        appVersionLabel.value = versionLabel
+        maybeOpenWhatsNewModal(versionLabel)
       })
       .catch(() => {})
 
@@ -1774,6 +2206,8 @@ const getDisplayAccountName = (accountName: string) => {
   return hashIndex === -1 ? accountName : accountName.slice(0, hashIndex)
 }
 
+const normalizeAccountNameForComparison = (accountName: string) => accountName.trim().toLowerCase()
+
 const cancelActiveEditor = () => {
   activeEditor.value = null
   activeEditorValue.value = ''
@@ -1792,7 +2226,23 @@ const commitActiveEditor = () => {
   }
 
   if (editor.kind === 'name') {
-    account.accountName = activeEditorValue.value
+    const nextAccountName = activeEditorValue.value.trim()
+    const duplicateAccount = accounts.value.find((entry) => (
+      entry.id !== account.id
+      && normalizeAccountNameForComparison(entry.accountName) === normalizeAccountNameForComparison(nextAccountName)
+    ))
+
+    if (duplicateAccount) {
+      pushNotification('Account already added', {
+        message: 'You already have that Battletag added.',
+        kind: 'error',
+        duration: 2800
+      })
+      activeEditorValue.value = nextAccountName
+      return
+    }
+
+    account.accountName = nextAccountName
   } else {
     const parsedValue = Number(activeEditorValue.value)
     const normalizedValue = Number.isFinite(parsedValue) ? parsedValue : 0
@@ -1845,6 +2295,40 @@ const closeSettingsMenu = () => {
 }
 
 const settingsFooterLabel = computed(() => `MADE BY MERK - ${appVersionLabel.value}`)
+const hasPendingAppUpdate = computed(() => availableAppUpdate.value !== null)
+const whatsNewItems = computed(() => WHATS_NEW_ITEMS_BY_VERSION[appVersionLabel.value] ?? [])
+
+const maybeOpenWhatsNewModal = (versionLabel: string) => {
+  if (!import.meta.client) {
+    return
+  }
+
+  const versionItems = WHATS_NEW_ITEMS_BY_VERSION[versionLabel]
+  if (!versionItems || versionItems.length === 0) {
+    localStorage.setItem(WHATS_NEW_VERSION_KEY, versionLabel)
+    return
+  }
+
+  const lastSeenVersion = localStorage.getItem(WHATS_NEW_VERSION_KEY)
+  if (!lastSeenVersion) {
+    localStorage.setItem(WHATS_NEW_VERSION_KEY, versionLabel)
+    return
+  }
+
+  if (lastSeenVersion !== versionLabel) {
+    whatsNewModalOpen.value = true
+  }
+
+  localStorage.setItem(WHATS_NEW_VERSION_KEY, versionLabel)
+}
+
+const closeUpdateModal = () => {
+  updateModalOpen.value = false
+}
+
+const closeWhatsNewModal = () => {
+  whatsNewModalOpen.value = false
+}
 
 const checkForAppUpdates = async (silentNoUpdate = false) => {
   if (!tauriDesktop || updateCheckBusy.value) {
@@ -1862,6 +2346,8 @@ const checkForAppUpdates = async (silentNoUpdate = false) => {
   try {
     const update = await checkForUpdate()
     if (!update) {
+      availableAppUpdate.value = null
+      updateModalOpen.value = false
       if (!silentNoUpdate) {
         pushNotification('No update available', {
           message: 'You are already on the latest published version.',
@@ -1871,30 +2357,8 @@ const checkForAppUpdates = async (silentNoUpdate = false) => {
       return
     }
 
-    const releaseNotes = typeof update.body === 'string' && update.body.trim().length > 0
-      ? `\n\nRelease notes:\n${update.body.trim()}`
-      : ''
-    const shouldInstall = window.confirm(
-      `Version ${update.version} is available.\n\nYour current version is ${update.currentVersion}.${releaseNotes}\n\nInstall it now?`
-    )
-
-    if (!shouldInstall) {
-      pushNotification('Update available', {
-        message: `Version ${update.version} is ready whenever you want to install it.`,
-        kind: 'info',
-        duration: 4200
-      })
-      return
-    }
-
-    pushNotification('Installing update', {
-      message: `Downloading RankDB ${update.version} from GitHub Releases.`,
-      kind: 'info',
-      duration: 4200
-    })
-
-    await update.downloadAndInstall()
-    await relaunch()
+    availableAppUpdate.value = update
+    updateModalOpen.value = true
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     pushNotification('Update failed', {
@@ -1907,6 +2371,44 @@ const checkForAppUpdates = async (silentNoUpdate = false) => {
   } finally {
     updateCheckBusy.value = false
   }
+}
+
+const installAvailableUpdate = async () => {
+  if (!availableAppUpdate.value || updateInstallBusy.value) {
+    return
+  }
+
+  updateInstallBusy.value = true
+  try {
+    pushNotification('Installing update', {
+      message: `Downloading RankDB ${availableAppUpdate.value.version} from GitHub Releases.`,
+      kind: 'info',
+      duration: 4200
+    })
+
+    await availableAppUpdate.value.downloadAndInstall()
+    await relaunch()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    pushNotification('Update failed', {
+      message: message.includes('REPLACE_WITH_TAURI_UPDATER_PUBLIC_KEY')
+        ? 'The updater public key is still a placeholder in tauri.conf.json.'
+        : message,
+      kind: 'error',
+      duration: 5200
+    })
+  } finally {
+    updateInstallBusy.value = false
+  }
+}
+
+const handleUpdateButtonClick = async () => {
+  if (hasPendingAppUpdate.value) {
+    updateModalOpen.value = true
+    return
+  }
+
+  await checkForAppUpdates(false)
 }
 
 const closeBackupTransferModal = () => {
@@ -2460,6 +2962,107 @@ const copyAccountName = async (accountName: string) => {
   }
 }
 
+const refreshSingleAccountRank = async (accountId: number) => {
+  if (!import.meta.client || rankRefreshBusy.value) {
+    return
+  }
+
+  const account = accounts.value.find((entry) => entry.id === accountId)
+  if (!account) {
+    return
+  }
+
+  const playerId = buildOwApiPlayerId(account.accountName)
+  if (!playerId) {
+    pushNotification('Invalid Battletag', {
+      message: 'Use `Name#1234`.',
+      kind: 'error',
+      duration: 2800
+    })
+    return
+  }
+
+  rankRefreshBusy.value = true
+  closeAccountContextMenu()
+  const loadingNotificationId = pushNotification('Refreshing rank...', {
+    message: getDisplayAccountName(account.accountName),
+    kind: 'loading',
+    duration: 0,
+    showTimer: false
+  })
+
+  try {
+    const profileResult = await fetchOwApiProfile(playerId)
+    if (profileResult.kind !== 'success') {
+      updateNotification(loadingNotificationId, {
+        title: profileResult.kind === 'not_found'
+          ? 'Battletag not found'
+          : profileResult.kind === 'private'
+            ? 'Profile is private'
+            : 'Rank refresh failed',
+        message: profileResult.kind === 'not_found'
+          ? `${getDisplayAccountName(account.accountName)} was not found.`
+          : profileResult.kind === 'private'
+            ? `${getDisplayAccountName(account.accountName)} is private.`
+            : profileResult.message,
+        kind: profileResult.kind === 'private' ? 'info' : 'error',
+        duration: 3600,
+        showTimer: false
+      })
+      return
+    }
+
+    const ratingsPayload = getOwApiRatings(profileResult.payload)
+    let hasVisibleRankData = false
+    let preservedPredictedCount = 0
+
+    for (const rank of account.ranks) {
+      const visibleRank = getOwApiVisibleRank(ratingsPayload, OWAPI_ROLE_KEYS[rank.role as 'T' | 'D' | 'S'])
+      if (visibleRank) {
+        hasVisibleRankData = true
+      }
+      const appliedState = applyVisibleOrPredictedRank(rank, visibleRank)
+      if (appliedState === 'predicted') {
+        preservedPredictedCount += 1
+      }
+    }
+
+    if (!hasVisibleRankData) {
+      updateNotification(loadingNotificationId, {
+        title: 'No visible rank data',
+        message: preservedPredictedCount > 0
+          ? `Kept ${preservedPredictedCount} predicted rank${preservedPredictedCount === 1 ? '' : 's'}.`
+          : `${getDisplayAccountName(account.accountName)} has no visible ranks.`,
+        kind: 'info',
+        duration: 3200,
+        showTimer: false
+      })
+      return
+    }
+
+    updateNotification(loadingNotificationId, {
+      title: 'Rank refreshed',
+      message: preservedPredictedCount > 0
+        ? `Updated. Kept ${preservedPredictedCount} predicted rank${preservedPredictedCount === 1 ? '' : 's'}.`
+        : `${getDisplayAccountName(account.accountName)} updated.`,
+      kind: 'success',
+      duration: 3200,
+      showTimer: false
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'The request failed.'
+    updateNotification(loadingNotificationId, {
+      title: 'Rank refresh failed',
+      message,
+      kind: 'error',
+      duration: 3200,
+      showTimer: false
+    })
+  } finally {
+    rankRefreshBusy.value = false
+  }
+}
+
 const legacyCopyAccountCredential = async (accountId: number, field: 'email' | 'password') => {
   const account = accounts.value.find((entry) => entry.id === accountId)
   const value = field === 'email' ? account?.email ?? '' : account?.password ?? ''
@@ -2735,7 +3338,7 @@ onBeforeUnmount(() => {
 
 .rank-division-number,
 .rank-picker-division-number {
-  font-family: 'Futura No2 Demi', sans-serif;
+  font-family: 'RankBadgeNumber', sans-serif;
   font-size: calc((var(--rank-number-font-size, 24) + var(--rank-number-platform-font-adjust, 0) + 1.5) * 1px);
 }
 

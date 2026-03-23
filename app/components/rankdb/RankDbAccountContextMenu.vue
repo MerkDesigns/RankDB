@@ -19,6 +19,10 @@
         <ShieldEllipsis class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
         Edit Credentials
       </button>
+      <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[15px] font-semibold text-slate-100/92 transition hover:bg-[#181c26] disabled:cursor-wait disabled:opacity-65" :disabled="rankRefreshBusy" @click="$emit('refresh-rank', accountId)">
+        <RefreshCw class="h-[15px] w-[15px] shrink-0" :class="rankRefreshBusy ? 'animate-spin' : ''" :stroke-width="2.2" aria-hidden="true" />
+        {{ rankRefreshBusy ? 'Refreshing Rank...' : 'Refresh Rank' }}
+      </button>
       <div class="mx-2 my-1 h-px bg-[#272b35]" aria-hidden="true" />
       <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[15px] font-semibold text-slate-100/92 transition hover:bg-[#181c26]" @click="$emit('account-info', accountId)">
         <IdCard class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
@@ -34,11 +38,12 @@
 </template>
 
 <script setup lang="ts">
-import { IdCard, PencilLine, ShieldEllipsis, Trash2 } from 'lucide-vue-next'
+import { IdCard, PencilLine, RefreshCw, ShieldEllipsis, Trash2 } from 'lucide-vue-next'
 
 defineProps<{
   accountId: number | null
   positionStyle: Record<string, string>
+  rankRefreshBusy: boolean
 }>()
 
 defineEmits<{
@@ -47,5 +52,6 @@ defineEmits<{
   'delete-account': [accountId: number]
   'edit-battletag': [accountId: number]
   'edit-credentials': [accountId: number]
+  'refresh-rank': [accountId: number]
 }>()
 </script>

@@ -5,7 +5,7 @@
         v-for="toast in notifications"
         :key="toast.id"
         class="pointer-events-auto relative w-full rounded-[10px] border bg-[#070a11]/96 px-4 py-3 shadow-[0_18px_40px_rgba(0,0,0,0.42)] backdrop-blur-xl"
-        :class="toast.kind === 'error' ? 'border-[#73313c] text-rose-100' : toast.kind === 'success' ? 'border-[#29493c] text-emerald-100' : 'border-[#323744] text-slate-100'"
+        :class="toast.kind === 'error' ? 'border-[#73313c] text-rose-100' : toast.kind === 'success' ? 'border-[#29493c] text-emerald-100' : toast.kind === 'loading' ? 'border-[#31506a] text-cyan-100' : 'border-[#323744] text-slate-100'"
       >
         <button
           type="button"
@@ -18,10 +18,25 @@
             <path d="m6 6 12 12" />
           </svg>
         </button>
-        <p class="pr-5 text-[13px] font-semibold tracking-tight">{{ toast.title }}</p>
-        <p v-if="toast.message" class="mt-1 pr-5 text-[12px] leading-5 text-current/75">{{ toast.message }}</p>
+        <div class="flex items-start gap-2.5 pr-5">
+          <svg
+            v-if="toast.kind === 'loading'"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            class="mt-[1px] h-4 w-4 shrink-0 animate-spin text-cyan-200/90"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="9" class="opacity-20" stroke="currentColor" stroke-width="2.2" />
+            <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+          <div class="min-w-0">
+            <p class="text-[13px] font-semibold tracking-tight">{{ toast.title }}</p>
+            <p v-if="toast.message" class="mt-1 text-[12px] leading-5 text-current/75">{{ toast.message }}</p>
+          </div>
+        </div>
         <span
-          v-if="toast.showTimer"
+          v-if="toast.showTimer && toast.kind !== 'loading'"
           class="toast-timer absolute bottom-0 left-0 h-[2px] w-full origin-left rounded-b-[10px] bg-current/40"
           :style="{ animationDuration: `${toast.duration}ms` }"
         />

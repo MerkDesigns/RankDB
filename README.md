@@ -74,6 +74,7 @@ The settings include:
 - Data is stored locally on your machine
 - UI settings are stored separately from account data
 - In the desktop app, data is stored in RankDB's own protected local database
+- The local database key is stored in the operating system's secure keychain via `keyring`
 - Changes save automatically
 
 ## Backup Format

@@ -26,7 +26,6 @@
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@tauri-apps/cli": "^2.10.1",
-    "@vite-pwa/nuxt": "^1.1.1",
     "playwright": "^1.58.2"
   }
 }

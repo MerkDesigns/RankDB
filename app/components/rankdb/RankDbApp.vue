@@ -459,39 +459,14 @@
       @click="closeUpdateModal"
     >
       <div
-        class="absolute left-1/2 top-1/2 w-[460px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[12px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+        class="absolute left-1/2 top-1/2 w-[360px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
         @click.stop
       >
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <h2 class="text-[18px] font-semibold tracking-tight text-slate-100">Update Available</h2>
-            <p class="mt-1 text-[13px] text-slate-300/85">
-              RankDB {{ availableAppUpdate.version }} is available.
-              Current version: {{ availableAppUpdate.currentVersion }}
-            </p>
-          </div>
-          <button
-            type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]"
-            aria-label="Close update modal"
-            @click="closeUpdateModal"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="h-5 w-5"
-              aria-hidden="true"
-            >
-              <path d="M18 6 6 18" />
-              <path d="m6 6 12 12" />
-            </svg>
-          </button>
-        </div>
+        <h2 class="text-[16px] font-semibold tracking-tight text-slate-100">Update Available</h2>
+        <p class="mt-3 text-[13px] leading-5 text-slate-300">
+          Latest version:
+          <span class="font-semibold text-slate-100">{{ availableAppUpdate.version }}</span>
+        </p>
 
         <div class="mt-5 flex justify-end gap-3">
           <button
@@ -499,11 +474,11 @@
             class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]"
             @click="closeUpdateModal"
           >
-            Later
+            Cancel
           </button>
           <button
             type="button"
-            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-fuchsia-400/20 bg-fuchsia-500/15 px-4 text-[13px] font-semibold text-fuchsia-100 hover:bg-fuchsia-500/25 disabled:cursor-wait disabled:opacity-70"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-cyan-400/20 bg-cyan-500/15 px-4 text-[13px] font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-wait disabled:opacity-70"
             :disabled="updateInstallBusy"
             @click="installAvailableUpdate"
           >
@@ -2197,6 +2172,10 @@ const isEditingValue = (accountId: number, kind: 'valuesA' | 'valuesB', index: n
   && activeEditor.value.index === index
 )
 
+const isDefaultPlaceholderAccountName = (accountName: string) => (
+  normalizeAccountNameForComparison(accountName) === 'battletag#0000'
+)
+
 const getDisplayAccountName = (accountName: string) => {
   const hashIndex = accountName.indexOf('#')
   return hashIndex === -1 ? accountName : accountName.slice(0, hashIndex)
@@ -2225,6 +2204,8 @@ const commitActiveEditor = () => {
     const nextAccountName = activeEditorValue.value.trim()
     const duplicateAccount = accounts.value.find((entry) => (
       entry.id !== account.id
+      && !isDefaultPlaceholderAccountName(entry.accountName)
+      && !isDefaultPlaceholderAccountName(nextAccountName)
       && normalizeAccountNameForComparison(entry.accountName) === normalizeAccountNameForComparison(nextAccountName)
     ))
 
@@ -2234,7 +2215,9 @@ const commitActiveEditor = () => {
         kind: 'error',
         duration: 2800
       })
-      activeEditorValue.value = nextAccountName
+      account.accountName = 'Battletag#0000'
+      activeEditorValue.value = account.accountName
+      cancelActiveEditor()
       return
     }
 

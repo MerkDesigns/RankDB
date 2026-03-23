@@ -548,6 +548,39 @@
       </div>
     </div>
 
+    <div
+      v-if="updateRestartModalOpen"
+      class="fixed inset-0 z-[58] bg-black/60"
+      @click="closeUpdateRestartModal"
+    >
+      <div
+        class="absolute left-1/2 top-1/2 w-[360px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+        @click.stop
+      >
+        <h2 class="text-[16px] font-semibold tracking-tight text-slate-100">Restart Required</h2>
+        <p class="mt-3 text-[13px] leading-5 text-slate-300">
+          The update has been installed. Fully restart RankDB to finish applying the new version.
+        </p>
+
+        <div class="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]"
+            @click="closeUpdateRestartModal"
+          >
+            Later
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-cyan-400/20 bg-cyan-500/15 px-4 text-[13px] font-semibold text-cyan-100 hover:bg-cyan-500/25"
+            @click="restartAfterUpdate"
+          >
+            Restart Now
+          </button>
+        </div>
+      </div>
+    </div>
+
     <RankDbRankPicker
       :divisions="divisions"
       :get-modal-option-opacity-class="getModalOptionOpacityClass"
@@ -690,6 +723,15 @@ import type {
 } from '~~/app/types/rankdb'
 
 type AppUpdate = NonNullable<Awaited<ReturnType<typeof checkForUpdate>>>
+type PersistedAppStoragePayload = {
+  accounts?: unknown
+  uiSettings?: unknown
+}
+type PersistedAppStorageEnvelope = {
+  format: string
+  schemaVersion: number
+  payload: PersistedAppStoragePayload
+}
 
 useHead({
   link: [
@@ -698,6 +740,8 @@ useHead({
 })
 
 const tauriDesktop = import.meta.client && isTauri()
+const APP_STORAGE_FORMAT = 'rankdb-app-state'
+const APP_STORAGE_SCHEMA_VERSION = 1
 const WHATS_NEW_VERSION_KEY = 'rankdb_last_seen_version_v1'
 const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
@@ -750,7 +794,8 @@ const backupTransferFileName = ref('')
 const updateCheckBusy = ref(false)
 const updateInstallBusy = ref(false)
 const updateModalOpen = ref(false)
-const availableAppUpdate = ref<AppUpdate | null>(null)
+const updateRestartModalOpen = ref(false)
+const availableAppUpdate = shallowRef<AppUpdate | null>(null)
 const appVersionLabel = ref('v0.1.0')
 const whatsNewModalOpen = ref(false)
 const activeEditor = ref<EditableField | null>(null)
@@ -1293,7 +1338,7 @@ const loadPersistedAppStorage = async () => {
     return null
   }
 
-  return invoke<{ accounts?: unknown; uiSettings?: unknown } | null>('load_app_storage')
+  return invoke<unknown>('load_app_storage')
 }
 
 const savePersistedAppStorage = async () => {
@@ -1302,10 +1347,10 @@ const savePersistedAppStorage = async () => {
   }
 
   await invoke('save_app_storage', {
-    payload: {
+    payload: buildPersistedAppStorageEnvelope({
       accounts: buildAccountsPayload(),
       uiSettings: buildUiSettingsPayload()
-    }
+    })
   })
 }
 
@@ -1330,10 +1375,60 @@ const decryptPortableExportPayload = async (encryptedExport: string, password: s
     throw new Error('Encrypted import is only available in the desktop app.')
   }
 
-  return invoke<{ accounts?: unknown; uiSettings?: unknown }>('decrypt_export_payload', {
+  return invoke<unknown>('decrypt_export_payload', {
     encryptedExport,
     password
   })
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+)
+
+const buildPersistedAppStorageEnvelope = (payload: PersistedAppStoragePayload): PersistedAppStorageEnvelope => ({
+  format: APP_STORAGE_FORMAT,
+  schemaVersion: APP_STORAGE_SCHEMA_VERSION,
+  payload
+})
+
+const parsePersistedAppStorage = (value: unknown): { payload: PersistedAppStoragePayload | null; migratedLegacy: boolean } => {
+  if (!isRecord(value)) {
+    return { payload: null, migratedLegacy: false }
+  }
+
+  if ('format' in value || 'schemaVersion' in value || 'payload' in value) {
+    const format = value.format
+    const schemaVersion = value.schemaVersion
+    const payload = value.payload
+
+    if (format !== APP_STORAGE_FORMAT) {
+      throw new Error('Unsupported local database format.')
+    }
+
+    if (schemaVersion !== APP_STORAGE_SCHEMA_VERSION) {
+      throw new Error(`Unsupported local database schema v${String(schemaVersion)}.`)
+    }
+
+    if (!isRecord(payload)) {
+      throw new Error('Stored local database payload is invalid.')
+    }
+
+    return {
+      payload: {
+        accounts: payload.accounts,
+        uiSettings: payload.uiSettings
+      },
+      migratedLegacy: false
+    }
+  }
+
+  return {
+    payload: {
+      accounts: value.accounts,
+      uiSettings: value.uiSettings
+    },
+    migratedLegacy: true
+  }
 }
 
 const getClipboardClearDurationMs = () => {
@@ -1948,13 +2043,18 @@ const applyStoredUiSettings = (storedUiSettings: unknown) => {
 }
 
 const loadTauriStoredAppState = async () => {
-  const storedAppState = await loadPersistedAppStorage()
+  const parsedStoredAppState = parsePersistedAppStorage(await loadPersistedAppStorage())
+  const storedAppState = parsedStoredAppState.payload
+
   if (storedAppState?.accounts && Array.isArray(storedAppState.accounts)) {
     const normalizedAccounts = storedAppState.accounts
       .filter((entry: unknown) => entry && typeof entry === 'object')
       .map((entry: unknown, idx: number) => normalizeStoredAccount(entry, idx + 1))
     accounts.value = normalizedAccounts.length > 0 ? normalizedAccounts : buildEmptyAccounts()
     applyStoredUiSettings(storedAppState.uiSettings)
+    if (parsedStoredAppState.migratedLegacy) {
+      await persistAppStorage()
+    }
   } else {
     accounts.value = buildEmptyAccounts()
     applyStoredUiSettings(null)
@@ -2305,6 +2405,10 @@ const closeUpdateModal = () => {
   updateModalOpen.value = false
 }
 
+const closeUpdateRestartModal = () => {
+  updateRestartModalOpen.value = false
+}
+
 const closeWhatsNewModal = () => {
   whatsNewModalOpen.value = false
 }
@@ -2336,7 +2440,7 @@ const checkForAppUpdates = async (silentNoUpdate = false) => {
       return
     }
 
-    availableAppUpdate.value = update
+    availableAppUpdate.value = markRaw(update)
     updateModalOpen.value = true
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -2366,7 +2470,13 @@ const installAvailableUpdate = async () => {
     })
 
     await availableAppUpdate.value.downloadAndInstall()
-    await relaunch()
+    updateModalOpen.value = false
+    updateRestartModalOpen.value = true
+    pushNotification('Update ready', {
+      message: 'Restart RankDB to finish applying the update.',
+      kind: 'success',
+      duration: 3600
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     pushNotification('Update failed', {
@@ -2378,6 +2488,23 @@ const installAvailableUpdate = async () => {
     })
   } finally {
     updateInstallBusy.value = false
+  }
+}
+
+const restartAfterUpdate = async () => {
+  if (updateInstallBusy.value) {
+    return
+  }
+
+  try {
+    await relaunch()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    pushNotification('Restart failed', {
+      message,
+      kind: 'error',
+      duration: 4200
+    })
   }
 }
 

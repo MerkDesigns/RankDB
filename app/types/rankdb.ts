@@ -50,6 +50,7 @@ export type AccountRow = {
   accountName: string
   email: string
   password: string
+  lastRankModifiedAt: string | null
   countryCode: string
   groupId: string | null
   isBanned: boolean

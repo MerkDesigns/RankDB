@@ -11,6 +11,10 @@
       @click.stop
       @contextmenu.stop
     >
+      <div class="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400/85">
+        LAST EDIT: <span class="text-slate-200/95 tracking-normal">{{ lastRankModifiedLabel }}</span>
+      </div>
+      <div class="mx-2 mb-1 h-px bg-[#272b35]" aria-hidden="true" />
       <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[15px] font-semibold text-slate-100/92 transition hover:bg-[#181c26]" @click="$emit('edit-battletag', accountId)">
         <PencilLine class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
         Edit Battletag
@@ -41,6 +45,7 @@ import { IdCard, PencilLine, RefreshCw, ShieldEllipsis, Trash2 } from 'lucide-vu
 
 defineProps<{
   accountId: number | null
+  lastRankModifiedLabel: string
   positionStyle: Record<string, string>
   rankRefreshBusy: boolean
 }>()

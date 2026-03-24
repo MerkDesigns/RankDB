@@ -247,11 +247,13 @@
 
     <div
       v-if="settingsMenuOpen"
-      class="fixed inset-0 z-40 bg-black/55"
-      @click="closeSettingsMenu"
+      class="fixed inset-0 z-[54] bg-black/55"
+      @pointerdown.self="closeSettingsMenu"
+      @click.self="closeSettingsMenu"
     >
       <div
         class="absolute left-1/2 top-1/2 w-[320px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+        @pointerdown.stop
         @click.stop
       >
         <div class="mb-4 flex items-center justify-between gap-3">
@@ -652,6 +654,7 @@
 
     <RankDbAccountContextMenu
       :account-id="accountContextMenu?.accountId ?? null"
+      :last-rank-modified-label="accountContextMenuLastRankModifiedLabel"
       :position-style="accountContextMenuPositionStyle"
       :rank-refresh-busy="rankRefreshBusy"
       @account-info="requestAccountInfo"
@@ -804,24 +807,16 @@ const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
   [CURRENT_WHATS_NEW_VERSION]: [
     {
-      title: 'Refresh Rank',
-      description: 'You can now refresh ranks from the account right-click menu instead of relying on manual updates.'
+      title: 'Role Header Sorting',
+      description: 'Clicking a role icon in the header now correctly sorts accounts by the selected rank again instead of leaving the visible order unchanged.'
     },
     {
-      title: 'OWAPI Rank Sync',
-      description: 'Rank refresh now uses OWAPI for tank, offense, and support, with better handling for private profiles and API failures.'
+      title: 'Settings Modal Focus',
+      description: 'The settings modal now fully blocks clicks and slider drags from interacting with rows and controls behind it.'
     },
     {
-      title: 'Smarter Feedback',
-      description: 'Rank refresh now shows a loading toast first, then updates it with the final result instead of feeling unresponsive.'
-    },
-    {
-      title: 'Duplicate Account Protection',
-      description: 'Adding the same Battletag twice is now blocked so duplicate account rows do not slip into the list.'
-    },
-    {
-      title: 'Updater UI',
-      description: 'The update button only lights up when an update is available, and the install flow now opens a cleaner update modal.'
+      title: 'Rank Edit History',
+      description: 'Account right-click menus now show the last rank edit date, and RankDB tracks it whenever a role or 6v6 rank is changed.'
     }
   ]
 }
@@ -958,6 +953,7 @@ const buildEmptyAccount = (id: number): AccountRow => ({
   accountName: 'Battletag#0000',
   email: '',
   password: '',
+  lastRankModifiedAt: null,
   countryCode: '',
   groupId: null,
   isBanned: false,
@@ -1632,6 +1628,9 @@ const normalizeStoredAccount = (fromStorage: any, fallbackId: number): AccountRo
   const fromStorageValuesA = Array.isArray(fromStorage?.valuesA) ? fromStorage.valuesA : []
   const fromStorageValuesB = Array.isArray(fromStorage?.valuesB) ? fromStorage.valuesB : []
   const fromStorageSixV6 = (fromStorage?.sixV6Rank && typeof fromStorage.sixV6Rank === 'object') ? fromStorage.sixV6Rank : null
+  const lastRankModifiedAt = typeof fromStorage?.lastRankModifiedAt === 'string' && !Number.isNaN(Date.parse(fromStorage.lastRankModifiedAt))
+    ? fromStorage.lastRankModifiedAt
+    : null
 
   return {
     ...emptyAccount,
@@ -1639,6 +1638,7 @@ const normalizeStoredAccount = (fromStorage: any, fallbackId: number): AccountRo
     accountName: typeof fromStorage?.accountName === 'string' ? fromStorage.accountName : emptyAccount.accountName,
     email: typeof fromStorage?.email === 'string' ? fromStorage.email : emptyAccount.email,
     password: typeof fromStorage?.password === 'string' ? fromStorage.password : emptyAccount.password,
+    lastRankModifiedAt,
     countryCode: typeof fromStorage?.countryCode === 'string' ? fromStorage.countryCode.toUpperCase() : emptyAccount.countryCode,
     groupId: typeof fromStorage?.groupId === 'string' && fromStorage.groupId.trim() ? fromStorage.groupId.trim() : null,
     isBanned: Boolean(fromStorage?.isBanned ?? fromStorage?.banned),
@@ -1845,6 +1845,27 @@ const customAccountOrderIds = ref<number[]>(accounts.value.map((account) => acco
 const normalAccounts = computed(() => accounts.value.filter((account) => !account.isBanned))
 const bannedAccounts = computed(() => accounts.value.filter((account) => account.isBanned))
 const lastNormalAccountId = computed(() => normalAccounts.value.at(-1)?.id ?? null)
+const rankChangeDateFormatter = new Intl.DateTimeFormat(undefined, {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric'
+})
+const formatLastRankModifiedLabel = (value: string | null) => {
+  if (!value) {
+    return 'NEVER'
+  }
+
+  const parsedDate = new Date(value)
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'NEVER'
+  }
+
+  return rankChangeDateFormatter.format(parsedDate)
+}
+const accountContextMenuLastRankModifiedLabel = computed(() => {
+  const account = accounts.value.find((entry) => entry.id === accountContextMenu.value?.accountId)
+  return formatLastRankModifiedLabel(account?.lastRankModifiedAt ?? null)
+})
 
 type RenderEntry =
   | { key: string; kind: 'group-block'; group: AccountGroup; isBanned: boolean; accountCount: number; accounts: AccountRow[] }
@@ -1892,13 +1913,18 @@ const getAccountCustomOrder = (sourceAccounts: AccountRow[]) => {
   return restoredAccounts
 }
 
-const getSectionedAccounts = (sourceAccounts: AccountRow[]) => {
+const getCustomSectionedAccounts = (sourceAccounts: AccountRow[]) => {
   const customOrderedAccounts = getAccountCustomOrder(sourceAccounts)
   return [
     ...customOrderedAccounts.filter((account) => !account.isBanned),
     ...customOrderedAccounts.filter((account) => account.isBanned)
   ]
 }
+
+const getCurrentSectionedAccounts = (sourceAccounts: AccountRow[]) => [
+  ...sourceAccounts.filter((account) => !account.isBanned),
+  ...sourceAccounts.filter((account) => account.isBanned)
+]
 
 const buildSectionLayoutSlots = (sourceAccounts: AccountRow[], isBanned: boolean) => {
   const groupsById = new Map(accountGroups.value.map((group) => [group.id, group] as const))
@@ -2019,7 +2045,7 @@ const buildRenderEntriesForSection = (sectionAccounts: AccountRow[], isBanned: b
 }
 
 const renderEntries = computed<RenderEntry[]>(() => {
-  const orderedAccounts = getSectionedAccounts(accounts.value)
+  const orderedAccounts = getCurrentSectionedAccounts(accounts.value)
   const entries: RenderEntry[] = orderedAccounts
     .filter((account) => !account.isBanned)
     .map((account) => ({
@@ -2050,6 +2076,10 @@ const getRankSortScore = (rank: RankEntry) => {
   return tierScore + divisionScore + predictedScore
 }
 
+const markAccountRankModified = (account: AccountRow) => {
+  account.lastRankModifiedAt = new Date().toISOString()
+}
+
 const getSortedAccountsForRole = (roleIndex: number, direction: 'desc' | 'asc') => {
   const sortSection = (sourceOrder: AccountRow[]) => [...sourceOrder].sort((left, right) => {
     const leftRank = left.ranks[roleIndex]
@@ -2071,7 +2101,7 @@ const getSortedAccountsForRole = (roleIndex: number, direction: 'desc' | 'asc') 
 }
 
 const restoreCustomAccountOrder = () => {
-  accounts.value = getSectionedAccounts(accounts.value)
+  accounts.value = getCustomSectionedAccounts(accounts.value)
 }
 
 const applyRoleSort = (roleIndex: number, direction: 'desc' | 'asc') => {
@@ -2116,6 +2146,7 @@ const buildAccountsPayload = () => accounts.value.map((account) => ({
   accountName: account.accountName,
   email: account.email,
   password: account.password,
+  lastRankModifiedAt: account.lastRankModifiedAt,
   countryCode: account.countryCode,
   groupId: account.groupId,
   isBanned: account.isBanned,
@@ -3158,8 +3189,8 @@ const openAccountContextMenu = (accountId: number, event: MouseEvent) => {
   closeMenus()
   closeRankPicker()
 
-  const menuWidth = 180
-  const menuHeight = 172
+  const menuWidth = 220
+  const menuHeight = 220
   const viewportPadding = 10
   const maxLeft = window.innerWidth - menuWidth - viewportPadding
   const maxTop = window.innerHeight - menuHeight - viewportPadding
@@ -4312,8 +4343,12 @@ const refreshSingleAccountRank = async (accountId: number) => {
     const ratingsPayload = getOwApiRatings(profileResult.payload)
     let hasVisibleRankData = false
     let preservedPredictedCount = 0
+    let rankChanged = false
 
     for (const rank of account.ranks) {
+      const previousTier = rank.tier
+      const previousDivision = rank.division
+      const previousPredicted = rank.predicted
       const visibleRank = getOwApiVisibleRank(ratingsPayload, OWAPI_ROLE_KEYS[rank.role as 'T' | 'D' | 'S'])
       if (visibleRank) {
         hasVisibleRankData = true
@@ -4322,6 +4357,17 @@ const refreshSingleAccountRank = async (accountId: number) => {
       if (appliedState === 'predicted') {
         preservedPredictedCount += 1
       }
+      if (
+        rank.tier !== previousTier
+        || rank.division !== previousDivision
+        || rank.predicted !== previousPredicted
+      ) {
+        rankChanged = true
+      }
+    }
+
+    if (rankChanged) {
+      markAccountRankModified(account)
     }
 
     if (!hasVisibleRankData) {
@@ -4510,13 +4556,31 @@ const applyRankPicker = () => {
       return
     }
 
+    const nextPredicted = pickerTier.value === 'Unranked' ? false : pickerPredicted.value
+    const didChange = (
+      rank.tier !== pickerTier.value
+      || rank.division !== pickerDivision.value
+      || rank.predicted !== nextPredicted
+    )
     rank.tier = pickerTier.value
     rank.division = pickerDivision.value
-    rank.predicted = pickerTier.value === 'Unranked' ? false : pickerPredicted.value
+    rank.predicted = nextPredicted
+    if (didChange) {
+      markAccountRankModified(account)
+    }
   } else {
+    const nextPredicted = pickerTier.value === 'Unranked' ? false : pickerPredicted.value
+    const didChange = (
+      account.sixV6Rank.tier !== pickerTier.value
+      || account.sixV6Rank.division !== pickerDivision.value
+      || account.sixV6Rank.predicted !== nextPredicted
+    )
     account.sixV6Rank.tier = pickerTier.value
     account.sixV6Rank.division = pickerDivision.value
-    account.sixV6Rank.predicted = pickerTier.value === 'Unranked' ? false : pickerPredicted.value
+    account.sixV6Rank.predicted = nextPredicted
+    if (didChange) {
+      markAccountRankModified(account)
+    }
   }
 
   closeRankPicker()

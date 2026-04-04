@@ -17,6 +17,13 @@ export type RankEntry = {
   predicted: boolean
 }
 
+export type ArchivedRankSnapshot = {
+  id: string
+  createdAt: string
+  ranks: RankEntry[]
+  sixV6Rank: RankEntry
+}
+
 export type ModalOption = {
   key: string
   icon: string
@@ -55,6 +62,7 @@ export type AccountRow = {
   groupId: string | null
   isBanned: boolean
   notes: string
+  archivedRankSnapshots: ArchivedRankSnapshot[]
   ranks: RankEntry[]
   sixV6Rank: RankEntry
   valuesA: number[]

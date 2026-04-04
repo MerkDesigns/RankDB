@@ -5,6 +5,12 @@
       '--rank-number-offset-x': `${rankNumberOffsetX}`,
       '--rank-number-offset-y': `${rankNumberOffsetY}`,
       '--rank-number-font-size': `${rankNumberFontSize}`,
+      '--rank-badge-glow-offset-x': `${RANK_BADGE_GLOW_OFFSET_X}`,
+      '--rank-badge-glow-offset-y': `${RANK_BADGE_GLOW_OFFSET_Y}`,
+      '--rank-badge-glow-radius': `${RANK_BADGE_GLOW_RADIUS}%`,
+      '--rank-badge-glow-opacity': `${RANK_BADGE_GLOW_OPACITY / 100}`,
+      '--rank-badge-glow-pulse-amount': `${RANK_BADGE_GLOW_PULSE_AMOUNT / 100}`,
+      '--rank-badge-glow-pulse-duration': `${RANK_BADGE_GLOW_PULSE_DURATION}s`,
       '--rank-number-platform-offset-x': `${rankNumberPlatformOffsetX}`,
       '--rank-number-platform-offset-y': `${rankNumberPlatformOffsetY}`,
       '--rank-number-platform-font-adjust': `${rankNumberPlatformFontAdjust}`
@@ -67,8 +73,10 @@
               <article
                 v-else
                 :data-bar-id="entry.account.id"
-                class="bar-shell relative h-16 cursor-grab touch-none select-none"
-                :class="[draggedAccountId === entry.account.id ? 'cursor-grabbing' : '']"
+                class="bar-shell relative h-16 touch-none select-none"
+                :class="canDragAccounts
+                  ? [draggedAccountId === entry.account.id ? 'cursor-grabbing' : 'cursor-grab']
+                  : ['cursor-default']"
                 :style="{ width: fullGridWidth }"
                 @pointerdown="handleBarPointerDown(entry.account.id, $event)"
               >
@@ -120,8 +128,9 @@
                 <div class="role-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(entry.account.id, $event)">
                   <div class="role-lane role-lane-body">
                     <div v-for="(rank, rankIndex) in entry.account.ranks" :key="`${entry.account.id}-${rank.role}`" class="flex items-center justify-center">
-                      <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-hidden rounded-[2px] transition hover:brightness-110" :class="[rank.predicted ? 'opacity-[0.35]' : rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeShineClass(rank.tier), getRankBadgeSparkleClass(rank.tier)]" :style="getRankBadgeMaskStyle(rank.tier)" @click="openRankPicker(entry.account.id, rankIndex, $event)">
-                        <img :src="rankIcons[rank.tier]" :alt="`${rank.tier} ${rank.division}`" class="h-full w-full object-contain [image-rendering:-webkit-optimize-contrast]" draggable="false">
+                      <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-visible rounded-[2px] transition hover:brightness-110" :class="[rank.predicted ? 'opacity-[0.35]' : rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeGlowClass(rank.tier), getRankBadgeShineClass(rank.tier), getRankBadgeSparkleClass(rank.tier)]" :style="getRankBadgeMaskStyle(rank.tier)" @click="openRankPicker(entry.account.id, rankIndex, $event)">
+                        <img :src="rankIcons[rank.tier]" :alt="`${rank.tier} ${rank.division}`" class="rank-badge-image h-full w-full object-contain" draggable="false">
+                        <span v-if="hasRankBadgeGlow(rank.tier)" class="rank-badge-glow" aria-hidden="true" />
                         <span v-if="hasRankBadgeShine(rank.tier)" class="rank-badge-shine" aria-hidden="true" />
                         <span v-if="hasRankBadgeSparkles(rank.tier)" class="rank-badge-sparkles" aria-hidden="true" />
                         <span v-if="hasRankBadgeExtraSparkles(rank.tier)" class="rank-badge-sparkles rank-badge-sparkles-secondary" aria-hidden="true" />
@@ -132,8 +141,9 @@
                 </div>
                 <div v-if="showSixV6" class="sixv6-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(entry.account.id, $event)">
                   <div class="single-rank-lane">
-                    <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-hidden rounded-[2px] transition hover:brightness-110" :class="[entry.account.sixV6Rank.predicted ? 'opacity-[0.35]' : entry.account.sixV6Rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeShineClass(entry.account.sixV6Rank.tier), getRankBadgeSparkleClass(entry.account.sixV6Rank.tier)]" :style="getRankBadgeMaskStyle(entry.account.sixV6Rank.tier)" @click="openSixV6Picker(entry.account.id, $event)">
-                      <img :src="rankIcons[entry.account.sixV6Rank.tier]" :alt="`${entry.account.sixV6Rank.tier} ${entry.account.sixV6Rank.division}`" class="h-full w-full object-contain [image-rendering:-webkit-optimize-contrast]" draggable="false">
+                    <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-visible rounded-[2px] transition hover:brightness-110" :class="[entry.account.sixV6Rank.predicted ? 'opacity-[0.35]' : entry.account.sixV6Rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeGlowClass(entry.account.sixV6Rank.tier), getRankBadgeShineClass(entry.account.sixV6Rank.tier), getRankBadgeSparkleClass(entry.account.sixV6Rank.tier)]" :style="getRankBadgeMaskStyle(entry.account.sixV6Rank.tier)" @click="openSixV6Picker(entry.account.id, $event)">
+                      <img :src="rankIcons[entry.account.sixV6Rank.tier]" :alt="`${entry.account.sixV6Rank.tier} ${entry.account.sixV6Rank.division}`" class="rank-badge-image h-full w-full object-contain" draggable="false">
+                      <span v-if="hasRankBadgeGlow(entry.account.sixV6Rank.tier)" class="rank-badge-glow" aria-hidden="true" />
                       <span v-if="hasRankBadgeShine(entry.account.sixV6Rank.tier)" class="rank-badge-shine" aria-hidden="true" />
                       <span v-if="hasRankBadgeSparkles(entry.account.sixV6Rank.tier)" class="rank-badge-sparkles" aria-hidden="true" />
                       <span v-if="hasRankBadgeExtraSparkles(entry.account.sixV6Rank.tier)" class="rank-badge-sparkles rank-badge-sparkles-secondary" aria-hidden="true" />
@@ -353,9 +363,9 @@
             v-model.number="uiZoom"
             @input="handleUiZoomInput"
             type="range"
-            min="80"
-            max="120"
-            step="5"
+            :min="MIN_UI_ZOOM"
+            :max="MAX_UI_ZOOM"
+            :step="UI_ZOOM_STEP"
             class="w-full accent-cyan-400"
           >
         </div>
@@ -398,6 +408,18 @@
         </div>
 
         <button
+          type="button"
+          class="mt-3 inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+          @click="openRankResetModal"
+        >
+          <span class="flex items-center gap-2.5 tracking-tight">
+            <RotateCcw class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
+            <span>Season Rank Reset</span>
+          </span>
+          <span class="text-[11px] uppercase tracking-[0.14em] text-slate-400/80">Open</span>
+        </button>
+
+        <button
           v-if="tauriDesktop"
           type="button"
           class="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border px-3 text-[13px] font-semibold transition disabled:cursor-wait disabled:opacity-70"
@@ -423,11 +445,11 @@
           @change="handleImportData"
         >
 
-        <div class="mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500/55">
-          {{ settingsFooterLabel }}
-        </div>
+      <div class="mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500/55">
+        {{ settingsFooterLabel }}
       </div>
     </div>
+  </div>
 
     <div
       v-if="backupTransferModalMode"
@@ -739,6 +761,7 @@
     <RankDbAccountInfoModal
       :account-id="accountInfoModal?.accountId ?? null"
       :account-name="accountInfoModal ? accounts.find((entry) => entry.id === accountInfoModal.accountId)?.accountName ?? 'Battletag' : ''"
+      :archived-rank-snapshots="accountInfoModal ? accounts.find((entry) => entry.id === accountInfoModal.accountId)?.archivedRankSnapshots ?? [] : []"
       :banned-draft="accountInfoBannedDraft"
       :country-draft="accountInfoCountryDraft"
       :country-options="accountCountryOptions"
@@ -746,11 +769,82 @@
       :get-flag-class="getFlagClass"
       :notes-draft="accountInfoNotesDraft"
       @close="closeAccountInfoModal"
+      @delete:archived-rank-snapshot="deleteArchivedRankSnapshot"
       @save="saveAccountInfo"
       @toggle-banned="accountInfoBannedDraft = !accountInfoBannedDraft"
       @update:country-draft="accountInfoCountryDraft = $event"
       @update:notes-draft="accountInfoNotesDraft = $event"
     />
+
+    <div v-if="rankResetDeleteModal" class="fixed inset-0 z-[88] bg-black/60" @click="closeRankResetDeleteModal">
+      <div class="absolute left-1/2 top-1/2 w-[420px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.55)]" @click.stop>
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-[17px] font-semibold tracking-tight text-slate-100">Delete Rank Reset</h2>
+            <p class="mt-1 text-[13px] text-slate-400/80">Remove this logged reset from every account.</p>
+          </div>
+          <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]" aria-label="Close delete rank reset modal" @click="closeRankResetDeleteModal">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="rounded-[8px] border border-rose-400/20 bg-rose-500/8 px-3 py-3 text-[13px] leading-6 text-slate-200/90">
+          This deletes the selected rank reset snapshot for every account that has it, not just the one you are currently viewing.
+        </div>
+        <p class="mt-3 text-[13px] text-slate-300/90">
+          Reset date:
+          <span class="font-semibold text-slate-100">{{ rankResetDeleteModal ? formatRankResetDeleteDate(rankResetDeleteModal.createdAt) : '' }}</span>
+        </p>
+        <div class="mt-5 flex justify-end gap-3">
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]" @click="closeRankResetDeleteModal">
+            Cancel
+          </button>
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-[8px] border border-rose-400/20 bg-rose-500/15 px-4 text-[13px] font-semibold text-rose-100 hover:bg-rose-500/25" @click="confirmDeleteArchivedRankSnapshot">
+            Delete Reset
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="rankResetModalOpen" class="fixed inset-0 z-[87] bg-black/60" @click="closeRankResetModal">
+      <div class="absolute left-1/2 top-1/2 w-[420px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.55)]" @click.stop>
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-[17px] font-semibold tracking-tight text-slate-100">Season Rank Reset</h2>
+          </div>
+          <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]" aria-label="Close rank reset modal" @click="closeRankResetModal">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 py-3 text-[13px] leading-6 text-slate-300/88">
+          Past Season Ranks will be visible in the Account Info Tab. Archive current ranks and set every account to Unranked.
+        </div>
+
+        <div class="mt-3 rounded-[8px] border border-amber-400/20 bg-amber-500/10 px-3 py-3 text-[13px] leading-6 text-amber-100/88">
+          Only use this when a real Overwatch rank reset happens. This affects every account in the app.
+        </div>
+
+        <label class="mt-4 flex items-start gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 py-3 text-[13px] text-slate-200/90">
+          <input v-model="rankResetConfirmed" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-[#3b4150] bg-[#0c1018] text-cyan-400 focus:ring-cyan-400/40">
+          <span>I’m sure. Archive all current ranks and reset every account to Unranked.</span>
+        </label>
+
+        <div class="mt-5 flex justify-end gap-3">
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]" @click="closeRankResetModal">
+            Cancel
+          </button>
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-[8px] border border-rose-400/20 bg-rose-500/15 px-4 text-[13px] font-semibold text-rose-100 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-55" :disabled="!rankResetConfirmed" @click="confirmRankReset">
+            Initiate Rank Reset
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -762,7 +856,7 @@ import { LogicalSize } from '@tauri-apps/api/dpi'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check as checkForUpdate } from '@tauri-apps/plugin-updater'
 import { currentMonitor, getCurrentWindow } from '@tauri-apps/api/window'
-import { ChevronDown, ClipboardClock, Download, KeyRound, Upload, User, ZoomIn } from 'lucide-vue-next'
+import { ChevronDown, ClipboardClock, Download, KeyRound, RotateCcw, Upload, User, ZoomIn } from 'lucide-vue-next'
 import 'flag-icons/css/flag-icons.min.css'
 import RankDbAccountContextMenu from '~~/app/components/rankdb/RankDbAccountContextMenu.vue'
 import RankDbAccountInfoModal from '~~/app/components/rankdb/RankDbAccountInfoModal.vue'
@@ -775,6 +869,22 @@ import tauriConfig from '~~/src-tauri/tauri.conf.json'
 import {
   BASE_MIN_WINDOW_WIDTH,
   DEFAULT_CLIPBOARD_CLEAR_SECONDS,
+  DEFAULT_RANK_BADGE_GLOW_OFFSET_X,
+  DEFAULT_RANK_BADGE_GLOW_OFFSET_Y,
+  DEFAULT_RANK_BADGE_GLOW_OPACITY,
+  DEFAULT_RANK_BADGE_GLOW_PULSE_AMOUNT,
+  DEFAULT_RANK_BADGE_GLOW_PULSE_SPEED,
+  DEFAULT_RANK_BADGE_GLOW_RADIUS,
+  DEFAULT_RANK_BADGE_SPARKLE_DELAY_MAX,
+  DEFAULT_RANK_BADGE_SPARKLE_DURATION_MAX,
+  DEFAULT_RANK_BADGE_SPARKLE_DURATION_MIN,
+  DEFAULT_RANK_BADGE_SPARKLE_INSET_X,
+  DEFAULT_RANK_BADGE_SPARKLE_INSET_Y,
+  DEFAULT_RANK_BADGE_SPARKLE_RERANDOMIZE_SECONDS,
+  DEFAULT_RANK_BADGE_SPARKLE_SIZE_MAX,
+  DEFAULT_RANK_BADGE_SPARKLE_SIZE_MIN,
+  DEFAULT_RANK_BADGE_SPARKLE_SPREAD_X,
+  DEFAULT_RANK_BADGE_SPARKLE_SPREAD_Y,
   DEFAULT_RANK_NUMBER_FONT_SIZE,
   DEFAULT_RANK_NUMBER_OFFSET_X,
   DEFAULT_RANK_NUMBER_OFFSET_Y,
@@ -783,10 +893,32 @@ import {
   INFINITE_CLIPBOARD_CLEAR_SECONDS,
   LEGACY_UI_SETTINGS_KEY,
   MAX_CLIPBOARD_CLEAR_SECONDS,
+  MAX_RANK_BADGE_GLOW_OFFSET,
+  MAX_RANK_BADGE_GLOW_OPACITY,
+  MAX_RANK_BADGE_GLOW_PULSE_AMOUNT,
+  MAX_RANK_BADGE_GLOW_PULSE_SPEED,
+  MAX_RANK_BADGE_GLOW_RADIUS,
+  MAX_RANK_BADGE_SPARKLE_DELAY,
+  MAX_RANK_BADGE_SPARKLE_DURATION,
+  MAX_RANK_BADGE_SPARKLE_INSET,
+  MAX_RANK_BADGE_SPARKLE_RERANDOMIZE_SECONDS,
+  MAX_RANK_BADGE_SPARKLE_SIZE,
+  MAX_RANK_BADGE_SPARKLE_SPREAD,
   MAX_RANK_NUMBER_FONT_SIZE,
   MAX_RANK_NUMBER_OFFSET,
   MAX_UI_ZOOM,
   MIN_CLIPBOARD_CLEAR_SECONDS,
+  MIN_RANK_BADGE_GLOW_OFFSET,
+  MIN_RANK_BADGE_GLOW_OPACITY,
+  MIN_RANK_BADGE_GLOW_PULSE_AMOUNT,
+  MIN_RANK_BADGE_GLOW_PULSE_SPEED,
+  MIN_RANK_BADGE_GLOW_RADIUS,
+  MIN_RANK_BADGE_SPARKLE_DELAY,
+  MIN_RANK_BADGE_SPARKLE_DURATION,
+  MIN_RANK_BADGE_SPARKLE_INSET,
+  MIN_RANK_BADGE_SPARKLE_RERANDOMIZE_SECONDS,
+  MIN_RANK_BADGE_SPARKLE_SIZE,
+  MIN_RANK_BADGE_SPARKLE_SPREAD,
   MIN_RANK_NUMBER_FONT_SIZE,
   MIN_RANK_NUMBER_OFFSET,
   MIN_UI_ZOOM,
@@ -820,6 +952,7 @@ import {
 } from '~~/app/constants/rankdb'
 import type {
   AccountRow,
+  ArchivedRankSnapshot,
   CountryOption,
   EditableField,
   ModalOption,
@@ -860,21 +993,19 @@ const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
   [CURRENT_WHATS_NEW_VERSION]: [
     {
-      title: 'Safer Updates',
-      description: 'RankDB now creates an automatic recovery backup before installing an app update.'
+      title: 'Rank Badge Effects',
+      description: 'Higher rank badges now have updated glow, shine, and sparkle effects.'
     },
     {
-      title: 'Better Data Protection',
-      description: 'If RankDB has trouble reopening your local database after an update, it now stops and shows a recovery option instead of silently starting fresh.'
-    },
-    {
-      title: 'Recovery Restore',
-      description: 'You can restore the automatic pre-update backup directly in the app if something goes wrong after restarting.'
+      title: 'Season Rank Reset',
+      description: 'You can now archive ranks during a season reset and review past reset snapshots in Account Info.'
     }
   ]
 }
 const rankPicker = ref<{ accountId: number; target: 'role' | 'sixv6'; rankIndex?: number } | null>(null)
 const settingsMenuOpen = ref(false)
+const rankResetModalOpen = ref(false)
+const rankResetConfirmed = ref(false)
 const createGroupModalOpen = ref(false)
 const groupActionMenu = ref<{ groupId: string } | null>(null)
 const groupActionMenuPositionStyle = ref<Record<string, string>>({})
@@ -883,6 +1014,7 @@ const accountContextMenuPositionStyle = ref<Record<string, string>>({})
 const deleteAccountModal = ref<{ accountId: number } | null>(null)
 const credentialsModal = ref<{ accountId: number } | null>(null)
 const accountInfoModal = ref<{ accountId: number } | null>(null)
+const rankResetDeleteModal = ref<{ createdAt: string } | null>(null)
 const credentialsEmailDraft = ref('')
 const credentialsPasswordDraft = ref('')
 const credentialsEmailVisible = ref(false)
@@ -1016,6 +1148,7 @@ const buildEmptyAccount = (id: number): AccountRow => ({
   groupId: null,
   isBanned: false,
   notes: '',
+  archivedRankSnapshots: [],
   ranks: roleTemplate.map((role) => ({
     role: role.role,
     color: role.color,
@@ -1156,6 +1289,116 @@ const normalizeRankNumberFontSize = (value: unknown) => {
 
   const roundedValue = Math.round(numberValue * 2) / 2
   return Math.min(MAX_RANK_NUMBER_FONT_SIZE, Math.max(MIN_RANK_NUMBER_FONT_SIZE, roundedValue))
+}
+
+const normalizeRankBadgeGlowOffset = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return 0
+  }
+
+  const roundedValue = Math.round(numberValue * 2) / 2
+  return Math.min(MAX_RANK_BADGE_GLOW_OFFSET, Math.max(MIN_RANK_BADGE_GLOW_OFFSET, roundedValue))
+}
+
+const normalizeRankBadgeGlowRadius = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return DEFAULT_RANK_BADGE_GLOW_RADIUS
+  }
+
+  const roundedValue = Math.round(numberValue)
+  return Math.min(MAX_RANK_BADGE_GLOW_RADIUS, Math.max(MIN_RANK_BADGE_GLOW_RADIUS, roundedValue))
+}
+
+const normalizeRankBadgeGlowOpacity = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return DEFAULT_RANK_BADGE_GLOW_OPACITY
+  }
+
+  const roundedValue = Math.round(numberValue)
+  return Math.min(MAX_RANK_BADGE_GLOW_OPACITY, Math.max(MIN_RANK_BADGE_GLOW_OPACITY, roundedValue))
+}
+
+const normalizeRankBadgeGlowPulseAmount = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return DEFAULT_RANK_BADGE_GLOW_PULSE_AMOUNT
+  }
+
+  const roundedValue = Math.round(numberValue)
+  return Math.min(MAX_RANK_BADGE_GLOW_PULSE_AMOUNT, Math.max(MIN_RANK_BADGE_GLOW_PULSE_AMOUNT, roundedValue))
+}
+
+const normalizeRankBadgeGlowPulseSpeed = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return DEFAULT_RANK_BADGE_GLOW_PULSE_SPEED
+  }
+
+  const roundedValue = Math.round(numberValue)
+  return Math.min(MAX_RANK_BADGE_GLOW_PULSE_SPEED, Math.max(MIN_RANK_BADGE_GLOW_PULSE_SPEED, roundedValue))
+}
+
+const normalizeRankBadgeSparkleInset = (value: unknown, fallback: number) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return fallback
+  }
+
+  const roundedValue = Math.round(numberValue)
+  return Math.min(MAX_RANK_BADGE_SPARKLE_INSET, Math.max(MIN_RANK_BADGE_SPARKLE_INSET, roundedValue))
+}
+
+const normalizeRankBadgeSparkleSpread = (value: unknown, fallback: number) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return fallback
+  }
+
+  const roundedValue = Math.round(numberValue)
+  return Math.min(MAX_RANK_BADGE_SPARKLE_SPREAD, Math.max(MIN_RANK_BADGE_SPARKLE_SPREAD, roundedValue))
+}
+
+const normalizeRankBadgeSparkleSize = (value: unknown, fallback: number) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return fallback
+  }
+
+  const roundedValue = Math.round(numberValue)
+  return Math.min(MAX_RANK_BADGE_SPARKLE_SIZE, Math.max(MIN_RANK_BADGE_SPARKLE_SIZE, roundedValue))
+}
+
+const normalizeRankBadgeSparkleDelay = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return DEFAULT_RANK_BADGE_SPARKLE_DELAY_MAX
+  }
+
+  const roundedValue = Math.round(numberValue)
+  return Math.min(MAX_RANK_BADGE_SPARKLE_DELAY, Math.max(MIN_RANK_BADGE_SPARKLE_DELAY, roundedValue))
+}
+
+const normalizeRankBadgeSparkleDuration = (value: unknown, fallback: number) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return fallback
+  }
+
+  const roundedValue = Math.round(numberValue * 10) / 10
+  return Math.min(MAX_RANK_BADGE_SPARKLE_DURATION, Math.max(MIN_RANK_BADGE_SPARKLE_DURATION, roundedValue))
+}
+
+const normalizeRankBadgeSparkleRerandomizeSeconds = (value: unknown) => {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue)) {
+    return DEFAULT_RANK_BADGE_SPARKLE_RERANDOMIZE_SECONDS
+  }
+
+  const roundedValue = Math.round(numberValue * 10) / 10
+  return Math.min(MAX_RANK_BADGE_SPARKLE_RERANDOMIZE_SECONDS, Math.max(MIN_RANK_BADGE_SPARKLE_RERANDOMIZE_SECONDS, roundedValue))
 }
 
 type OwApiProfilePayload = {
@@ -1717,6 +1960,7 @@ const normalizeStoredAccount = (fromStorage: any, fallbackId: number): AccountRo
   const fromStorageRanks = Array.isArray(fromStorage?.ranks) ? fromStorage.ranks : []
   const fromStorageValuesA = Array.isArray(fromStorage?.valuesA) ? fromStorage.valuesA : []
   const fromStorageValuesB = Array.isArray(fromStorage?.valuesB) ? fromStorage.valuesB : []
+  const fromStorageArchivedRankSnapshots = Array.isArray(fromStorage?.archivedRankSnapshots) ? fromStorage.archivedRankSnapshots : []
   const fromStorageSixV6 = (fromStorage?.sixV6Rank && typeof fromStorage.sixV6Rank === 'object') ? fromStorage.sixV6Rank : null
   const lastRankModifiedAt = typeof fromStorage?.lastRankModifiedAt === 'string' && !Number.isNaN(Date.parse(fromStorage.lastRankModifiedAt))
     ? fromStorage.lastRankModifiedAt
@@ -1733,6 +1977,39 @@ const normalizeStoredAccount = (fromStorage: any, fallbackId: number): AccountRo
     groupId: typeof fromStorage?.groupId === 'string' && fromStorage.groupId.trim() ? fromStorage.groupId.trim() : null,
     isBanned: Boolean(fromStorage?.isBanned ?? fromStorage?.banned),
     notes: typeof fromStorage?.notes === 'string' ? fromStorage.notes : emptyAccount.notes,
+    archivedRankSnapshots: fromStorageArchivedRankSnapshots
+      .filter((entry: unknown) => entry && typeof entry === 'object')
+      .map((entry: any, idx: number): ArchivedRankSnapshot => {
+        const snapshotRanks = Array.isArray(entry?.ranks) ? entry.ranks : []
+        const snapshotSixV6 = (entry?.sixV6Rank && typeof entry.sixV6Rank === 'object') ? entry.sixV6Rank : null
+        const createdAt = typeof entry?.createdAt === 'string' && !Number.isNaN(Date.parse(entry.createdAt))
+          ? entry.createdAt
+          : new Date(0).toISOString()
+
+        return {
+          id: typeof entry?.id === 'string' && entry.id.trim() ? entry.id.trim() : `rank-reset-${fallbackId}-${idx + 1}`,
+          createdAt,
+          ranks: roleTemplate.map((role, rankIdx) => {
+            const rank = snapshotRanks[rankIdx]
+
+            return {
+              role: role.role,
+              color: role.color,
+              tier: normalizeTier(rank?.tier),
+              division: normalizeDivision(rank?.division),
+              predicted: normalizeTier(rank?.tier) === 'Unranked' ? false : Boolean(rank?.predicted)
+            }
+          }),
+          sixV6Rank: {
+            role: '6v6',
+            color: 'text-slate-300',
+            tier: normalizeTier(snapshotSixV6?.tier),
+            division: normalizeDivision(snapshotSixV6?.division),
+            predicted: normalizeTier(snapshotSixV6?.tier) === 'Unranked' ? false : Boolean(snapshotSixV6?.predicted)
+          }
+        }
+      })
+      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)),
     ranks: roleTemplate.map((role, rankIdx) => {
       const rank = fromStorageRanks[rankIdx]
 
@@ -1830,6 +2107,13 @@ const clearLegacyBrowserStorage = () => {
 }
 
 const initialUiSettings = loadStoredUiSettings()
+const RANK_BADGE_GLOW_OFFSET_X = DEFAULT_RANK_BADGE_GLOW_OFFSET_X
+const RANK_BADGE_GLOW_OFFSET_Y = DEFAULT_RANK_BADGE_GLOW_OFFSET_Y
+const RANK_BADGE_GLOW_RADIUS = DEFAULT_RANK_BADGE_GLOW_RADIUS
+const RANK_BADGE_GLOW_OPACITY = DEFAULT_RANK_BADGE_GLOW_OPACITY
+const RANK_BADGE_GLOW_PULSE_AMOUNT = DEFAULT_RANK_BADGE_GLOW_PULSE_AMOUNT
+const RANK_BADGE_GLOW_PULSE_SPEED = DEFAULT_RANK_BADGE_GLOW_PULSE_SPEED
+const RANK_BADGE_GLOW_PULSE_DURATION = Number((7 - RANK_BADGE_GLOW_PULSE_SPEED).toFixed(2))
 const showSixV6 = ref(initialUiSettings.showSixV6)
 const showNonRankColumns = ref(initialUiSettings.showNonRankColumns)
 const showLeadButtons = ref(initialUiSettings.showLeadButtons)
@@ -1934,6 +2218,7 @@ const activeRoleSort = ref<RoleSortState | null>(null)
 const customAccountOrderIds = ref<number[]>(accounts.value.map((account) => account.id))
 const normalAccounts = computed(() => accounts.value.filter((account) => !account.isBanned))
 const bannedAccounts = computed(() => accounts.value.filter((account) => account.isBanned))
+const canDragAccounts = computed(() => activeRoleSort.value === null)
 const lastNormalAccountId = computed(() => normalAccounts.value.at(-1)?.id ?? null)
 const rankChangeDateFormatter = new Intl.DateTimeFormat(undefined, {
   day: '2-digit',
@@ -2241,6 +2526,20 @@ const buildAccountsPayload = () => accounts.value.map((account) => ({
   groupId: account.groupId,
   isBanned: account.isBanned,
   notes: account.notes,
+  archivedRankSnapshots: account.archivedRankSnapshots.map((snapshot) => ({
+    id: snapshot.id,
+    createdAt: snapshot.createdAt,
+    ranks: snapshot.ranks.map((rank) => ({
+      tier: rank.tier,
+      division: rank.division,
+      predicted: rank.predicted
+    })),
+    sixV6Rank: {
+      tier: snapshot.sixV6Rank.tier,
+      division: snapshot.sixV6Rank.division,
+      predicted: snapshot.sixV6Rank.predicted
+    }
+  })),
   ranks: account.ranks.map((rank) => ({
     tier: rank.tier,
     division: rank.division,
@@ -2362,6 +2661,37 @@ const scheduleTauriWindowResize = (delay = 150) => {
   }, delay)
 }
 
+const getRankBadgeGlowClass = (tier: RankTier) => {
+  if (!badgeAnimationsEnabled.value) {
+    return ''
+  }
+
+  switch (tier) {
+    case 'Bronze':
+      return 'rank-badge-glow-bronze'
+    case 'Silver':
+      return 'rank-badge-glow-silver'
+    case 'Gold':
+      return 'rank-badge-glow-gold'
+    case 'Platinum':
+      return 'rank-badge-glow-platinum'
+    case 'Diamond':
+      return 'rank-badge-glow-diamond'
+    case 'Master':
+      return 'rank-badge-glow-master'
+    case 'Grandmaster':
+      return 'rank-badge-glow-grandmaster'
+    case 'Champion':
+      return 'rank-badge-glow-champion'
+    default:
+      return ''
+  }
+}
+
+const hasRankBadgeGlow = (tier: RankTier) => (
+  badgeAnimationsEnabled.value && ['Diamond', 'Master', 'Grandmaster', 'Champion'].includes(tier)
+)
+
 const getRankBadgeShineClass = (tier: RankTier) => {
   if (!badgeAnimationsEnabled.value) {
     return ''
@@ -2387,6 +2717,8 @@ const getRankBadgeSparkleClass = (tier: RankTier) => {
   }
 
   switch (tier) {
+    case 'Diamond':
+      return 'rank-badge-sparkle-diamond'
     case 'Master':
       return 'rank-badge-sparkle-master'
     case 'Grandmaster':
@@ -2399,7 +2731,7 @@ const getRankBadgeSparkleClass = (tier: RankTier) => {
 }
 
 const hasRankBadgeSparkles = (tier: RankTier) => (
-  badgeAnimationsEnabled.value && (tier === 'Master' || tier === 'Grandmaster' || tier === 'Champion')
+  badgeAnimationsEnabled.value && (tier === 'Diamond' || tier === 'Master' || tier === 'Grandmaster' || tier === 'Champion')
 )
 
 const hasRankBadgeExtraSparkles = (tier: RankTier) => (
@@ -2882,6 +3214,16 @@ const closeSettingsMenu = () => {
   settingsMenuOpen.value = false
 }
 
+const openRankResetModal = () => {
+  rankResetConfirmed.value = false
+  rankResetModalOpen.value = true
+}
+
+const closeRankResetModal = () => {
+  rankResetModalOpen.value = false
+  rankResetConfirmed.value = false
+}
+
 const settingsFooterLabel = computed(() => `MADE BY MERK - ${appVersionLabel.value}`)
 const hasPendingAppUpdate = computed(() => availableAppUpdate.value !== null)
 const whatsNewItems = computed(() => WHATS_NEW_ITEMS_BY_VERSION[appVersionLabel.value] ?? [])
@@ -3140,6 +3482,69 @@ const closeAccountInfoModal = () => {
   accountInfoCountryDraft.value = ''
   accountInfoBannedDraft.value = false
   accountInfoNotesDraft.value = ''
+  rankResetDeleteModal.value = null
+}
+
+const closeRankResetDeleteModal = () => {
+  rankResetDeleteModal.value = null
+}
+
+const hasAnyStoredRankValue = (rank: RankEntry) => rank.tier !== 'Unranked'
+
+const buildArchivedRankSnapshot = (account: AccountRow, createdAt: string): ArchivedRankSnapshot => ({
+  id: `rank-reset-${account.id}-${createdAt}`,
+  createdAt,
+  ranks: account.ranks.map((rank) => ({
+    role: rank.role,
+    color: rank.color,
+    tier: rank.tier,
+    division: rank.division,
+    predicted: rank.predicted
+  })),
+  sixV6Rank: {
+    role: account.sixV6Rank.role,
+    color: account.sixV6Rank.color,
+    tier: account.sixV6Rank.tier,
+    division: account.sixV6Rank.division,
+    predicted: account.sixV6Rank.predicted
+  }
+})
+
+const resetRankEntryToUnranked = (rank: RankEntry) => {
+  rank.tier = emptyRankTier
+  rank.division = emptyDivision
+  rank.predicted = false
+}
+
+const confirmRankReset = () => {
+  if (!rankResetConfirmed.value) {
+    return
+  }
+
+  const createdAt = new Date().toISOString()
+  let affectedAccounts = 0
+
+  for (const account of accounts.value) {
+    const hasCurrentRanks = account.ranks.some(hasAnyStoredRankValue) || hasAnyStoredRankValue(account.sixV6Rank)
+    if (hasCurrentRanks) {
+      account.archivedRankSnapshots.unshift(buildArchivedRankSnapshot(account, createdAt))
+      affectedAccounts += 1
+    }
+
+    account.ranks.forEach(resetRankEntryToUnranked)
+    resetRankEntryToUnranked(account.sixV6Rank)
+    account.lastRankModifiedAt = createdAt
+  }
+
+  closeRankResetModal()
+  closeSettingsMenu()
+  schedulePersistAppStorage()
+  pushNotification('Rank reset complete', {
+    message: affectedAccounts > 0
+      ? `${affectedAccounts} accounts had their previous ranks archived in Account Info.`
+      : 'All accounts were set to Unranked.',
+    kind: 'success'
+  })
 }
 
 const openCreateGroupModal = () => {
@@ -3441,6 +3846,10 @@ const saveAccountInfo = () => {
     return
   }
 
+  const previousCountryCode = account.countryCode
+  const previousBannedState = account.isBanned
+  const previousNotes = account.notes
+
   account.countryCode = accountInfoCountryDraft.value
   account.isBanned = accountInfoBannedDraft.value
   account.notes = accountInfoNotesDraft.value
@@ -3453,11 +3862,63 @@ const saveAccountInfo = () => {
   schedulePersistAppStorage()
   const selectedCountry = getCountryOption(account.countryCode)
   const accountStatusLabel = account.isBanned ? 'Banned section' : 'Normal section'
+  const countryChanged = previousCountryCode !== account.countryCode
+  const bannedStateChanged = previousBannedState !== account.isBanned
+  const notesChanged = previousNotes !== account.notes
   closeAccountInfoModal()
   pushNotification('Account Info saved', {
-    message: selectedCountry
-      ? `${getAccountNameForDisplay(account.id)} set to ${selectedCountry.label} · ${accountStatusLabel}.`
-      : `${getAccountNameForDisplay(account.id)} moved to ${accountStatusLabel}.`,
+    message: bannedStateChanged
+      ? selectedCountry
+        ? `${getAccountNameForDisplay(account.id)} set to ${selectedCountry.label} and moved to ${accountStatusLabel}.`
+        : `${getAccountNameForDisplay(account.id)} moved to ${accountStatusLabel}.`
+      : countryChanged
+        ? selectedCountry
+          ? `${getAccountNameForDisplay(account.id)} set to ${selectedCountry.label}.`
+          : `${getAccountNameForDisplay(account.id)} country was cleared.`
+        : notesChanged
+          ? `${getAccountNameForDisplay(account.id)} notes were updated.`
+          : `${getAccountNameForDisplay(account.id)} info was saved.`,
+    kind: 'success'
+  })
+}
+
+const formatRankResetDeleteDate = (value: string) => new Intl.DateTimeFormat(undefined, {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit'
+}).format(new Date(value))
+
+const deleteArchivedRankSnapshot = (createdAt: string) => {
+  rankResetDeleteModal.value = { createdAt }
+}
+
+const confirmDeleteArchivedRankSnapshot = () => {
+  if (!rankResetDeleteModal.value) {
+    return
+  }
+
+  const { createdAt } = rankResetDeleteModal.value
+  let affectedAccounts = 0
+
+  for (const account of accounts.value) {
+    const nextSnapshots = account.archivedRankSnapshots.filter((snapshot) => snapshot.createdAt !== createdAt)
+    if (nextSnapshots.length !== account.archivedRankSnapshots.length) {
+      account.archivedRankSnapshots = nextSnapshots
+      affectedAccounts += 1
+    }
+  }
+
+  closeRankResetDeleteModal()
+
+  if (affectedAccounts === 0) {
+    return
+  }
+
+  schedulePersistAppStorage()
+  pushNotification('Rank reset removed', {
+    message: `Deleted this logged rank reset from ${affectedAccounts} accounts.`,
     kind: 'success'
   })
 }
@@ -4194,7 +4655,7 @@ const resetGroupDragState = () => {
 }
 
 const handleBarPointerDown = (accountId: number, event: PointerEvent) => {
-  if (event.button !== 0 || isInteractiveDragTarget(event.target)) {
+  if (!canDragAccounts.value || event.button !== 0 || isInteractiveDragTarget(event.target)) {
     return
   }
 
@@ -4903,6 +5364,40 @@ onBeforeUnmount(() => {
   isolation: isolate;
 }
 
+.rank-badge-image {
+  image-rendering: auto;
+  transform: translateZ(0);
+}
+
+.rank-badge-glow {
+  position: absolute;
+  inset: -14px -10px;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  --rank-badge-glow-color: rgba(255, 255, 255, 0.18);
+  --rank-badge-glow-core-color: rgba(255, 255, 255, 0.55);
+  --rank-badge-glow-strength: 1;
+  mix-blend-mode: screen;
+}
+
+.rank-badge-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  filter: blur(0.35px) saturate(1.1);
+  opacity: var(--rank-badge-glow-pulse-amount, 0.35);
+  animation: rank-badge-glow-pulse var(--rank-badge-glow-pulse-duration, 4s) ease-in-out infinite;
+  background:
+    radial-gradient(
+      circle at calc(50% + (var(--rank-badge-glow-offset-x, 0) * 1px)) calc(52% + (var(--rank-badge-glow-offset-y, 0) * 1px)),
+      color-mix(in srgb, var(--rank-badge-glow-core-color) calc(var(--rank-badge-glow-opacity, 0.2) * var(--rank-badge-glow-strength, 1) * 70%), transparent) 0%,
+      color-mix(in srgb, var(--rank-badge-glow-core-color) calc(var(--rank-badge-glow-opacity, 0.2) * var(--rank-badge-glow-strength, 1) * 42%), transparent) calc(var(--rank-badge-glow-radius, 68%) * 0.22),
+      color-mix(in srgb, var(--rank-badge-glow-color) calc(var(--rank-badge-glow-opacity, 0.2) * var(--rank-badge-glow-strength, 1) * 100%), transparent) calc(var(--rank-badge-glow-radius, 68%) * 0.56),
+      transparent var(--rank-badge-glow-radius, 68%)
+    );
+}
+
 .rank-badge-shine {
   position: absolute;
   inset: 0;
@@ -4972,11 +5467,22 @@ onBeforeUnmount(() => {
   animation: rank-badge-shine-sweep-bounce 4.2s ease-in-out infinite;
 }
 
+@keyframes rank-badge-glow-pulse {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.015);
+  }
+}
+
 .rank-badge-sparkles {
   position: absolute;
   inset: 0;
-  z-index: 2;
   pointer-events: none;
+  z-index: 2;
   --rank-badge-sparkle-color: rgba(255, 255, 255, 0.55);
 }
 
@@ -5026,6 +5532,10 @@ onBeforeUnmount(() => {
   animation-delay: 1.65s;
 }
 
+.rank-badge-sparkle-diamond .rank-badge-sparkles {
+  --rank-badge-sparkle-color: rgba(124, 198, 255, 0.7);
+}
+
 .rank-badge-sparkle-master .rank-badge-sparkles {
   --rank-badge-sparkle-color: rgba(134, 255, 171, 0.65);
 }
@@ -5036,6 +5546,128 @@ onBeforeUnmount(() => {
 
 .rank-badge-sparkle-champion .rank-badge-sparkles {
   --rank-badge-sparkle-color: rgba(255, 135, 208, 0.68);
+}
+
+@keyframes rank-badge-shine-sweep {
+  0%,
+  10% {
+    opacity: 0;
+    transform: translateX(-160%) rotate(16deg);
+  }
+
+  16% {
+    opacity: 0.85;
+  }
+
+  34% {
+    opacity: 0.2;
+    transform: translateX(155%) rotate(16deg);
+  }
+
+  58% {
+    opacity: 0;
+    transform: translateX(155%) rotate(16deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(155%) rotate(16deg);
+  }
+}
+
+@keyframes rank-badge-shine-sweep-bounce {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateX(-160%) rotate(16deg);
+  }
+
+  14% {
+    opacity: 0.88;
+  }
+
+  28% {
+    opacity: 0.26;
+    transform: translateX(150%) rotate(16deg);
+  }
+
+  36% {
+    opacity: 0.74;
+  }
+
+  52% {
+    opacity: 0.18;
+    transform: translateX(-145%) rotate(16deg);
+  }
+
+  62%,
+  100% {
+    opacity: 0;
+    transform: translateX(-145%) rotate(16deg);
+  }
+}
+
+@keyframes rank-badge-sparkle-twinkle {
+  0%,
+  58%,
+  100% {
+    opacity: 0;
+    transform: scale(0.55) rotate(0deg);
+  }
+
+  65% {
+    opacity: 0.8;
+    transform: scale(1) rotate(8deg);
+  }
+
+  78% {
+    opacity: 0.35;
+    transform: scale(0.72) rotate(0deg);
+  }
+}
+
+.rank-badge-glow-bronze .rank-badge-glow {
+  --rank-badge-glow-color: rgba(205, 127, 78, 0.2);
+  --rank-badge-glow-core-color: rgba(255, 211, 162, 0.5);
+}
+
+.rank-badge-glow-silver .rank-badge-glow {
+  --rank-badge-glow-color: rgba(216, 224, 235, 0.2);
+  --rank-badge-glow-core-color: rgba(248, 252, 255, 0.5);
+}
+
+.rank-badge-glow-gold .rank-badge-glow {
+  --rank-badge-glow-color: rgba(255, 205, 92, 0.22);
+  --rank-badge-glow-core-color: rgba(255, 239, 170, 0.56);
+}
+
+.rank-badge-glow-platinum .rank-badge-glow {
+  --rank-badge-glow-color: rgba(98, 231, 255, 0.2);
+  --rank-badge-glow-core-color: rgba(186, 255, 249, 0.52);
+}
+
+.rank-badge-glow-diamond .rank-badge-glow {
+  --rank-badge-glow-color: rgba(110, 182, 255, 0.22);
+  --rank-badge-glow-core-color: rgba(196, 225, 255, 0.54);
+  --rank-badge-glow-strength: 0.1;
+}
+
+.rank-badge-glow-master .rank-badge-glow {
+  --rank-badge-glow-color: rgba(134, 255, 171, 0.2);
+  --rank-badge-glow-core-color: rgba(221, 255, 214, 0.5);
+  --rank-badge-glow-strength: 0.6;
+}
+
+.rank-badge-glow-grandmaster .rank-badge-glow {
+  --rank-badge-glow-color: rgba(186, 128, 255, 0.2);
+  --rank-badge-glow-core-color: rgba(232, 199, 255, 0.52);
+  --rank-badge-glow-strength: 0.8;
+}
+
+.rank-badge-glow-champion .rank-badge-glow {
+  --rank-badge-glow-color: rgba(255, 138, 208, 0.22);
+  --rank-badge-glow-core-color: rgba(255, 216, 238, 0.58);
+  --rank-badge-glow-strength: 1;
 }
 
 .rank-picker-division-number {
@@ -5169,81 +5801,4 @@ input::-webkit-credentials-auto-fill-button {
   }
 }
 
-@keyframes rank-badge-shine-sweep {
-  0%,
-  10% {
-    opacity: 0;
-    transform: translateX(-160%) rotate(16deg);
-  }
-
-  16% {
-    opacity: 0.85;
-  }
-
-  34% {
-    opacity: 0.2;
-    transform: translateX(155%) rotate(16deg);
-  }
-
-  58% {
-    opacity: 0;
-    transform: translateX(155%) rotate(16deg);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(155%) rotate(16deg);
-  }
-}
-
-@keyframes rank-badge-shine-sweep-bounce {
-  0%,
-  8% {
-    opacity: 0;
-    transform: translateX(-160%) rotate(16deg);
-  }
-
-  14% {
-    opacity: 0.88;
-  }
-
-  28% {
-    opacity: 0.26;
-    transform: translateX(150%) rotate(16deg);
-  }
-
-  36% {
-    opacity: 0.74;
-  }
-
-  52% {
-    opacity: 0.18;
-    transform: translateX(-145%) rotate(16deg);
-  }
-
-  62%,
-  100% {
-    opacity: 0;
-    transform: translateX(-145%) rotate(16deg);
-  }
-}
-
-@keyframes rank-badge-sparkle-twinkle {
-  0%,
-  58%,
-  100% {
-    opacity: 0;
-    transform: scale(0.55) rotate(0deg);
-  }
-
-  66% {
-    opacity: 0.72;
-    transform: scale(1) rotate(12deg);
-  }
-
-  76% {
-    opacity: 0.22;
-    transform: scale(0.78) rotate(20deg);
-  }
-}
 </style>

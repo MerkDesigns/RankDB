@@ -6,7 +6,7 @@
         :style="{ width: topBarWidth, transform: `translate3d(${topBarOffsetX}, 0, 0)` }"
       >
         <div class="flex min-w-0 items-center gap-1.5">
-          <img :src="overwatchIcon" alt="Overwatch" class="h-6 w-6 object-contain">
+          <img :src="overwatchIcon" alt="Overwatch" class="h-6 w-6 object-contain" draggable="false">
           <button
             type="button"
             class="inline-flex h-9 w-9 items-center justify-center text-slate-100/90 hover:bg-[#181c26]"
@@ -60,7 +60,7 @@
               :stroke-width="2.35"
               aria-hidden="true"
             />
-            <img :src="roleHeader.icon" :alt="roleHeader.label" class="h-7 w-7 object-contain">
+            <img :src="roleHeader.icon" :alt="roleHeader.label" class="h-7 w-7 object-contain" draggable="false">
             <ChevronDown
               v-if="activeRoleSort?.roleIndex === roleHeader.index"
               class="pointer-events-none absolute left-[calc(100%+7px)] top-1/2 h-[14.4px] w-[14.4px] -translate-y-1/2 text-slate-100/90"
@@ -74,22 +74,22 @@
 
       <div v-if="showSixV6" class="sixv6-rank-column h-11 w-full rounded-[8px] border border-[#272b35] bg-[#11141b] px-2">
         <div class="single-rank-lane">
-          <img :src="flexRoleIcon" alt="6v6 Flex" class="h-7 w-7 object-contain">
+          <img :src="flexRoleIcon" alt="6v6 Flex" class="h-7 w-7 object-contain" draggable="false">
         </div>
       </div>
 
       <div v-if="showNonRankColumns" class="values-a-column h-11 w-full rounded-[8px] border border-[#272b35] bg-[#11141b] px-2.5">
         <div class="values-a-lane values-lane-header">
-          <img :src="mythicPrismsIcon" alt="Mythic Prisms" class="h-[38px] w-[38px] object-contain">
-          <img :src="overwatchCoinsIcon" alt="Overwatch Coins" class="h-[38px] w-[38px] object-contain">
-          <img :src="overwatchCreditsIcon" alt="Overwatch Credits" class="h-[38px] w-[38px] object-contain">
+          <img :src="mythicPrismsIcon" alt="Mythic Prisms" class="h-[38px] w-[38px] object-contain" draggable="false">
+          <img :src="overwatchCoinsIcon" alt="Overwatch Coins" class="h-[38px] w-[38px] object-contain" draggable="false">
+          <img :src="overwatchCreditsIcon" alt="Overwatch Credits" class="h-[38px] w-[38px] object-contain" draggable="false">
         </div>
       </div>
 
       <div v-if="showNonRankColumns" class="values-b-column h-11 w-full rounded-[8px] border border-[#272b35] bg-[#11141b] px-2.5">
         <div class="values-b-lane values-lane-header">
-          <img :src="competetivePointsIcon" alt="Competitive Points" class="values-b-icon object-contain">
-          <img :src="legacyPointsIcon" alt="Legacy Points" class="values-b-icon object-contain">
+          <img :src="competetivePointsIcon" alt="Competitive Points" class="values-b-icon object-contain" draggable="false">
+          <img :src="legacyPointsIcon" alt="Legacy Points" class="values-b-icon object-contain" draggable="false">
         </div>
       </div>
     </section>

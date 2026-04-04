@@ -34,6 +34,7 @@ docs/GITHUB_UPDATES.md
 
 # Accidental local files
 src-tauri/2
+gitignored-screenshots/
 
 # Aider files
 .aider/

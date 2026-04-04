@@ -524,6 +524,9 @@
           Latest version:
           <span class="font-semibold text-slate-100">{{ availableAppUpdate.version }}</span>
         </p>
+        <p class="mt-3 rounded-[8px] border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-[12px] leading-5 text-cyan-100/90">
+          RankDB will create an automatic recovery backup before installing this update.
+        </p>
 
         <div class="mt-5 flex justify-end gap-3">
           <button
@@ -546,8 +549,54 @@
     </div>
 
     <div
-      v-if="whatsNewModalOpen"
+      v-if="updateRecoveryModalOpen"
       class="fixed inset-0 z-[57] bg-black/60"
+      @click="closeUpdateRecoveryModal"
+    >
+      <div
+        class="absolute left-1/2 top-1/2 w-[440px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[12px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+        @click.stop
+      >
+        <h2 class="text-[18px] font-semibold tracking-tight text-slate-100">Restore Automatic Recovery Backup</h2>
+        <p class="mt-3 text-[13px] leading-6 text-slate-300/90">
+          RankDB could not unlock the protected local database after restart.
+        </p>
+        <p class="mt-2 rounded-[8px] border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[12px] leading-5 text-rose-100/90">
+          {{ startupStorageError }}
+        </p>
+        <p v-if="pendingUpdateRecoveryMetadata" class="mt-3 text-[12px] leading-5 text-slate-400/90">
+          Automatic pre-update backup created at {{ pendingUpdateRecoveryMetadata.createdAt }}.
+        </p>
+        <p class="mt-2 text-[12px] leading-5 text-slate-400/90">
+          Restoring will rebuild the local protected database from that automatic backup.
+        </p>
+        <p v-if="updateRecoveryError" class="mt-4 rounded-[8px] border border-rose-400/20 bg-rose-500/10 px-3 py-2 text-[12px] leading-5 text-rose-100/90">
+          {{ updateRecoveryError }}
+        </p>
+
+        <div class="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]"
+            @click="closeUpdateRecoveryModal"
+          >
+            Not Now
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-cyan-400/20 bg-cyan-500/15 px-4 text-[13px] font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-wait disabled:opacity-70"
+            :disabled="updateRecoveryBusy"
+            @click="restoreFromPendingUpdateRecovery"
+          >
+            {{ updateRecoveryBusy ? 'Restoring...' : 'Restore Backup' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="whatsNewModalOpen"
+      class="fixed inset-0 z-[58] bg-black/60"
       @click="closeWhatsNewModal"
     >
       <div
@@ -607,7 +656,7 @@
 
     <div
       v-if="updateRestartModalOpen"
-      class="fixed inset-0 z-[58] bg-black/60"
+      class="fixed inset-0 z-[59] bg-black/60"
       @click="closeUpdateRestartModal"
     >
       <div
@@ -792,6 +841,9 @@ type PersistedAppStorageEnvelope = {
   schemaVersion: number
   payload: PersistedAppStoragePayload
 }
+type UpdateRecoveryMetadata = {
+  createdAt: string
+}
 
 useHead({
   link: [
@@ -802,21 +854,22 @@ useHead({
 const tauriDesktop = import.meta.client && isTauri()
 const APP_STORAGE_FORMAT = 'rankdb-app-state'
 const APP_STORAGE_SCHEMA_VERSION = 1
+const UPDATE_RECOVERY_PENDING_KEY = 'rankdb_update_recovery_pending_v1'
 const WHATS_NEW_VERSION_KEY = 'rankdb_last_seen_version_v1'
 const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
   [CURRENT_WHATS_NEW_VERSION]: [
     {
-      title: 'Role Header Sorting',
-      description: 'Clicking a role icon in the header now correctly sorts accounts by the selected rank again instead of leaving the visible order unchanged.'
+      title: 'Safer Updates',
+      description: 'RankDB now creates an automatic recovery backup before installing an app update.'
     },
     {
-      title: 'Settings Modal Focus',
-      description: 'The settings modal now fully blocks clicks and slider drags from interacting with rows and controls behind it.'
+      title: 'Better Data Protection',
+      description: 'If RankDB has trouble reopening your local database after an update, it now stops and shows a recovery option instead of silently starting fresh.'
     },
     {
-      title: 'Rank Edit History',
-      description: 'Account right-click menus now show the last rank edit date, and RankDB tracks it whenever a role or 6v6 rank is changed.'
+      title: 'Recovery Restore',
+      description: 'You can restore the automatic pre-update backup directly in the app if something goes wrong after restarting.'
     }
   ]
 }
@@ -842,7 +895,7 @@ const groupModalMode = ref<'create' | 'edit'>('create')
 const editingGroupId = ref('')
 const notifications = ref<NotificationToast[]>([])
 const rankRefreshBusy = ref(false)
-const storageAccessMode = ref<'ready'>('ready')
+const storageAccessMode = ref<'ready' | 'failed'>('ready')
 const backupTransferModalMode = ref<'export' | 'import' | null>(null)
 const backupTransferPassword = ref('')
 const backupTransferPasswordConfirm = ref('')
@@ -853,7 +906,12 @@ const updateCheckBusy = ref(false)
 const updateInstallBusy = ref(false)
 const updateModalOpen = ref(false)
 const updateRestartModalOpen = ref(false)
+const updateRecoveryModalOpen = ref(false)
 const availableAppUpdate = shallowRef<AppUpdate | null>(null)
+const updateRecoveryBusy = ref(false)
+const updateRecoveryError = ref('')
+const startupStorageError = ref('')
+const pendingUpdateRecoveryMetadata = ref<UpdateRecoveryMetadata | null>(null)
 const appVersionLabel = ref('v0.1.0')
 const whatsNewModalOpen = ref(false)
 const activeEditor = ref<EditableField | null>(null)
@@ -1504,6 +1562,38 @@ const decryptPortableExportPayload = async (encryptedExport: string, password: s
     encryptedExport,
     password
   })
+}
+
+const createUpdateRecoveryBackup = async (payload: Record<string, unknown>) => {
+  if (!import.meta.client || !isTauri()) {
+    throw new Error('Automatic update recovery is only available in the desktop app.')
+  }
+
+  return invoke<UpdateRecoveryMetadata>('create_update_recovery_backup', { payload })
+}
+
+const getUpdateRecoveryBackupMetadata = async () => {
+  if (!import.meta.client || !isTauri()) {
+    return null
+  }
+
+  return invoke<UpdateRecoveryMetadata | null>('get_update_recovery_backup_metadata')
+}
+
+const clearUpdateRecoveryBackup = async () => {
+  if (!import.meta.client || !isTauri()) {
+    return
+  }
+
+  await invoke('clear_update_recovery_backup')
+}
+
+const restoreUpdateRecoveryBackup = async () => {
+  if (!import.meta.client || !isTauri()) {
+    throw new Error('Automatic update recovery is only available in the desktop app.')
+  }
+
+  return invoke<unknown>('restore_update_recovery_backup')
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
@@ -2378,6 +2468,9 @@ const persistAppStorage = async () => {
   }
 
   if (tauriDesktop) {
+    if (storageAccessMode.value !== 'ready') {
+      return
+    }
     await savePersistedAppStorage()
     return
   }
@@ -2516,13 +2609,32 @@ onMounted(() => {
       try {
         await ensurePersistedAppStorageReady()
         await loadTauriStoredAppState()
+        storageAccessMode.value = 'ready'
+        startupStorageError.value = ''
+        if (hasPendingUpdateRecoveryMarker()) {
+          clearPendingUpdateRecoveryMarker()
+          pendingUpdateRecoveryMetadata.value = null
+          await clearUpdateRecoveryBackup().catch(() => {})
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Could not open the protected local database.'
-        pushNotification('Database setup failed', {
-          message,
-          kind: 'error',
-          duration: 3600
-        })
+        storageAccessMode.value = 'failed'
+        startupStorageError.value = message
+
+        const recoveryMetadata = hasPendingUpdateRecoveryMarker()
+          ? await getUpdateRecoveryBackupMetadata().catch(() => null)
+          : null
+
+        pendingUpdateRecoveryMetadata.value = recoveryMetadata
+        if (recoveryMetadata) {
+          updateRecoveryModalOpen.value = true
+        } else {
+          pushNotification('Database setup failed', {
+            message,
+            kind: 'error',
+            duration: 4200
+          })
+        }
       }
     })()
   }
@@ -2798,6 +2910,30 @@ const maybeOpenWhatsNewModal = (versionLabel: string) => {
   localStorage.setItem(WHATS_NEW_VERSION_KEY, versionLabel)
 }
 
+const setPendingUpdateRecoveryMarker = (metadata: UpdateRecoveryMetadata) => {
+  if (!import.meta.client) {
+    return
+  }
+
+  localStorage.setItem(UPDATE_RECOVERY_PENDING_KEY, JSON.stringify(metadata))
+}
+
+const hasPendingUpdateRecoveryMarker = () => {
+  if (!import.meta.client) {
+    return false
+  }
+
+  return Boolean(localStorage.getItem(UPDATE_RECOVERY_PENDING_KEY))
+}
+
+const clearPendingUpdateRecoveryMarker = () => {
+  if (!import.meta.client) {
+    return
+  }
+
+  localStorage.removeItem(UPDATE_RECOVERY_PENDING_KEY)
+}
+
 const closeUpdateModal = () => {
   updateModalOpen.value = false
 }
@@ -2808,6 +2944,11 @@ const closeUpdateRestartModal = () => {
 
 const closeWhatsNewModal = () => {
   whatsNewModalOpen.value = false
+}
+
+const closeUpdateRecoveryModal = () => {
+  updateRecoveryModalOpen.value = false
+  updateRecoveryError.value = ''
 }
 
 const checkForAppUpdates = async (silentNoUpdate = false) => {
@@ -2860,10 +3001,23 @@ const installAvailableUpdate = async () => {
 
   updateInstallBusy.value = true
   try {
+    commitActiveEditor()
+    closeMenus()
+    closeRankPicker()
+
+    const recoveryPayload = buildPersistedAppStorageEnvelope({
+      accounts: buildAccountsPayload(),
+      groups: buildGroupsPayload(),
+      uiSettings: buildUiSettingsPayload()
+    })
+    const recoveryMetadata = await createUpdateRecoveryBackup(recoveryPayload)
+    setPendingUpdateRecoveryMarker(recoveryMetadata)
+    pendingUpdateRecoveryMetadata.value = recoveryMetadata
+
     pushNotification('Installing update', {
-      message: `Downloading RankDB ${availableAppUpdate.value.version} from GitHub Releases.`,
+      message: `Automatic recovery backup created. Downloading RankDB ${availableAppUpdate.value.version} from GitHub Releases.`,
       kind: 'info',
-      duration: 4200
+      duration: 4600
     })
 
     await availableAppUpdate.value.downloadAndInstall()
@@ -2912,6 +3066,41 @@ const handleUpdateButtonClick = async () => {
   }
 
   await checkForAppUpdates(false)
+}
+
+const restoreFromPendingUpdateRecovery = async () => {
+  if (updateRecoveryBusy.value) {
+    return
+  }
+
+  updateRecoveryBusy.value = true
+  updateRecoveryError.value = ''
+
+  try {
+    const restoredPayload = parsePersistedAppStorage(await restoreUpdateRecoveryBackup())
+    if (!restoredPayload.payload) {
+      throw new Error('The automatic update recovery backup was empty.')
+    }
+
+    storageAccessMode.value = 'ready'
+    startupStorageError.value = ''
+    pendingUpdateRecoveryMetadata.value = null
+    closeUpdateRecoveryModal()
+    clearPendingUpdateRecoveryMarker()
+    applyImportedAppData(restoredPayload.payload)
+
+    pushNotification('Recovery restored', {
+      message: 'Recovered your last automatic pre-update backup.',
+      kind: 'success',
+      duration: 4200
+    })
+  } catch (error) {
+    updateRecoveryError.value = error instanceof Error
+      ? error.message
+      : 'Could not restore the automatic update recovery backup.'
+  } finally {
+    updateRecoveryBusy.value = false
+  }
 }
 
 const closeBackupTransferModal = () => {

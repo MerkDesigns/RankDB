@@ -44,6 +44,8 @@
             :sortable-role-headers="sortableRoleHeaders"
             :top-bar-offset-x="topBarOffsetX"
             :top-bar-width="topBarWidth"
+            @create-account="addRow"
+            @create-group="openCreateGroupModal"
             @cycle-role-sort="cycleRoleSort"
             @restore-role-sort="restoreCustomRoleSort"
             @toggle-lead-buttons="toggleLeadButtons"
@@ -70,6 +72,201 @@
                   <div class="h-px flex-1 bg-[#4a2630]" />
                 </div>
               </div>
+              <article
+                v-else-if="entry.kind === 'group-block'"
+                :data-group-entry-key="entry.key"
+                class="bar-shell relative touch-none select-none"
+                :class="draggedGroupEntryKey === entry.key ? 'z-[3]' : ''"
+                :style="{ width: fullGridWidth }"
+              >
+                <div class="top-bar-anchored relative overflow-hidden rounded-[12px] border border-[#27313a] bg-[#0a0e13]" :style="{ width: visibleGridWidth }">
+                  <div class="relative z-[1]">
+                    <div
+                      class="group relative flex min-h-16 items-center justify-between gap-3 px-4 py-3"
+                      @click="handleGroupHeaderClick(entry.group.id, entry.key, $event)"
+                      @contextmenu.prevent.stop="openGroupActionMenu(entry.group.id, $event)"
+                      @pointerdown="handleGroupHeaderPointerDown(entry.group.id, entry.key, entry.isBanned ? 'banned' : 'normal', $event)"
+                    >
+                      <div class="min-w-0 flex flex-1 items-center gap-3">
+                        <button
+                          type="button"
+                          class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] border border-[#323744] bg-[#0d1118] text-slate-100/90 hover:bg-[#181c26]"
+                          :title="entry.group.collapsed ? 'Expand group' : 'Collapse group'"
+                          @click.stop="toggleGroupCollapsed(entry.group.id)"
+                        >
+                          <ChevronDown
+                            class="h-[18px] w-[18px] transition-transform duration-200"
+                            :class="entry.group.collapsed ? '-rotate-90' : 'rotate-0'"
+                            :stroke-width="2.35"
+                            aria-hidden="true"
+                          />
+                        </button>
+                        <div class="min-w-0 flex flex-1 items-center justify-between gap-4">
+                          <div class="min-w-0 flex flex-1 items-center gap-2">
+                            <input
+                              v-if="editingGroupId === entry.group.id"
+                              data-group-name-input
+                              v-model="createGroupNameDraft"
+                              type="text"
+                              maxlength="40"
+                              class="h-auto min-w-0 flex-1 border-b border-slate-400/80 bg-transparent px-0 pb-0.5 text-[19px] font-semibold uppercase tracking-[0.08em] text-slate-200 outline-none"
+                              @blur="submitGroupRename"
+                              @pointerdown.stop
+                              @click.stop
+                              @keydown.enter.prevent="submitGroupRename"
+                              @keydown.esc.prevent="cancelGroupRename"
+                            >
+                            <div v-else class="truncate text-[19px] font-semibold uppercase leading-none tracking-[0.08em] text-slate-200">
+                              {{ entry.group.name.length > 40 ? `${entry.group.name.slice(0, 40)}...` : entry.group.name }}
+                            </div>
+                            <span
+                              v-if="isNewGroup(entry.group.id)"
+                              class="inline-flex shrink-0 items-center rounded-full bg-[#f3c94a] px-2 py-[3px] text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b3600]"
+                            >
+                              New!
+                            </span>
+                          </div>
+                          <div class="shrink-0 text-[13px] font-semibold uppercase leading-none tracking-[0.14em] text-slate-400/82">
+                            {{ entry.accountCount }} {{ entry.accountCount === 1 ? 'Account' : 'Accounts' }}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/78 hover:bg-[#181c26]"
+                        title="Group actions"
+                        @click.stop="openGroupActionMenu(entry.group.id, $event)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5" aria-hidden="true">
+                          <circle cx="12" cy="5" r="1.8" />
+                          <circle cx="12" cy="12" r="1.8" />
+                          <circle cx="12" cy="19" r="1.8" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div v-if="!entry.group.collapsed" class="relative pr-3 pb-0 pl-0 pt-1">
+                    <TransitionGroup
+                      tag="div"
+                      name="bar-list"
+                      class="relative space-y-4"
+                      :class="{ 'group-accounts-rigid': draggedUngroupedAccount }"
+                    >
+                      <article
+                        v-for="groupedAccount in entry.accounts"
+                        :key="`${entry.key}-account-${groupedAccount.id}`"
+                        :data-bar-id="groupedAccount.id"
+                        class="bar-shell relative h-16 touch-none select-none"
+                        :class="canDragAccounts
+                          ? [draggedAccountId === groupedAccount.id ? 'cursor-grabbing' : 'cursor-grab']
+                          : ['cursor-default']"
+                        :style="{ width: fullGridWidth }"
+                        @pointerdown="handleBarPointerDown(groupedAccount.id, $event)"
+                      >
+                        <div class="absolute inset-y-0 left-0 z-0 overflow-hidden" :style="{ width: `${leadColumnWidth}px` }">
+                          <div class="flex h-full items-center pl-0 pr-0">
+                            <div
+                              class="-ml-[2px] flex w-full items-center justify-center gap-0 transition-[opacity,transform,filter] duration-260 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                              :class="showLeadButtons ? 'translate-x-0 opacity-100 blur-0' : 'translate-x-4 opacity-0 blur-[2px]'"
+                            >
+                              <button
+                                type="button"
+                                class="inline-flex h-[56px] w-[46px] items-center justify-center rounded-l-[12px] rounded-r-none border border-r-0 border-[#323744] bg-[#0d1118] text-slate-100/78"
+                                title="Copy email"
+                                @click.stop="copyAccountCredential(groupedAccount.id, 'email')"
+                              >
+                                <User class="h-[22px] w-[22px] translate-y-[0.5px]" :stroke-width="2.25" aria-hidden="true" />
+                              </button>
+                              <button
+                                type="button"
+                                class="inline-flex h-[56px] w-[46px] items-center justify-center rounded-r-[12px] rounded-l-none border border-[#323744] bg-[#0d1118] text-slate-100/78"
+                                title="Copy password"
+                                @click.stop="copyAccountCredential(groupedAccount.id, 'password')"
+                              >
+                                <KeyRound class="h-[22px] w-[22px] translate-y-[0.5px]" :stroke-width="2.25" aria-hidden="true" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="row-main-shell absolute inset-y-0 z-[1]" :style="{ left: rowMainOffset, width: rowMainWidth }">
+                          <div class="pointer-events-none absolute inset-y-0 left-0 rounded-[8px] border border-[#323744] bg-[#10131a]" :style="{ width: mainPrimarySectionWidth }" />
+                          <div
+                            v-if="showSixV6"
+                            class="pointer-events-none absolute inset-y-0 rounded-[8px] border border-[#323744] bg-[#0d1118]"
+                            :style="{ left: mainSixV6SectionLeft, width: sixV6SectionWidth }"
+                          />
+                          <div
+                            v-if="showNonRankColumns"
+                            class="pointer-events-none absolute inset-y-0 rounded-[8px] border border-[#323744] bg-[#0d1118]"
+                            :style="{ left: mainCreditsSectionLeft, width: creditsSectionWidth }"
+                          />
+                          <div class="relative grid h-full items-center gap-3" :style="{ gridTemplateColumns: mainColumns }">
+                            <div class="min-w-0 mr-[-25px] flex items-center gap-3 px-2.5" @contextmenu.prevent.stop="openAccountContextMenu(groupedAccount.id, $event)">
+                              <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-[6px] border border-[#323744] text-slate-100/90 hover:bg-[#181c26]" title="Copy battletag" @click="copyAccountName(groupedAccount.accountName)"><img :src="battlenetIcon" alt="Copy battletag" class="h-9 w-9 object-contain" draggable="false"></button>
+                              <div class="min-w-0 flex-1 overflow-visible">
+                                <input v-if="isEditingName(groupedAccount.id)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="text" class="h-auto w-full min-w-0 border-b border-slate-400/80 bg-transparent px-0 pb-0.5 pr-3 text-[24px] font-semibold leading-none text-slate-100 outline-none" @blur="commitActiveEditor" @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
+                                <div v-else class="flex min-w-0 items-center gap-2">
+                                  <span class="block min-w-0 flex-1 overflow-hidden whitespace-nowrap pr-[6px] text-[24px] font-semibold text-slate-100">{{ getDisplayAccountName(groupedAccount.accountName) }}</span>
+                                  <span
+                                    v-if="isNewAccount(groupedAccount.id)"
+                                    class="inline-flex shrink-0 items-center rounded-full bg-[#f3c94a] px-2 py-[3px] text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b3600]"
+                                  >
+                                    New!
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="role-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(groupedAccount.id, $event)">
+                              <div class="role-lane role-lane-body">
+                                <div v-for="(rank, rankIndex) in groupedAccount.ranks" :key="`${groupedAccount.id}-${rank.role}`" class="flex items-center justify-center">
+                                  <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-visible rounded-[2px] transition hover:brightness-110" :class="[rank.predicted ? 'opacity-[0.35]' : rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeGlowClass(rank.tier), getRankBadgeShineClass(rank.tier), getRankBadgeSparkleClass(rank.tier)]" :style="getRankBadgeMaskStyle(rank.tier)" @click="openRankPicker(groupedAccount.id, rankIndex, $event)">
+                                    <img :src="rankIcons[rank.tier]" :alt="`${rank.tier} ${rank.division}`" class="rank-badge-image h-full w-full object-contain" draggable="false">
+                                    <span v-if="hasRankBadgeGlow(rank.tier)" class="rank-badge-glow" aria-hidden="true" />
+                                    <span v-if="hasRankBadgeShine(rank.tier)" class="rank-badge-shine" aria-hidden="true" />
+                                    <span v-if="hasRankBadgeSparkles(rank.tier)" class="rank-badge-sparkles" aria-hidden="true" />
+                                    <span v-if="hasRankBadgeExtraSparkles(rank.tier)" class="rank-badge-sparkles rank-badge-sparkles-secondary" aria-hidden="true" />
+                                    <span v-if="rank.tier !== 'Unranked'" class="absolute left-[76.5%] top-[calc(45%+1px)] rank-badge-number rank-division-number">{{ rank.division }}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <div v-if="showSixV6" class="sixv6-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(groupedAccount.id, $event)">
+                              <div class="single-rank-lane">
+                                <button type="button" class="rank-badge-button relative h-[45.6px] w-[106.4px] overflow-visible rounded-[2px] transition hover:brightness-110" :class="[groupedAccount.sixV6Rank.predicted ? 'opacity-[0.35]' : groupedAccount.sixV6Rank.tier === 'Unranked' ? 'opacity-50' : 'opacity-100', getRankBadgeGlowClass(groupedAccount.sixV6Rank.tier), getRankBadgeShineClass(groupedAccount.sixV6Rank.tier), getRankBadgeSparkleClass(groupedAccount.sixV6Rank.tier)]" :style="getRankBadgeMaskStyle(groupedAccount.sixV6Rank.tier)" @click="openSixV6Picker(groupedAccount.id, $event)">
+                                  <img :src="rankIcons[groupedAccount.sixV6Rank.tier]" :alt="`${groupedAccount.sixV6Rank.tier} ${groupedAccount.sixV6Rank.division}`" class="rank-badge-image h-full w-full object-contain" draggable="false">
+                                  <span v-if="hasRankBadgeGlow(groupedAccount.sixV6Rank.tier)" class="rank-badge-glow" aria-hidden="true" />
+                                  <span v-if="hasRankBadgeShine(groupedAccount.sixV6Rank.tier)" class="rank-badge-shine" aria-hidden="true" />
+                                  <span v-if="hasRankBadgeSparkles(groupedAccount.sixV6Rank.tier)" class="rank-badge-sparkles" aria-hidden="true" />
+                                  <span v-if="hasRankBadgeExtraSparkles(groupedAccount.sixV6Rank.tier)" class="rank-badge-sparkles rank-badge-sparkles-secondary" aria-hidden="true" />
+                                  <span v-if="groupedAccount.sixV6Rank.tier !== 'Unranked'" class="absolute left-[76.5%] top-[calc(45%+1px)] rank-badge-number rank-division-number">{{ groupedAccount.sixV6Rank.division }}</span>
+                                </button>
+                              </div>
+                            </div>
+                            <div v-if="showNonRankColumns" class="values-a-column h-full px-2.5" @pointerdown.stop>
+                              <div class="values-a-lane values-lane-body">
+                                <span v-for="(value, valueIndex) in groupedAccount.valuesA" :key="`${groupedAccount.id}-a-${valueIndex}`" class="flex h-full w-full items-center justify-center text-[15px] font-semibold text-slate-100/95">
+                                  <input v-if="isEditingValue(groupedAccount.id, 'valuesA', valueIndex)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="number" class="h-full w-full border-b border-slate-400/80 bg-transparent px-1 pb-0.5 text-center text-[20px] font-semibold leading-none tabular-nums text-slate-100 outline-none" @blur="commitActiveEditor" @pointerdown.stop @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
+                                  <span v-else class="inline-flex h-full w-full items-center justify-center px-1 text-[20px] font-semibold leading-none tabular-nums" @pointerdown.stop @click.stop="beginValueEdit(groupedAccount.id, 'valuesA', valueIndex)">{{ formatCompactValue(value) }}</span>
+                                </span>
+                              </div>
+                            </div>
+                            <div v-if="showNonRankColumns" class="values-b-column h-full px-2.5" @pointerdown.stop>
+                              <div class="values-b-lane values-lane-body">
+                                <span v-for="(value, valueIndex) in groupedAccount.valuesB" :key="`${groupedAccount.id}-b-${valueIndex}`" class="flex h-full w-full min-w-0 items-center justify-center text-[15px] font-semibold text-slate-100/95">
+                                  <input v-if="isEditingValue(groupedAccount.id, 'valuesB', valueIndex)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="number" class="h-full w-full min-w-0 border-b border-slate-400/80 bg-transparent px-1 pb-0.5 text-center text-[20px] font-semibold leading-none tabular-nums text-slate-100 outline-none" @blur="commitActiveEditor" @pointerdown.stop @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
+                                  <span v-else class="inline-flex h-full w-full items-center justify-center px-1 text-[20px] font-semibold leading-none tabular-nums" @pointerdown.stop @click.stop="beginValueEdit(groupedAccount.id, 'valuesB', valueIndex)">{{ formatCompactValue(value) }}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    </TransitionGroup>
+                    <div class="mt-2 h-[6px] bg-[#0d1116]" />
+                  </div>
+                </div>
+              </article>
               <article
                 v-else
                 :data-bar-id="entry.account.id"
@@ -118,11 +315,19 @@
                   :style="{ left: mainCreditsSectionLeft, width: creditsSectionWidth }"
                 />
                 <div class="relative grid h-full items-center gap-3" :style="{ gridTemplateColumns: mainColumns }">
-                <div class="min-w-0 flex items-center gap-3 px-2.5" @contextmenu.prevent.stop="openAccountContextMenu(entry.account.id, $event)">
+                <div class="min-w-0 mr-[-25px] flex items-center gap-3 px-2.5" @contextmenu.prevent.stop="openAccountContextMenu(entry.account.id, $event)">
                   <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-[6px] border border-[#323744] text-slate-100/90 hover:bg-[#181c26]" title="Copy battletag" @click="copyAccountName(entry.account.accountName)"><img :src="battlenetIcon" alt="Copy battletag" class="h-9 w-9 object-contain" draggable="false"></button>
-                  <div class="min-w-0 flex-1">
-                    <input v-if="isEditingName(entry.account.id)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="text" class="h-auto w-full border-b border-slate-400/80 bg-transparent px-0 pb-0.5 text-[24px] font-semibold leading-none text-slate-100 outline-none" @blur="commitActiveEditor" @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
-                    <span v-else class="truncate text-[24px] font-semibold text-slate-100">{{ getDisplayAccountName(entry.account.accountName) }}</span>
+                  <div class="min-w-0 flex-1 overflow-visible">
+                    <input v-if="isEditingName(entry.account.id)" :data-editor-id="getEditorId(activeEditor)" v-model="activeEditorValue" type="text" class="h-auto w-full min-w-0 border-b border-slate-400/80 bg-transparent px-0 pb-0.5 pr-3 text-[24px] font-semibold leading-none text-slate-100 outline-none" @blur="commitActiveEditor" @click.stop @keydown.enter.prevent="commitActiveEditor" @keydown.esc.prevent="cancelActiveEditor">
+                    <div v-else class="flex min-w-0 items-center gap-2">
+                      <span class="block min-w-0 flex-1 overflow-hidden whitespace-nowrap pr-[6px] text-[24px] font-semibold text-slate-100">{{ getDisplayAccountName(entry.account.accountName) }}</span>
+                      <span
+                        v-if="isNewAccount(entry.account.id)"
+                        class="inline-flex shrink-0 items-center rounded-full bg-[#f3c94a] px-2 py-[3px] text-[10px] font-bold uppercase tracking-[0.14em] text-[#4b3600]"
+                      >
+                        New!
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div class="role-rank-column h-full px-2" @contextmenu.prevent.stop="openAccountContextMenu(entry.account.id, $event)">
@@ -172,15 +377,6 @@
               </article>
               </template>
 
-              <div class="bar-shell relative h-16" :style="{ width: fullGridWidth }">
-                <div class="row-main-shell absolute inset-y-0 z-[1]" :style="{ left: rowMainOffset, width: rowMainWidth }">
-                  <button type="button" class="relative h-full w-full rounded-[8px] border border-dashed border-[#323744] bg-transparent text-[16px] font-semibold tracking-tight text-slate-100/70 hover:border-slate-500 hover:bg-[#11141b]/80 hover:text-slate-100/90" @click="addRow">
-                    <span class="absolute inset-y-0 left-0 flex items-center px-5">
-                      + Add New Account
-                    </span>
-                  </button>
-                </div>
-              </div>
             </TransitionGroup>
           </div>
 
@@ -725,16 +921,52 @@
 
     <RankDbAccountContextMenu
       :account-id="accountContextMenu?.accountId ?? null"
+      :current-group-id="accountContextMenuAccount?.groupId ?? null"
+      :groups="accountContextMenuGroupOptions"
+      :is-banned="accountContextMenuAccount?.isBanned ?? false"
       :last-rank-modified-label="accountContextMenuLastRankModifiedLabel"
       :position-style="accountContextMenuPositionStyle"
       :rank-refresh-busy="rankRefreshBusy"
       @account-info="requestAccountInfo"
       @close="closeAccountContextMenu"
+      @create-group="openCreateGroupModal"
       @delete-account="requestDeleteAccount"
       @edit-battletag="requestEditBattletag"
       @edit-credentials="requestEditCredentials"
+      @move-to-group="moveAccountToGroup($event.accountId, $event.groupId)"
       @refresh-rank="refreshSingleAccountRank"
     />
+
+    <div
+      v-if="groupActionMenu"
+      class="fixed inset-0 z-[71]"
+      @click="closeGroupActionMenu"
+      @contextmenu.prevent="closeGroupActionMenu"
+    >
+      <div
+        class="absolute min-w-[180px] rounded-[10px] border border-[#323744] bg-[#0c1018] p-1 shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
+        :style="groupActionMenuPositionStyle"
+        @click.stop
+        @contextmenu.stop
+      >
+        <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[15px] font-semibold text-slate-100/92 transition hover:bg-[#181c26]" @click="requestEditGroup(groupActionMenu.groupId)">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-[15px] w-[15px] shrink-0" aria-hidden="true">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+          Rename Group
+        </button>
+        <div class="mx-2 my-1 h-px bg-[#272b35]" aria-hidden="true" />
+        <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[15px] font-semibold text-red-300 transition hover:bg-[#181c26]" @click="removeGroup(groupActionMenu.groupId)">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-[15px] w-[15px] shrink-0" aria-hidden="true">
+            <path d="M3 6h18" />
+            <path d="M8 6V4h8v2" />
+            <path d="M19 6l-1 14H6L5 6" />
+          </svg>
+          Delete Group
+        </button>
+      </div>
+    </div>
 
     <RankDbDeleteModal
       :account-id="deleteAccountModal?.accountId ?? null"
@@ -993,12 +1225,20 @@ const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
   [CURRENT_WHATS_NEW_VERSION]: [
     {
-      title: 'Rank Badge Effects',
-      description: 'Higher rank badges now have updated glow, shine, and sparkle effects.'
+      title: 'Account Groups',
+      description: 'Accounts can now be organized into movable, collapsible groups that stay in your custom layout.'
     },
     {
-      title: 'Season Rank Reset',
-      description: 'You can now archive ranks during a season reset and review past reset snapshots in Account Info.'
+      title: 'Move To Group',
+      description: 'Right-click an account to move it into a group or remove it from one directly from the context menu.'
+    },
+    {
+      title: 'Sort Mode Update',
+      description: 'Rank sorting now uses a flat high-to-low view and restores your grouped custom order when sorting is turned off.'
+    },
+    {
+      title: 'Creation Shortcuts',
+      description: 'Add Account and Add Group now live in the top bar, auto-scroll to new entries, and mark them with a New! pill until first interaction.'
     }
   ]
 }
@@ -1050,6 +1290,16 @@ const activeEditor = ref<EditableField | null>(null)
 const activeEditorValue = ref('')
 const draggedAccountId = ref<number | null>(null)
 const draggedGroupEntryKey = ref<string | null>(null)
+const newAccountIds = ref<Set<number>>(new Set())
+const newGroupIds = ref<Set<string>>(new Set())
+const draggedUngroupedAccount = computed(() => {
+  if (draggedAccountId.value === null) {
+    return false
+  }
+
+  const draggedAccount = accounts.value.find((account) => account.id === draggedAccountId.value)
+  return Boolean(draggedAccount && !draggedAccount.groupId)
+})
 const importFileInput = ref<HTMLInputElement | null>(null)
 let pendingImportFile: File | null = null
 const pointerDrag = ref<{
@@ -1073,7 +1323,14 @@ const groupPointerDrag = ref<{
   clonePointerOffsetY: number
   sourceRect: DOMRect
 } | null>(null)
-const dragLayout = ref<Array<{ accountId: number; top: number; height: number }>>([])
+const dragLayout = ref<Array<{
+  targetKind: 'account' | 'group'
+  accountId: number | null
+  groupId: string
+  section: 'normal' | 'banned'
+  top: number
+  height: number
+}>>([])
 const groupDragLayout = ref<Array<{
   entryKey: string
   groupId: string
@@ -1105,6 +1362,26 @@ const pickerPredicted = ref(false)
 const rankPickerPositionStyle = ref<Record<string, string>>({})
 const maxGroupNameLength = 40
 const buildGroupId = () => `group-${Math.random().toString(36).slice(2, 10)}`
+const isNewAccount = (accountId: number) => newAccountIds.value.has(accountId)
+const isNewGroup = (groupId: string) => newGroupIds.value.has(groupId)
+const clearNewAccount = (accountId: number) => {
+  if (!newAccountIds.value.has(accountId)) {
+    return
+  }
+
+  const nextIds = new Set(newAccountIds.value)
+  nextIds.delete(accountId)
+  newAccountIds.value = nextIds
+}
+const clearNewGroup = (groupId: string) => {
+  if (!newGroupIds.value.has(groupId)) {
+    return
+  }
+
+  const nextIds = new Set(newGroupIds.value)
+  nextIds.delete(groupId)
+  newGroupIds.value = nextIds
+}
 const normalizeGroupName = (value: unknown) => {
   if (typeof value !== 'string') {
     return ''
@@ -1427,7 +1704,8 @@ const OWAPI_PROFILE_BASE_URL = 'https://www.owapi.eu/stats'
 const OWAPI_ROLE_KEYS = {
   T: ['tank'],
   D: ['damage', 'dps', 'offense'],
-  S: ['support', 'healer', 'heal']
+  S: ['support', 'healer', 'heal'],
+  sixV6: ['open', '6v6', '6v6open', 'flex']
 } as const
 
 const buildOwApiPlayerId = (accountName: string) => {
@@ -2241,6 +2519,14 @@ const accountContextMenuLastRankModifiedLabel = computed(() => {
   const account = accounts.value.find((entry) => entry.id === accountContextMenu.value?.accountId)
   return formatLastRankModifiedLabel(account?.lastRankModifiedAt ?? null)
 })
+const accountContextMenuAccount = computed(() => (
+  accounts.value.find((entry) => entry.id === accountContextMenu.value?.accountId) ?? null
+))
+const accountContextMenuGroupOptions = computed(() => (
+  [...accountGroups.value]
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((group) => ({ id: group.id, name: group.name }))
+))
 
 type RenderEntry =
   | { key: string; kind: 'group-block'; group: AccountGroup; isBanned: boolean; accountCount: number; accounts: AccountRow[] }
@@ -2419,28 +2705,28 @@ const buildRenderEntriesForSection = (sectionAccounts: AccountRow[], isBanned: b
   return entries
 }
 
+const buildFlatRenderEntriesForSection = (sectionAccounts: AccountRow[]): RenderEntry[] => sectionAccounts.map((account) => ({
+  key: `account-${account.id}`,
+  kind: 'account',
+  account
+}))
+
 const renderEntries = computed<RenderEntry[]>(() => {
-  const orderedAccounts = getCurrentSectionedAccounts(accounts.value)
-  const entries: RenderEntry[] = orderedAccounts
-    .filter((account) => !account.isBanned)
-    .map((account) => ({
-      key: `account-${account.id}`,
-      kind: 'account',
-      account
-    }))
-  if (normalAccounts.value.length === 0 && bannedAccounts.value.length > 0) {
-    entries.push({ key: 'banned-divider-top', kind: 'banned-divider' })
-  } else if (lastNormalAccountId.value !== null && bannedAccounts.value.length > 0) {
-    entries.push({ key: 'banned-divider', kind: 'banned-divider' })
+  const normalAccounts = accounts.value.filter((account) => !account.isBanned)
+  const bannedAccounts = accounts.value.filter((account) => account.isBanned)
+  const normalEntries = activeRoleSort.value
+    ? buildFlatRenderEntriesForSection(normalAccounts)
+    : buildRenderEntriesForSection(normalAccounts, false)
+  const bannedEntries = activeRoleSort.value
+    ? buildFlatRenderEntriesForSection(bannedAccounts)
+    : buildRenderEntriesForSection(bannedAccounts, true)
+  const entries: RenderEntry[] = [...normalEntries]
+
+  if (bannedEntries.length > 0) {
+    entries.push({ key: normalEntries.length === 0 ? 'banned-divider-top' : 'banned-divider', kind: 'banned-divider' })
+    entries.push(...bannedEntries)
   }
 
-  entries.push(...orderedAccounts
-    .filter((account) => account.isBanned)
-    .map((account) => ({
-      key: `account-${account.id}`,
-      kind: 'account',
-      account
-    })))
   return entries
 })
 
@@ -2492,13 +2778,8 @@ const applyRoleSort = (roleIndex: number, direction: 'desc' | 'asc') => {
 
 const cycleRoleSort = (roleIndex: number) => {
   const currentSort = activeRoleSort.value
-  if (!currentSort || currentSort.roleIndex !== roleIndex) {
+  if (!currentSort || currentSort.roleIndex !== roleIndex || currentSort.direction !== 'desc') {
     applyRoleSort(roleIndex, 'desc')
-    return
-  }
-
-  if (currentSort.direction === 'desc') {
-    applyRoleSort(roleIndex, 'asc')
     return
   }
 
@@ -2513,10 +2794,12 @@ const restoreCustomRoleSort = (_roleIndex: number) => {
 
 const getRoleSortTitle = (label: string) => {
   const lowerLabel = label.toLowerCase()
-  return `Left click sorts ${lowerLabel} high to low, then low to high. Right click restores custom order.`
+  return `Left click toggles ${lowerLabel} high to low. Right click restores custom order.`
 }
 
-const buildAccountsPayload = () => accounts.value.map((account) => ({
+const getAccountsInPersistedOrder = () => getCustomSectionedAccounts(accounts.value)
+
+const buildAccountsPayload = () => getAccountsInPersistedOrder().map((account) => ({
   id: account.id,
   accountName: account.accountName,
   email: account.email,
@@ -2659,6 +2942,24 @@ const scheduleTauriWindowResize = (delay = 150) => {
     tauriResizeTimeout = null
     void syncTauriWindowSize()
   }, delay)
+}
+
+const scrollListElementIntoView = async (selector: string) => {
+  if (!import.meta.client) {
+    return
+  }
+
+  await nextTick()
+
+  const element = document.querySelector<HTMLElement>(selector)
+  if (!element) {
+    return
+  }
+
+  element.scrollIntoView({
+    block: 'nearest',
+    behavior: 'smooth'
+  })
 }
 
 const getRankBadgeGlowClass = (tier: RankTier) => {
@@ -3178,6 +3479,7 @@ const commitActiveEditor = () => {
 }
 
 const beginNameEdit = (accountId: number) => {
+  clearNewAccount(accountId)
   commitActiveEditor()
   closeMenus()
   const account = accounts.value.find((entry) => entry.id === accountId)
@@ -3548,6 +3850,7 @@ const confirmRankReset = () => {
 }
 
 const openCreateGroupModal = () => {
+  closeMenus()
   groupModalMode.value = 'create'
   editingGroupId.value = ''
   createGroupNameDraft.value = ''
@@ -3563,7 +3866,62 @@ const closeCreateGroupModal = () => {
   editingGroupId.value = ''
 }
 
-const createGroup = () => {
+const focusGroupNameEditor = () => {
+  requestAnimationFrame(() => {
+    const input = document.querySelector<HTMLInputElement>('[data-group-name-input]')
+    input?.focus()
+    input?.select()
+  })
+}
+
+const cancelGroupRename = () => {
+  editingGroupId.value = ''
+  createGroupNameDraft.value = ''
+}
+
+const submitGroupRename = () => {
+  const group = accountGroups.value.find((entry) => entry.id === editingGroupId.value)
+  if (!group) {
+    cancelGroupRename()
+    return
+  }
+
+  const groupName = normalizeGroupName(createGroupNameDraft.value)
+  if (!groupName) {
+    createGroupNameDraft.value = group.name
+    cancelGroupRename()
+    return
+  }
+
+  const duplicateGroup = accountGroups.value.find((entry) => (
+    entry.name.toLowerCase() === groupName.toLowerCase()
+    && entry.id !== group.id
+  ))
+  if (duplicateGroup) {
+    pushNotification('Group already exists', {
+      message: `Using the existing ${duplicateGroup.name} group instead.`,
+      kind: 'info'
+    })
+    createGroupNameDraft.value = group.name
+    cancelGroupRename()
+    return
+  }
+
+  if (group.name === groupName) {
+    cancelGroupRename()
+    return
+  }
+
+  group.name = groupName
+  cancelGroupRename()
+  schedulePersistAppStorage()
+  pushNotification('Group updated', {
+    message: `${groupName} was renamed.`,
+    kind: 'success'
+  })
+}
+
+const createGroup = async () => {
   const groupName = normalizeGroupName(createGroupNameDraft.value)
   if (!groupName) {
     return
@@ -3581,48 +3939,41 @@ const createGroup = () => {
     return
   }
 
-  if (groupModalMode.value === 'edit') {
-    const group = accountGroups.value.find((entry) => entry.id === editingGroupId.value)
-    if (!group) {
-      return
-    }
-
-    group.name = groupName
-    closeCreateGroupModal()
-    schedulePersistAppStorage()
-    pushNotification('Group updated', {
-      message: `${groupName} was renamed.`,
-      kind: 'success'
-    })
-    return
-  }
-
+  const groupId = buildGroupId()
   accountGroups.value.push({
-    id: buildGroupId(),
+    id: groupId,
     name: groupName,
     collapsed: false,
     section: 'normal',
     anchorAccountId: null,
     anchorPosition: 'after'
   })
+  newGroupIds.value = new Set([...newGroupIds.value, groupId])
   closeCreateGroupModal()
   schedulePersistAppStorage()
   pushNotification('Group created', {
     message: `${groupName} is ready for accounts.`,
     kind: 'success'
   })
+  await scrollListElementIntoView(`[data-group-entry-key="group-n-${groupId}"]`)
 }
 
 const toggleGroupCollapsed = (groupId: string) => {
+  clearNewGroup(groupId)
   const group = accountGroups.value.find((entry) => entry.id === groupId)
   if (!group) {
     return
   }
 
   group.collapsed = !group.collapsed
+  if (groupActionMenu.value?.groupId === groupId) {
+    closeGroupActionMenu()
+  }
+  schedulePersistAppStorage()
 }
 
 const removeGroup = (groupId: string) => {
+  clearNewGroup(groupId)
   closeGroupActionMenu()
   const group = accountGroups.value.find((entry) => entry.id === groupId)
   if (!group) {
@@ -3653,12 +4004,14 @@ const closeMenus = () => {
 }
 
 const openGroupActionMenu = (groupId: string, event: MouseEvent) => {
+  clearNewGroup(groupId)
   commitActiveEditor()
+  submitGroupRename()
   closeMenus()
   closeRankPicker()
 
   const menuWidth = 180
-  const menuHeight = 88
+  const menuHeight = 62
   const viewportPadding = 10
   const maxLeft = window.innerWidth - menuWidth - viewportPadding
   const maxTop = window.innerHeight - menuHeight - viewportPadding
@@ -3673,18 +4026,16 @@ const openGroupActionMenu = (groupId: string, event: MouseEvent) => {
 }
 
 const requestEditGroup = (groupId: string) => {
+  clearNewGroup(groupId)
   const group = accountGroups.value.find((entry) => entry.id === groupId)
   if (!group) {
     return
   }
 
   closeGroupActionMenu()
-  groupModalMode.value = 'edit'
   editingGroupId.value = group.id
   createGroupNameDraft.value = group.name
-  requestAnimationFrame(() => {
-    createGroupModalOpen.value = true
-  })
+  focusGroupNameEditor()
 }
 
 const toggleSettingsMenu = () => {
@@ -3779,12 +4130,13 @@ const toggleLeadButtons = () => {
 }
 
 const openAccountContextMenu = (accountId: number, event: MouseEvent) => {
+  clearNewAccount(accountId)
   commitActiveEditor()
   closeMenus()
   closeRankPicker()
 
   const menuWidth = 220
-  const menuHeight = 220
+  const menuHeight = 260 + (accountGroups.value.length * 34)
   const viewportPadding = 10
   const maxLeft = window.innerWidth - menuWidth - viewportPadding
   const maxTop = window.innerHeight - menuHeight - viewportPadding
@@ -3923,22 +4275,35 @@ const confirmDeleteArchivedRankSnapshot = () => {
   })
 }
 
-const moveAccountToGroup = (accountId: number, groupId: string) => {
+const moveAccountToGroup = (accountId: number, groupId: string | null) => {
   const account = accounts.value.find((entry) => entry.id === accountId)
   if (!account) {
     closeAccountContextMenu()
     return
   }
 
-  const nextGroupId = accountGroups.value.some((group) => group.id === groupId) ? groupId : null
-  account.groupId = nextGroupId
-  if (activeRoleSort.value) {
-    applyRoleSort(activeRoleSort.value.roleIndex, activeRoleSort.value.direction)
+  const nextGroupId = typeof groupId === 'string' && accountGroups.value.some((group) => group.id === groupId) ? groupId : null
+  if (nextGroupId) {
+    moveAccountByTarget(
+      accountId,
+      {
+        targetKind: 'group-inside',
+        accountId: null,
+        groupId: nextGroupId,
+        section: account.isBanned ? 'banned' : 'normal'
+      },
+      'after'
+    )
   } else {
-    restoreCustomAccountOrder()
-    syncCustomAccountOrderFromAccounts()
+    account.groupId = null
+    if (activeRoleSort.value) {
+      applyRoleSort(activeRoleSort.value.roleIndex, activeRoleSort.value.direction)
+    } else {
+      restoreCustomAccountOrder()
+      syncCustomAccountOrderFromAccounts()
+    }
+    schedulePersistAppStorage()
   }
-  schedulePersistAppStorage()
   closeAccountContextMenu()
   pushNotification('Group updated', {
     message: nextGroupId
@@ -3999,7 +4364,12 @@ const moveBar = (sourceAccountId: number, targetAccountId: number, position: 'be
 
   const sourceAccount = accounts.value[sourceIndex]
   const targetAccount = accounts.value[targetIndex]
-  if (!sourceAccount || !targetAccount || sourceAccount.isBanned !== targetAccount.isBanned) {
+  if (
+    !sourceAccount
+    || !targetAccount
+    || sourceAccount.isBanned !== targetAccount.isBanned
+    || sourceAccount.groupId !== targetAccount.groupId
+  ) {
     return
   }
 
@@ -4433,16 +4803,53 @@ const isInteractiveDragTarget = (target: EventTarget | null) => {
   return Boolean(target.closest('button, input'))
 }
 
-const buildAccountDragLayout = () => accounts.value.map((account) => {
-  const element = dragElements.get(account.id) ?? document.querySelector<HTMLElement>(`[data-bar-id="${account.id}"]`)
-  const rect = element?.getBoundingClientRect()
+const buildAccountDragLayout = () => {
+  const groupedAccountIds = new Set(
+    renderEntries.value.flatMap((entry) => (
+      entry.kind === 'group-block'
+        ? entry.accounts.map((account) => account.id)
+        : []
+    ))
+  )
 
-  return {
-    accountId: account.id,
-    top: rect?.top ?? 0,
-    height: rect?.height ?? 0
-  }
-})
+  const accountEntries = accounts.value.map((account) => {
+    const element = dragElements.get(account.id) ?? document.querySelector<HTMLElement>(`[data-bar-id="${account.id}"]`)
+    const rect = element?.getBoundingClientRect()
+
+    return {
+      targetKind: 'account' as const,
+      accountId: account.id,
+      groupId: account.groupId ?? '',
+      section: account.isBanned ? 'banned' : 'normal' as const,
+      top: rect?.top ?? 0,
+      height: rect?.height ?? 0,
+      isGroupedChild: groupedAccountIds.has(account.id)
+    }
+  })
+
+  const groupEntries = renderEntries.value.flatMap((entry) => {
+    if (entry.kind !== 'group-block') {
+      return []
+    }
+
+    const element = document.querySelector<HTMLElement>(`[data-group-entry-key="${entry.key}"]`)
+    const rect = element?.getBoundingClientRect()
+    return [{
+      targetKind: 'group' as const,
+      accountId: null,
+      groupId: entry.group.id,
+      section: entry.isBanned ? 'banned' : 'normal' as const,
+      top: rect?.top ?? 0,
+      height: rect?.height ?? 0,
+      isGroupedChild: false
+    }]
+  })
+
+  return [
+    ...accountEntries,
+    ...groupEntries
+  ].sort((left, right) => left.top - right.top)
+}
 
 const updateDragTarget = (clientY: number) => {
   if (!import.meta.client || !draggedAccountId.value) {
@@ -4454,31 +4861,88 @@ const updateDragTarget = (clientY: number) => {
     return
   }
 
+  const draggedGroupId = draggedAccount.groupId
+  const draggedSection = draggedAccount.isBanned ? 'banned' : 'normal'
+
   const barElements = dragLayout.value.filter((entry) => {
-    if (entry.accountId === draggedAccountId.value) {
+    if (entry.targetKind === 'account' && entry.accountId === draggedAccountId.value) {
       return false
     }
 
+    if (entry.section !== draggedSection) {
+      return false
+    }
+
+    if (draggedGroupId) {
+      if (entry.targetKind !== 'account') {
+        return false
+      }
+
+      const account = accounts.value.find((candidate) => candidate.id === entry.accountId)
+      return Boolean(account && account.groupId === draggedGroupId && account.isBanned === draggedAccount.isBanned)
+    }
+
+    if (entry.targetKind === 'group') {
+      return true
+    }
+
     const account = accounts.value.find((candidate) => candidate.id === entry.accountId)
-    return account?.isBanned === draggedAccount.isBanned
+    return Boolean(account && !account.groupId && account.isBanned === draggedAccount.isBanned)
   })
   if (barElements.length === 0) {
     return
   }
 
-  let targetAccountId = barElements[barElements.length - 1].accountId
+  let targetEntry = barElements[barElements.length - 1]
   let position: 'before' | 'after' = 'after'
 
-  for (const { accountId, top, height } of barElements) {
+  for (const entry of barElements) {
+    if (!draggedGroupId && entry.targetKind === 'group') {
+      const triggerBandHeight = Math.min(42, Math.max(26, entry.height * 0.18))
+      const beforeTrigger = entry.top + triggerBandHeight
+
+      if (clientY < beforeTrigger) {
+        targetEntry = entry
+        position = 'before'
+        break
+      }
+
+      continue
+    }
+
+    const { top, height } = entry
     const midpoint = top + (height / 2)
     if (clientY < midpoint) {
-      targetAccountId = accountId
+      targetEntry = entry
       position = 'before'
       break
     }
   }
 
-  moveBar(draggedAccountId.value, targetAccountId, position)
+  if (draggedGroupId) {
+    if (targetEntry.targetKind !== 'account' || targetEntry.accountId === null) {
+      return
+    }
+    moveBar(draggedAccountId.value, targetEntry.accountId, position)
+  } else {
+    moveAccountByTarget(
+      draggedAccountId.value,
+      targetEntry.targetKind === 'group'
+        ? {
+            targetKind: 'group',
+            accountId: null,
+            groupId: targetEntry.groupId,
+            section: targetEntry.section
+          }
+        : {
+            targetKind: 'account',
+            accountId: targetEntry.accountId,
+            groupId: '',
+            section: targetEntry.section
+          },
+      position
+    )
+  }
   nextTick(() => {
     dragLayout.value = buildAccountDragLayout()
   })
@@ -4655,6 +5119,7 @@ const resetGroupDragState = () => {
 }
 
 const handleBarPointerDown = (accountId: number, event: PointerEvent) => {
+  clearNewAccount(accountId)
   if (!canDragAccounts.value || event.button !== 0 || isInteractiveDragTarget(event.target)) {
     return
   }
@@ -4721,6 +5186,7 @@ const handleBarPointerDown = (accountId: number, event: PointerEvent) => {
 }
 
 const handleGroupHeaderClick = (groupId: string, entryKey: string, event: MouseEvent) => {
+  clearNewGroup(groupId)
   if (suppressGroupHeaderClickKey === entryKey) {
     suppressGroupHeaderClickKey = null
     event.preventDefault()
@@ -4735,6 +5201,7 @@ const handleGroupHeaderClick = (groupId: string, entryKey: string, event: MouseE
 }
 
 const handleGroupHeaderPointerDown = (groupId: string, entryKey: string, section: 'normal' | 'banned', event: PointerEvent) => {
+  clearNewGroup(groupId)
   if (event.button !== 0 || isInteractiveDragTarget(event.target)) {
     return
   }
@@ -4894,7 +5361,7 @@ const handleWindowGroupPointerUp = (event: PointerEvent) => {
   resetGroupDragState()
 }
 
-const addRow = () => {
+const addRow = async () => {
   const nextId = Math.max(0, ...accounts.value.map((account) => account.id)) + 1
   const nextAccount = buildEmptyAccount(nextId)
   const firstBannedIndex = accounts.value.findIndex((account) => account.isBanned)
@@ -4905,6 +5372,8 @@ const addRow = () => {
   }
   activeRoleSort.value = null
   syncCustomAccountOrderFromAccounts()
+  newAccountIds.value = new Set([...newAccountIds.value, nextId])
+  await scrollListElementIntoView(`[data-bar-id="${nextId}"]`)
 }
 
 const removeBar = async (accountId: number) => {
@@ -5014,6 +5483,25 @@ const refreshSingleAccountRank = async (accountId: number) => {
       ) {
         rankChanged = true
       }
+    }
+
+    const previousSixV6Tier = account.sixV6Rank.tier
+    const previousSixV6Division = account.sixV6Rank.division
+    const previousSixV6Predicted = account.sixV6Rank.predicted
+    const visibleSixV6Rank = getOwApiVisibleRank(ratingsPayload, OWAPI_ROLE_KEYS.sixV6)
+    if (visibleSixV6Rank) {
+      hasVisibleRankData = true
+    }
+    const sixV6AppliedState = applyVisibleOrPredictedRank(account.sixV6Rank, visibleSixV6Rank)
+    if (sixV6AppliedState === 'predicted') {
+      preservedPredictedCount += 1
+    }
+    if (
+      account.sixV6Rank.tier !== previousSixV6Tier
+      || account.sixV6Rank.division !== previousSixV6Division
+      || account.sixV6Rank.predicted !== previousSixV6Predicted
+    ) {
+      rankChanged = true
     }
 
     if (rankChanged) {
@@ -5705,6 +6193,12 @@ onBeforeUnmount(() => {
 .bar-list-leave-to {
   opacity: 0;
   transform: translate3d(10px, 0, 0) scale(0.992);
+}
+
+.group-accounts-rigid > .bar-list-move,
+.group-accounts-rigid > .bar-list-enter-active,
+.group-accounts-rigid > .bar-list-leave-active {
+  transition: none;
 }
 
 .account-list-viewport {

@@ -11,6 +11,7 @@
             type="button"
             class="inline-flex h-9 w-9 items-center justify-center text-slate-100/90 hover:bg-[#181c26]"
             :aria-label="showLeadButtons ? 'Hide lead buttons' : 'Show lead buttons'"
+            :title="showLeadButtons ? 'Hide Login Buttons' : 'Show Login Buttons'"
             @click.stop="$emit('toggle-lead-buttons')"
           >
             <svg
@@ -33,7 +34,26 @@
           <button
             type="button"
             class="inline-flex h-full w-9 items-center justify-center text-slate-100/90 hover:bg-[#181c26]"
+            aria-label="Create account"
+            title="Add Account"
+            @click.stop="$emit('create-account')"
+          >
+            <UserPlus class="h-5 w-5" :stroke-width="2.1" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-full w-9 items-center justify-center text-slate-100/90 hover:bg-[#181c26]"
+            aria-label="Create group"
+            title="Add Group"
+            @click.stop="$emit('create-group')"
+          >
+            <FolderPlus class="h-5 w-5" :stroke-width="2.1" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-full w-9 items-center justify-center text-slate-100/90 hover:bg-[#181c26]"
             aria-label="Open settings"
+            title="Settings"
             @click.stop="$emit('toggle-settings')"
           >
             <SlidersHorizontal class="h-5 w-5" :stroke-width="2.1" aria-hidden="true" />
@@ -49,14 +69,12 @@
             type="button"
             class="group relative mx-auto inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-slate-100/90 transition hover:bg-[#181c26]"
             :aria-label="`Sort by ${roleHeader.label}`"
-            :title="getRoleSortTitle(roleHeader.label)"
             @click="$emit('cycle-role-sort', roleHeader.index)"
             @contextmenu.prevent="$emit('restore-role-sort', roleHeader.index)"
           >
             <ChevronDown
               v-if="activeRoleSort?.roleIndex === roleHeader.index"
               class="pointer-events-none absolute right-[calc(100%+7px)] top-1/2 h-[14.4px] w-[14.4px] -translate-y-1/2 text-slate-100/90"
-              :class="activeRoleSort.direction === 'asc' ? 'rotate-180' : ''"
               :stroke-width="2.35"
               aria-hidden="true"
             />
@@ -64,7 +82,6 @@
             <ChevronDown
               v-if="activeRoleSort?.roleIndex === roleHeader.index"
               class="pointer-events-none absolute left-[calc(100%+7px)] top-1/2 h-[14.4px] w-[14.4px] -translate-y-1/2 text-slate-100/90"
-              :class="activeRoleSort.direction === 'asc' ? 'rotate-180' : ''"
               :stroke-width="2.35"
               aria-hidden="true"
             />
@@ -97,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronDown, SlidersHorizontal } from 'lucide-vue-next'
+import { ChevronDown, FolderPlus, SlidersHorizontal, UserPlus } from 'lucide-vue-next'
 
 import type { RoleSortState } from '~~/app/types/rankdb'
 
@@ -123,6 +140,8 @@ defineProps<{
 }>()
 
 defineEmits<{
+  'create-account': []
+  'create-group': []
   'cycle-role-sort': [roleIndex: number]
   'restore-role-sort': [roleIndex: number]
   'toggle-lead-buttons': []

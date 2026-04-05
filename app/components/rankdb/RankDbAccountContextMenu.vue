@@ -32,30 +32,118 @@
         Account Info
       </button>
       <div class="mx-2 my-1 h-px bg-[#272b35]" aria-hidden="true" />
+      <button
+        type="button"
+        class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[15px] font-semibold text-slate-100/92 transition hover:bg-[#181c26] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
+        :disabled="isBanned"
+        @mouseenter="openMoveToMenu"
+        @click="toggleMoveToMenu"
+      >
+        <FolderClosed class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
+        Move To
+        <ChevronRight class="ml-auto h-[15px] w-[15px] shrink-0 text-slate-300/80" :stroke-width="2.2" aria-hidden="true" />
+      </button>
+      <div class="mx-2 my-1 h-px bg-[#272b35]" aria-hidden="true" />
       <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[15px] font-semibold text-red-300 transition hover:bg-[#181c26]" @click="$emit('delete-account', accountId)">
         <Trash2 class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
         Delete Account
+      </button>
+    </div>
+
+    <div
+      v-if="moveToMenuOpen"
+      class="absolute min-w-[180px] rounded-[10px] border border-[#323744] bg-[#0c1018] p-1 shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
+      :style="moveToMenuStyle"
+      @click.stop
+      @contextmenu.stop
+      @mouseleave="moveToMenuOpen = false"
+    >
+      <div class="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400/85">
+        Move To
+      </div>
+      <button
+        v-for="group in groups"
+        :key="group.id"
+        type="button"
+        class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[14px] font-semibold text-slate-100/92 transition hover:bg-[#181c26]"
+        @click="handleMoveTo(group.id)"
+      >
+        <Check v-if="currentGroupId === group.id" class="h-[14px] w-[14px] shrink-0 text-cyan-300" :stroke-width="2.4" aria-hidden="true" />
+        <FolderClosed v-else class="h-[14px] w-[14px] shrink-0 text-slate-300/80" :stroke-width="2.15" aria-hidden="true" />
+        {{ group.name }}
+      </button>
+      <div class="mx-2 my-1 h-px bg-[#272b35]" aria-hidden="true" />
+      <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[14px] font-semibold text-slate-100/92 transition hover:bg-[#181c26]" @click="handleMoveTo(null)">
+        <FolderMinus class="h-[14px] w-[14px] shrink-0 text-slate-300/80" :stroke-width="2.15" aria-hidden="true" />
+        Remove From Group
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IdCard, PencilLine, RefreshCw, ShieldEllipsis, Trash2 } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
+import { Check, ChevronRight, FolderClosed, FolderMinus, IdCard, PencilLine, RefreshCw, ShieldEllipsis, Trash2 } from 'lucide-vue-next'
 
-defineProps<{
+const props = defineProps<{
   accountId: number | null
+  currentGroupId: string | null
+  groups: Array<{ id: string; name: string }>
+  isBanned: boolean
   lastRankModifiedLabel: string
   positionStyle: Record<string, string>
   rankRefreshBusy: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'account-info': [accountId: number]
   close: []
   'delete-account': [accountId: number]
   'edit-battletag': [accountId: number]
   'edit-credentials': [accountId: number]
+  'move-to-group': [payload: { accountId: number; groupId: string | null }]
   'refresh-rank': [accountId: number]
 }>()
+
+const moveToMenuOpen = ref(false)
+const moveToMenuStyle = computed(() => {
+  const left = Number.parseFloat(props.positionStyle.left ?? '0')
+  const top = Number.parseFloat(props.positionStyle.top ?? '0')
+  return {
+    left: `${left + 196}px`,
+    top: `${top + 126}px`
+  }
+})
+
+const openMoveToMenu = () => {
+  if (props.isBanned) {
+    return
+  }
+
+  moveToMenuOpen.value = true
+}
+
+const toggleMoveToMenu = () => {
+  if (props.isBanned) {
+    return
+  }
+
+  moveToMenuOpen.value = !moveToMenuOpen.value
+}
+
+const handleMoveTo = (groupId: string | null) => {
+  if (props.accountId === null) {
+    return
+  }
+
+  moveToMenuOpen.value = false
+  emit('move-to-group', {
+    accountId: props.accountId,
+    groupId
+  })
+}
+
+watch(() => props.accountId, () => {
+  moveToMenuOpen.value = false
+})
 </script>

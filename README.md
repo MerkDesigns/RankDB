@@ -1,89 +1,64 @@
 # RankDB
 
-RankDB is a multi-account rank tracker for Overwatch players.
+RankDB is a simple desktop app for tracking multiple Overwatch accounts in one place.
 
-## Install
+It helps you keep account ranks, notes, currencies, and login details organized without needing a spreadsheet.
 
-- Go to `Releases` on the right side of the GitHub repo and download the Windows installer.
-- After the first install, future desktop updates can come through the app's `Settings -> Check for Updates` button once GitHub release updates are published.
+![RankDB preview](preview.gif)
+
+## What It Does
+
+- Tracks multiple Overwatch accounts in one app
+- Stores ranks for `Tank`, `Damage`, `Support`, and `6v6`
+- Stores Battletags, email/password details, notes, and country info
+- Tracks `Mythic Prisms`, `Overwatch Coins`, `Overwatch Credits`, `Competitive Points`, and `Legacy Points`
+- Lets you group accounts and reorder them
+- Separates banned accounts into their own section
+- Supports encrypted backup export and import
+- Supports desktop app updates through GitHub Releases
 
 ## Windows Warning
 
-This app is currently not code-signed, so Windows Defender / SmartScreen may show a warning like `Unknown Publisher` or `Windows protected your PC`.
+RankDB is not code-signed right now.
 
-This happens because the app does not yet have a digital code-signing certificate. Those certificates are usually paid and can be expensive for small indie or personal projects.
+Because of that, Windows may show a warning like `Unknown Publisher` or `Windows protected your PC` when opening the installer.
 
-Because of that missing code-signing certificate, Windows may flag the installer even though it is not malicious.
+This is expected for now. A code-signing certificate costs money, and the project does not currently have one.
 
-![Screenshot](Screenshot.png)
+## Main Features
 
-## What The App Tracks
+- Add, edit, remove, and reorder accounts
+- Copy Battletags, emails, and passwords directly from the app
+- Set ranks with a simple rank picker
+- Mark ranks as predicted
+- Create collapsible groups for account organization
+- Export encrypted `.rankdb-export` backup files
+- Import encrypted backup files on another PC
+- Check for app updates from inside the desktop app
 
-Each account row can store:
+## Storage And Security
 
-- Battletag
-- Email / Password with easy copy-paste access
-- Custom notes for the account
-- Ranks for `Tank`, `Damage`, `Support`, and `6v6`
-- Trackable currency: Mythic Prisms, Overwatch Coins, Overwatch Credits, and both Competitive Point types
+RankDB is built to keep your data local.
 
-## Main Functions
+- Your account data stays on your own machine
+- Backup exports are password-protected
+- Rank refresh only contacts an external service when you choose to use it
 
-### Account Management
+As always, keep your PC secure and use a strong device password if you store account details locally.
 
-- Add and remove accounts
-- Drag accounts to reorder them
-- Copy battletags, emails, and passwords directly from the account bar
-- Edit account credentials by right-clicking an account
-- Edit account info such as country, notes, and banned status by right-clicking an account
+## Install
 
-### Rank Management
+Go to the repository `Releases` section and download the latest Windows installer.
 
-- Click a rank badge to open the rank picker
-- Set tier and division for each role
-- `P` rank stands for Predicted and is shown with lower opacity
-- Track `6v6` separately from role queue
+After the first install, future updates can be checked from inside the app when a new GitHub release is available.
 
-### Sorting
+## Backup Notes
 
-- Click a role icon in the header to cycle sorting from highest to lowest, then lowest to highest, then back to custom order
-- Right-click a role icon to jump straight back to custom order
-
-### Banned Accounts
-
-- Accounts can be marked as banned in the Account Info modal
-- Banned accounts are placed in their own section below normal accounts
-- They sort within their own section only
-- They cannot be dragged into the normal account section
-
-### Settings
-
-The settings include:
-
-- Toggle for currency columns
-- Toggle for `6v6` ranks
-- Toggle for rank badge animations
-- UI zoom slider
-- Clipboard auto-clear timer
-- Encrypted backup export
-- Encrypted backup import
-- Manual `Check for Updates` button in the desktop app
-
-## Data Behavior
-
-- Data is stored locally on your machine
-- UI settings are stored separately from account data
-- In the desktop app, data is stored in RankDB's own protected local database
-- The local database key is stored in the operating system's secure keychain via `keyring`
-- Changes save automatically
-
-## Backup Format
-
-- Import and export use the app's encrypted `.rankdb-export` backup format only
+- The app uses encrypted `.rankdb-export` backups
 - Legacy plain JSON backups are no longer supported
 
-## Migration Notes
+## License
 
-- Legacy Windows Credential Manager migration is no longer supported
-- Existing users should expect to re-enter their credentials one final time
-- After that, use encrypted `.rankdb-export` backups going forward
+This project is licensed under the GNU General Public License v3.0.
+
+See `LICENSE` for details.

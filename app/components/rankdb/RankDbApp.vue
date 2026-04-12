@@ -1225,20 +1225,12 @@ const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
   [CURRENT_WHATS_NEW_VERSION]: [
     {
-      title: 'Account Groups',
-      description: 'Accounts can now be organized into movable, collapsible groups that stay in your custom layout.'
+      title: 'Move To Menu Fix',
+      description: 'The right-click Move To submenu now behaves like a normal hover menu and closes when you leave it.'
     },
     {
-      title: 'Move To Group',
-      description: 'Right-click an account to move it into a group or remove it from one directly from the context menu.'
-    },
-    {
-      title: 'Sort Mode Update',
-      description: 'Rank sorting now uses a flat high-to-low view and restores your grouped custom order when sorting is turned off.'
-    },
-    {
-      title: 'Creation Shortcuts',
-      description: 'Add Account and Add Group now live in the top bar, auto-scroll to new entries, and mark them with a New! pill until first interaction.'
+      title: 'Banned Accounts Ungroup',
+      description: 'Marking an account as banned from Account Info now removes it from its group so it appears as a standalone banned account.'
     }
   ]
 }
@@ -4201,9 +4193,13 @@ const saveAccountInfo = () => {
   const previousCountryCode = account.countryCode
   const previousBannedState = account.isBanned
   const previousNotes = account.notes
+  const nextBannedState = accountInfoBannedDraft.value
 
   account.countryCode = accountInfoCountryDraft.value
-  account.isBanned = accountInfoBannedDraft.value
+  account.isBanned = nextBannedState
+  if (nextBannedState) {
+    account.groupId = null
+  }
   account.notes = accountInfoNotesDraft.value
   if (activeRoleSort.value) {
     applyRoleSort(activeRoleSort.value.roleIndex, activeRoleSort.value.direction)

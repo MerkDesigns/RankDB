@@ -37,6 +37,7 @@
         class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[15px] font-semibold text-slate-100/92 transition hover:bg-[#181c26] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent"
         :disabled="isBanned"
         @mouseenter="openMoveToMenu"
+        @mouseleave="scheduleCloseMoveToMenu"
         @click="toggleMoveToMenu"
       >
         <FolderClosed class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
@@ -56,7 +57,8 @@
       :style="moveToMenuStyle"
       @click.stop
       @contextmenu.stop
-      @mouseleave="moveToMenuOpen = false"
+      @mouseenter="openMoveToMenu"
+      @mouseleave="scheduleCloseMoveToMenu"
     >
       <div class="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400/85">
         Move To
@@ -73,8 +75,8 @@
         {{ group.name }}
       </button>
       <div class="mx-2 my-1 h-px bg-[#272b35]" aria-hidden="true" />
-      <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[14px] font-semibold text-slate-100/92 transition hover:bg-[#181c26]" @click="handleMoveTo(null)">
-        <FolderMinus class="h-[14px] w-[14px] shrink-0 text-slate-300/80" :stroke-width="2.15" aria-hidden="true" />
+      <button type="button" class="flex w-full items-center gap-2.5 rounded-[8px] px-3 py-1.5 text-left text-[14px] font-semibold text-red-200/90 transition hover:bg-[#22161b]" @click="handleMoveTo(null)">
+        <FolderMinus class="h-[14px] w-[14px] shrink-0 text-red-300/80" :stroke-width="2.15" aria-hidden="true" />
         Remove From Group
       </button>
     </div>
@@ -82,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Check, ChevronRight, FolderClosed, FolderMinus, IdCard, PencilLine, RefreshCw, ShieldEllipsis, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -106,6 +108,7 @@ const emit = defineEmits<{
 }>()
 
 const moveToMenuOpen = ref(false)
+let moveToMenuCloseTimeout: ReturnType<typeof setTimeout> | null = null
 const moveToMenuStyle = computed(() => {
   const left = Number.parseFloat(props.positionStyle.left ?? '0')
   const top = Number.parseFloat(props.positionStyle.top ?? '0')
@@ -120,7 +123,30 @@ const openMoveToMenu = () => {
     return
   }
 
+  clearMoveToMenuCloseTimeout()
   moveToMenuOpen.value = true
+}
+
+const clearMoveToMenuCloseTimeout = () => {
+  if (moveToMenuCloseTimeout === null) {
+    return
+  }
+
+  clearTimeout(moveToMenuCloseTimeout)
+  moveToMenuCloseTimeout = null
+}
+
+const closeMoveToMenu = () => {
+  clearMoveToMenuCloseTimeout()
+  moveToMenuOpen.value = false
+}
+
+const scheduleCloseMoveToMenu = () => {
+  clearMoveToMenuCloseTimeout()
+  moveToMenuCloseTimeout = setTimeout(() => {
+    moveToMenuOpen.value = false
+    moveToMenuCloseTimeout = null
+  }, 120)
 }
 
 const toggleMoveToMenu = () => {
@@ -128,6 +154,7 @@ const toggleMoveToMenu = () => {
     return
   }
 
+  clearMoveToMenuCloseTimeout()
   moveToMenuOpen.value = !moveToMenuOpen.value
 }
 
@@ -136,7 +163,7 @@ const handleMoveTo = (groupId: string | null) => {
     return
   }
 
-  moveToMenuOpen.value = false
+  closeMoveToMenu()
   emit('move-to-group', {
     accountId: props.accountId,
     groupId
@@ -144,6 +171,10 @@ const handleMoveTo = (groupId: string | null) => {
 }
 
 watch(() => props.accountId, () => {
-  moveToMenuOpen.value = false
+  closeMoveToMenu()
+})
+
+onBeforeUnmount(() => {
+  clearMoveToMenuCloseTimeout()
 })
 </script>

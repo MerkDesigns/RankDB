@@ -1,7 +1,7 @@
 <template>
   <div
-    class="h-screen overflow-hidden bg-[#07090f] text-slate-100"
-    :style="{
+    class="rankdb-theme-root h-screen overflow-hidden bg-[#07090f] text-slate-100"
+    :style="[themeCssVariables, {
       '--rank-number-offset-x': `${rankNumberOffsetX}`,
       '--rank-number-offset-y': `${rankNumberOffsetY}`,
       '--rank-number-font-size': `${rankNumberFontSize}`,
@@ -13,8 +13,10 @@
       '--rank-badge-glow-pulse-duration': `${RANK_BADGE_GLOW_PULSE_DURATION}s`,
       '--rank-number-platform-offset-x': `${rankNumberPlatformOffsetX}`,
       '--rank-number-platform-offset-y': `${rankNumberPlatformOffsetY}`,
-      '--rank-number-platform-font-adjust': `${rankNumberPlatformFontAdjust}`
-    }"
+      '--rank-number-platform-font-adjust': `${rankNumberPlatformFontAdjust}`,
+      backgroundColor: activeThemeTokens.appBackground,
+      color: activeThemeTokens.textPrimary
+    }]"
     @contextmenu.prevent
   >
     <NuxtRouteAnnouncer />
@@ -50,6 +52,7 @@
             @restore-role-sort="restoreCustomRoleSort"
             @toggle-lead-buttons="toggleLeadButtons"
             @toggle-settings="toggleSettingsMenu"
+            @toggle-theme-editor="toggleThemeEditor"
           />
 
           <div ref="accountListViewport" class="account-list-viewport min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
@@ -263,7 +266,7 @@
                         </div>
                       </article>
                     </TransitionGroup>
-                    <div class="mt-2 h-[6px] bg-[#0d1116]" />
+                    <div class="mt-2 h-[6px]" />
                   </div>
                 </div>
               </article>
@@ -499,6 +502,7 @@
           <span
             class="inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
             :class="showNonRankColumns ? 'bg-cyan-500/80' : 'bg-slate-600/80'"
+            :style="showNonRankColumns ? toggleTrackStyle : undefined"
           >
             <span
               class="h-4 w-4 rounded-full bg-white transition"
@@ -519,6 +523,7 @@
           <span
             class="inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
             :class="showSixV6 ? 'bg-cyan-500/80' : 'bg-slate-600/80'"
+            :style="showSixV6 ? toggleTrackStyle : undefined"
           >
             <span
               class="h-4 w-4 rounded-full bg-white transition"
@@ -539,6 +544,7 @@
           <span
             class="inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
             :class="badgeAnimationsEnabled ? 'bg-cyan-500/80' : 'bg-slate-600/80'"
+            :style="badgeAnimationsEnabled ? toggleTrackStyle : undefined"
           >
             <span
               class="h-4 w-4 rounded-full bg-white transition"
@@ -558,11 +564,12 @@
           <input
             v-model.number="uiZoom"
             @input="handleUiZoomInput"
+            @pointerdown="beginSettingsRangeDrag('uiZoom', $event)"
             type="range"
             :min="MIN_UI_ZOOM"
             :max="MAX_UI_ZOOM"
             :step="UI_ZOOM_STEP"
-            class="w-full accent-cyan-400"
+            class="settings-range w-full accent-cyan-400"
           >
         </div>
 
@@ -576,11 +583,12 @@
           </div>
           <input
             v-model.number="clipboardClearTimerSeconds"
+            @pointerdown="beginSettingsRangeDrag('clipboardClearTimerSeconds', $event)"
             type="range"
             min="5"
             max="31"
             step="1"
-            class="w-full accent-cyan-400"
+            class="settings-range w-full accent-cyan-400"
           >
         </div>
 
@@ -646,6 +654,249 @@
       </div>
     </div>
   </div>
+
+    <div
+      v-if="themeEditorOpen"
+      class="theme-panel-raised fixed right-5 top-14 z-[55] flex max-h-[calc(100vh-72px)] w-[340px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[10px] border border-[#323744] bg-[#0c1018] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+      @pointerdown.stop
+      @click.stop
+    >
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <h2 class="text-[15px] font-semibold tracking-tight text-slate-100">Themes</h2>
+        <div class="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            class="theme-hover-surface inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-slate-100/75 hover:bg-[#181c26] hover:text-slate-100"
+            aria-label="Import theme"
+            title="Import theme"
+            @click="triggerImportTheme"
+          >
+            <Download class="h-[15px] w-[15px]" :stroke-width="2.2" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="theme-hover-surface inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-slate-100/75 hover:bg-[#181c26] hover:text-slate-100"
+            aria-label="Export theme"
+            title="Export theme"
+            @click="exportTheme"
+          >
+            <Upload class="h-[15px] w-[15px]" :stroke-width="2.2" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="theme-hover-surface inline-flex h-8 w-8 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]"
+            aria-label="Close theme editor"
+            @click="closeThemeEditor"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <section class="mb-2 rounded-[8px] border border-[#272b35] bg-[#11141b] px-2.5 py-2">
+        <div class="flex items-center justify-between gap-3">
+          <span class="min-w-0">
+            <span class="block truncate text-[13px] font-semibold text-slate-100">{{ selectedThemeLabel }}</span>
+            <span class="block text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500/80">{{ selectedThemeKindLabel }}</span>
+          </span>
+          <span class="flex shrink-0 items-center gap-1.5">
+            <span
+              v-for="tokenKey in themePreviewTokenKeys"
+              :key="`selected-${tokenKey}`"
+              class="h-3.5 w-3.5 rounded-full border border-white/15"
+              :style="{ backgroundColor: activeThemeTokens[tokenKey] }"
+              aria-hidden="true"
+            />
+          </span>
+        </div>
+
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          <button
+            v-if="selectedPresetTheme"
+            type="button"
+            class="theme-panel-raised theme-hover-surface inline-flex h-8 items-center justify-center gap-2 rounded-[7px] border border-[#323744] px-3 text-[12px] font-semibold text-slate-100/92"
+            @click="customizeSelectedPreset"
+          >
+            <Plus class="h-3.5 w-3.5" :stroke-width="2.4" aria-hidden="true" />
+            Customize
+          </button>
+          <button
+            v-else
+            type="button"
+            class="theme-panel-raised theme-hover-surface inline-flex h-8 items-center justify-center gap-2 rounded-[7px] border border-[#323744] px-3 text-[12px] font-semibold text-slate-100/92"
+            @click="duplicateSelectedTheme"
+          >
+            <Plus class="h-3.5 w-3.5" :stroke-width="2.4" aria-hidden="true" />
+            Duplicate
+          </button>
+          <button
+            v-if="selectedCustomTheme"
+            type="button"
+            class="inline-flex h-8 items-center justify-center rounded-[7px] border border-[#3a3038] bg-[#181218] px-3 text-[12px] font-semibold text-slate-200/88 hover:bg-[#211620]"
+            @click="requestDeleteCustomTheme"
+          >
+            Delete
+          </button>
+        </div>
+      </section>
+
+      <div class="relative mb-2 shrink-0">
+        <div
+          ref="themeBrowserScrollElement"
+          class="theme-token-scroll max-h-[132px] space-y-2 overflow-y-auto pr-3"
+          @scroll="updateThemeBrowserScrollIndicator"
+        >
+          <section>
+            <div class="mb-1.5 flex items-center justify-between">
+              <span class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500/80">Premade</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button
+                v-for="theme in PRESET_THEMES"
+                :key="theme.id"
+                type="button"
+                :data-theme-id="theme.id"
+                class="theme-panel-surface theme-hover-surface min-w-0 rounded-[7px] border px-2 py-1.5 text-left"
+                :class="selectedThemeId === theme.id ? 'border-cyan-400/60' : 'border-[#272b35]'"
+                @click="applyThemeOption(theme)"
+              >
+                <span class="block truncate text-[11px] font-semibold text-slate-100/95">{{ theme.name }}</span>
+                <span class="mt-1 flex items-center gap-1">
+                  <span
+                    v-for="tokenKey in themePreviewTokenKeys"
+                    :key="`${theme.id}-${tokenKey}`"
+                    class="h-2.5 w-2.5 rounded-full border border-white/15"
+                    :style="{ backgroundColor: normalizeThemeTokens(theme.tokens)[tokenKey] }"
+                    aria-hidden="true"
+                  />
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <section>
+            <div class="mb-1.5 flex items-center justify-between gap-2">
+              <span class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500/80">My Themes</span>
+              <button
+                type="button"
+                class="theme-hover-surface inline-flex h-7 items-center justify-center gap-1.5 rounded-[6px] px-2 text-[11px] font-semibold text-slate-100/86"
+                @click="createDefaultCustomTheme"
+              >
+                <Plus class="h-3.5 w-3.5" :stroke-width="2.4" aria-hidden="true" />
+                New
+              </button>
+            </div>
+            <div v-if="customThemes.length" class="grid grid-cols-2 gap-2">
+              <button
+                v-for="theme in customThemes"
+                :key="theme.id"
+                type="button"
+                :data-theme-id="theme.id"
+                class="theme-panel-surface theme-hover-surface min-w-0 rounded-[7px] border px-2 py-1.5 text-left"
+                :class="selectedThemeId === theme.id ? 'border-cyan-400/60' : 'border-[#272b35]'"
+                @click="applyThemeOption(theme)"
+              >
+                <span class="block truncate text-[11px] font-semibold text-slate-100/95">{{ theme.name }}</span>
+                <span class="mt-1 flex items-center gap-1">
+                  <span
+                    v-for="tokenKey in themePreviewTokenKeys"
+                    :key="`${theme.id}-${tokenKey}`"
+                    class="h-2.5 w-2.5 rounded-full border border-white/15"
+                    :style="{ backgroundColor: normalizeThemeTokens(theme.tokens)[tokenKey] }"
+                    aria-hidden="true"
+                  />
+                </span>
+              </button>
+            </div>
+            <p v-else class="rounded-[7px] border border-[#272b35] bg-[#11141b] px-2.5 py-1.5 text-[11px] text-slate-400/85">
+              Customize a premade theme or create a new one.
+            </p>
+          </section>
+        </div>
+        <div
+          v-if="themeBrowserScrollIndicator.visible"
+          class="pointer-events-none absolute bottom-1 right-0 top-1 w-px rounded-full bg-white/8"
+          aria-hidden="true"
+        >
+          <div
+            class="absolute right-0 w-px rounded-full bg-slate-100/45"
+            :style="themeBrowserScrollIndicatorStyle"
+          />
+        </div>
+      </div>
+
+      <div class="relative min-h-0 shrink-0">
+        <label
+          v-if="selectedCustomTheme"
+          class="theme-panel-surface mb-1.5 flex min-h-11 items-center gap-2.5 rounded-[7px] border border-[#272b35] bg-[#11141b] px-2.5 py-1.5"
+        >
+          <span class="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500/80">Name:</span>
+          <span class="min-w-0 flex-1">
+            <input
+              v-model="themeNameDraft"
+              type="text"
+              class="theme-panel-raised theme-accent-focus h-7 w-full rounded-[6px] border border-[#323744] bg-[#0c1018] px-2 text-[12px] font-semibold text-slate-100 outline-none transition placeholder:text-slate-500/75 focus:border-[#22d3ee]/70"
+              placeholder="Theme name"
+              maxlength="48"
+              @blur="saveThemeNameDraft"
+              @keydown.enter.prevent="saveThemeNameDraft"
+            >
+          </span>
+        </label>
+        <div
+          ref="themeTokenScrollElement"
+          class="theme-token-scroll max-h-[344px] space-y-1.5 overflow-y-auto pr-3"
+          @scroll="updateThemeTokenScrollIndicator"
+        >
+          <label
+            v-for="token in themeTokenControls"
+            :key="token.key"
+            class="theme-panel-surface flex min-h-11 items-center gap-2.5 rounded-[7px] border border-[#272b35] bg-[#11141b] px-2.5 py-1.5"
+          >
+            <input
+              :value="activeThemeTokens[token.key]"
+              type="color"
+              class="h-8 w-9 shrink-0 cursor-pointer rounded-[6px] border border-[#323744] bg-transparent p-0"
+              @input="setThemeToken(token.key, ($event.target as HTMLInputElement).value)"
+            >
+            <span class="min-w-0 flex-1">
+              <span class="block text-[12px] font-semibold text-slate-100/95">{{ token.label }}</span>
+              <span class="block truncate text-[10px] text-slate-400/80">{{ token.elements }}</span>
+            </span>
+            <span class="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500/80">{{ token.count }}</span>
+          </label>
+        </div>
+        <div
+          v-if="themeTokenScrollIndicator.visible"
+          class="pointer-events-none absolute bottom-1 right-0 top-1 w-px rounded-full bg-white/8"
+          aria-hidden="true"
+        >
+          <div
+            class="absolute right-0 w-px rounded-full bg-slate-100/45"
+            :style="themeTokenScrollIndicatorStyle"
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="theme-panel-surface theme-hover-surface mt-2 inline-flex h-8 w-full shrink-0 items-center justify-center rounded-[7px] border border-[#272b35] bg-[#11141b] px-3 text-[12px] font-semibold text-slate-100/90 hover:bg-[#181c26]"
+        @click="closeThemeEditor"
+      >
+        Done
+      </button>
+
+      <input
+        ref="themeImportFileInput"
+        type="file"
+        accept=".json,.rankdb-theme.json,application/json"
+        class="hidden"
+        @change="handleImportTheme"
+      >
+    </div>
 
     <div
       v-if="backupTransferModalMode"
@@ -1008,6 +1259,31 @@
       @update:notes-draft="accountInfoNotesDraft = $event"
     />
 
+    <div v-if="themeDeleteModal" class="fixed inset-0 z-[88] bg-black/60" @click="closeThemeDeleteModal">
+      <div class="absolute left-1/2 top-1/2 w-[420px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.55)]" @click.stop>
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <h2 class="text-[17px] font-semibold tracking-tight text-slate-100">Delete Theme</h2>
+          <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]" aria-label="Close delete theme modal" @click="closeThemeDeleteModal">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-[14px] leading-6 text-slate-200/90">
+          Are you sure you want to delete this theme?
+        </p>
+        <div class="mt-5 flex justify-end gap-3">
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]" @click="closeThemeDeleteModal">
+            No
+          </button>
+          <button type="button" class="inline-flex h-10 items-center justify-center rounded-[8px] border border-rose-400/20 bg-rose-500/15 px-4 text-[13px] font-semibold text-rose-100 hover:bg-rose-500/25" @click="confirmDeleteCustomTheme">
+            Yes
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="rankResetDeleteModal" class="fixed inset-0 z-[88] bg-black/60" @click="closeRankResetDeleteModal">
       <div class="absolute left-1/2 top-1/2 w-[420px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.55)]" @click.stop>
         <div class="mb-4 flex items-center justify-between gap-3">
@@ -1088,7 +1364,7 @@ import { LogicalSize } from '@tauri-apps/api/dpi'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check as checkForUpdate } from '@tauri-apps/plugin-updater'
 import { currentMonitor, getCurrentWindow } from '@tauri-apps/api/window'
-import { ChevronDown, ClipboardClock, Download, KeyRound, RotateCcw, Upload, User, ZoomIn } from 'lucide-vue-next'
+import { ChevronDown, ClipboardClock, Download, KeyRound, Plus, RotateCcw, Upload, User, ZoomIn } from 'lucide-vue-next'
 import 'flag-icons/css/flag-icons.min.css'
 import RankDbAccountContextMenu from '~~/app/components/rankdb/RankDbAccountContextMenu.vue'
 import RankDbAccountInfoModal from '~~/app/components/rankdb/RankDbAccountInfoModal.vue'
@@ -1098,6 +1374,25 @@ import RankDbHeader from '~~/app/components/rankdb/RankDbHeader.vue'
 import RankDbNotifications from '~~/app/components/rankdb/RankDbNotifications.vue'
 import RankDbRankPicker from '~~/app/components/rankdb/RankDbRankPicker.vue'
 import tauriConfig from '~~/src-tauri/tauri.conf.json'
+import {
+  buildPersistedAppStorageEnvelope,
+  buildThemeExportPayload,
+  isRecord,
+  parsePersistedAppStorage,
+  parseThemeImportPayload
+} from '~~/app/utils/rankdbStorage'
+import {
+  DEFAULT_THEME_ID,
+  DEFAULT_THEME_TOKENS,
+  PRESET_THEMES,
+  buildCustomThemeId,
+  isThemeColor,
+  normalizeCustomThemes,
+  normalizeThemeTokens,
+  sanitizeThemeName,
+  themePreviewTokenKeys,
+  themeTokenControls
+} from '~~/app/utils/rankdbThemes'
 import {
   BASE_MIN_WINDOW_WIDTH,
   DEFAULT_CLIPBOARD_CLEAR_SECONDS,
@@ -1192,23 +1487,16 @@ import type {
   AccountGroup,
   RankEntry,
   RankTier,
-  RoleSortState
+  ThemeLibraryItem,
+  RoleSortState,
+  ThemeTokenKey
 } from '~~/app/types/rankdb'
 
 type AppUpdate = NonNullable<Awaited<ReturnType<typeof checkForUpdate>>>
-type PersistedAppStoragePayload = {
-  accounts?: unknown
-  groups?: unknown
-  uiSettings?: unknown
-}
-type PersistedAppStorageEnvelope = {
-  format: string
-  schemaVersion: number
-  payload: PersistedAppStoragePayload
-}
 type UpdateRecoveryMetadata = {
   createdAt: string
 }
+type SettingsRangeKey = 'uiZoom' | 'clipboardClearTimerSeconds'
 
 useHead({
   link: [
@@ -1217,25 +1505,21 @@ useHead({
 })
 
 const tauriDesktop = import.meta.client && isTauri()
-const APP_STORAGE_FORMAT = 'rankdb-app-state'
-const APP_STORAGE_SCHEMA_VERSION = 1
 const UPDATE_RECOVERY_PENDING_KEY = 'rankdb_update_recovery_pending_v1'
 const WHATS_NEW_VERSION_KEY = 'rankdb_last_seen_version_v1'
 const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
   [CURRENT_WHATS_NEW_VERSION]: [
     {
-      title: 'Move To Menu Fix',
-      description: 'The right-click Move To submenu now behaves like a normal hover menu and closes when you leave it.'
-    },
-    {
-      title: 'Banned Accounts Ungroup',
-      description: 'Marking an account as banned from Account Info now removes it from its group so it appears as a standalone banned account.'
+      title: 'Added Theme Editor',
+      description: 'Customize RankDB colors, save your own themes, and import or export theme files.'
     }
   ]
 }
 const rankPicker = ref<{ accountId: number; target: 'role' | 'sixv6'; rankIndex?: number } | null>(null)
 const settingsMenuOpen = ref(false)
+const themeEditorOpen = ref(false)
+const themeDropdownOpen = ref(false)
 const rankResetModalOpen = ref(false)
 const rankResetConfirmed = ref(false)
 const createGroupModalOpen = ref(false)
@@ -1246,6 +1530,7 @@ const accountContextMenuPositionStyle = ref<Record<string, string>>({})
 const deleteAccountModal = ref<{ accountId: number } | null>(null)
 const credentialsModal = ref<{ accountId: number } | null>(null)
 const accountInfoModal = ref<{ accountId: number } | null>(null)
+const themeDeleteModal = ref<ThemeLibraryItem | null>(null)
 const rankResetDeleteModal = ref<{ createdAt: string } | null>(null)
 const credentialsEmailDraft = ref('')
 const credentialsPasswordDraft = ref('')
@@ -1293,6 +1578,11 @@ const draggedUngroupedAccount = computed(() => {
   return Boolean(draggedAccount && !draggedAccount.groupId)
 })
 const importFileInput = ref<HTMLInputElement | null>(null)
+const themeImportFileInput = ref<HTMLInputElement | null>(null)
+const themeBrowserScrollElement = ref<HTMLElement | null>(null)
+const themeBrowserScrollIndicator = ref({ height: 100, top: 0, visible: false })
+const themeTokenScrollElement = ref<HTMLElement | null>(null)
+const themeTokenScrollIndicator = ref({ height: 100, top: 0, visible: false })
 let pendingImportFile: File | null = null
 const pointerDrag = ref<{
   accountId: number
@@ -1345,6 +1635,11 @@ let pendingPointerY: number | null = null
 let pendingGroupPointerY: number | null = null
 let pointerFrameId: number | null = null
 let groupPointerFrameId: number | null = null
+let settingsRangeDrag: {
+  key: SettingsRangeKey
+  pointerId: number
+  element: HTMLInputElement
+} | null = null
 let nextNotificationId = 1
 const notificationTimeouts = new Map<number, ReturnType<typeof setTimeout>>()
 const clipboardExpiryTimeouts = new Map<'email' | 'password', ReturnType<typeof setTimeout>>()
@@ -1724,7 +2019,10 @@ const buildDefaultUiSettings = () => ({
   clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
   rankNumberOffsetX: DEFAULT_RANK_NUMBER_OFFSET_X,
   rankNumberOffsetY: DEFAULT_RANK_NUMBER_OFFSET_Y,
-  rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE
+  rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE,
+  themeTokens: { ...DEFAULT_THEME_TOKENS },
+  importedThemes: [] as ThemeLibraryItem[],
+  selectedThemeId: DEFAULT_THEME_ID
 })
 
 const getOwApiRatings = (payload: OwApiProfilePayload) => (
@@ -1878,7 +2176,10 @@ const loadStoredUiSettings = () => {
         clipboardClearTimerSeconds: normalizeClipboardClearTimer(parsed?.clipboardClearTimerSeconds),
         rankNumberOffsetX: normalizeRankNumberOffset(parsed?.rankNumberOffsetX),
         rankNumberOffsetY: normalizeRankNumberOffset(parsed?.rankNumberOffsetY),
-        rankNumberFontSize: normalizeRankNumberFontSize(parsed?.rankNumberFontSize)
+        rankNumberFontSize: normalizeRankNumberFontSize(parsed?.rankNumberFontSize),
+        themeTokens: normalizeThemeTokens(parsed?.themeTokens),
+        importedThemes: normalizeCustomThemes(parsed?.importedThemes),
+        selectedThemeId: typeof parsed?.selectedThemeId === 'string' ? parsed.selectedThemeId : DEFAULT_THEME_ID
       }
     }
 
@@ -1897,7 +2198,10 @@ const loadStoredUiSettings = () => {
       clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
       rankNumberOffsetX: DEFAULT_RANK_NUMBER_OFFSET_X,
       rankNumberOffsetY: DEFAULT_RANK_NUMBER_OFFSET_Y,
-      rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE
+      rankNumberFontSize: DEFAULT_RANK_NUMBER_FONT_SIZE,
+      themeTokens: { ...DEFAULT_THEME_TOKENS },
+      importedThemes: [] as ThemeLibraryItem[],
+      selectedThemeId: DEFAULT_THEME_ID
     }
   } catch {
     return buildDefaultUiSettings()
@@ -2109,55 +2413,59 @@ const restoreUpdateRecoveryBackup = async () => {
   return invoke<unknown>('restore_update_recovery_backup')
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => (
-  Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-)
-
-const buildPersistedAppStorageEnvelope = (payload: PersistedAppStoragePayload): PersistedAppStorageEnvelope => ({
-  format: APP_STORAGE_FORMAT,
-  schemaVersion: APP_STORAGE_SCHEMA_VERSION,
-  payload
-})
-
-const parsePersistedAppStorage = (value: unknown): { payload: PersistedAppStoragePayload | null; migratedLegacy: boolean } => {
-  if (!isRecord(value)) {
-    return { payload: null, migratedLegacy: false }
+const listStoredCustomThemes = async () => {
+  if (!import.meta.client || !isTauri()) {
+    return [] as ThemeLibraryItem[]
   }
 
-  if ('format' in value || 'schemaVersion' in value || 'payload' in value) {
-    const format = value.format
-    const schemaVersion = value.schemaVersion
-    const payload = value.payload
+  const themes = await invoke<Array<{ id: string; name: string; tokens: Record<ThemeTokenKey, string> }>>('list_custom_themes')
+  return themes.map((theme) => ({
+    id: theme.id,
+    name: theme.name,
+    source: 'custom' as const,
+    tokens: normalizeThemeTokens(theme.tokens)
+  }))
+}
 
-    if (format !== APP_STORAGE_FORMAT) {
-      throw new Error('Unsupported local database format.')
-    }
-
-    if (schemaVersion !== APP_STORAGE_SCHEMA_VERSION) {
-      throw new Error(`Unsupported local database schema v${String(schemaVersion)}.`)
-    }
-
-    if (!isRecord(payload)) {
-      throw new Error('Stored local database payload is invalid.')
-    }
-
-    return {
-      payload: {
-        accounts: payload.accounts,
-        groups: payload.groups,
-        uiSettings: payload.uiSettings
-      },
-      migratedLegacy: false
-    }
+const saveStoredCustomTheme = async (theme: ThemeLibraryItem) => {
+  if (!import.meta.client || !isTauri()) {
+    return theme
   }
 
+  const storedTheme = await invoke<{ id: string; name: string; tokens: Record<ThemeTokenKey, string> }>('save_custom_theme', {
+    themeId: theme.id,
+    name: theme.name,
+    tokens: normalizeThemeTokens(theme.tokens)
+  })
   return {
-    payload: {
-      accounts: value.accounts,
-      groups: value.groups,
-      uiSettings: value.uiSettings
-    },
-    migratedLegacy: true
+    id: storedTheme.id,
+    name: storedTheme.name,
+    source: 'custom' as const,
+    tokens: normalizeThemeTokens(storedTheme.tokens)
+  }
+}
+
+const deleteStoredCustomTheme = async (themeId: string) => {
+  if (!import.meta.client || !isTauri()) {
+    return
+  }
+
+  await invoke('delete_custom_theme', { themeId })
+}
+
+const migrateStoredCustomThemesToFolder = async (storedUiSettings: unknown) => {
+  if (!tauriDesktop || !isRecord(storedUiSettings)) {
+    return
+  }
+
+  for (const theme of normalizeCustomThemes(storedUiSettings.importedThemes)) {
+    if (!customThemes.value.some((entry) => entry.id === theme.id)) {
+      const storedTheme = await saveStoredCustomTheme(theme)
+      customThemes.value = [
+        ...customThemes.value.filter((entry) => entry.id !== storedTheme.id),
+        storedTheme
+      ].sort((left, right) => left.name.localeCompare(right.name))
+    }
   }
 }
 
@@ -2393,6 +2701,43 @@ const clipboardClearTimerSeconds = ref(initialUiSettings.clipboardClearTimerSeco
 const rankNumberOffsetX = ref(initialUiSettings.rankNumberOffsetX)
 const rankNumberOffsetY = ref(initialUiSettings.rankNumberOffsetY)
 const rankNumberFontSize = ref(initialUiSettings.rankNumberFontSize)
+const activeThemeTokens = ref<Record<ThemeTokenKey, string>>(normalizeThemeTokens(initialUiSettings.themeTokens))
+const customThemes = ref<ThemeLibraryItem[]>(normalizeCustomThemes(initialUiSettings.importedThemes))
+const selectedThemeId = ref(initialUiSettings.selectedThemeId)
+const themeNameDraft = ref('')
+const allThemeOptions = computed<ThemeLibraryItem[]>(() => [
+  ...PRESET_THEMES,
+  ...customThemes.value
+])
+const selectedTheme = computed(() => (
+  allThemeOptions.value.find((theme) => theme.id === selectedThemeId.value) ?? PRESET_THEMES[0]
+))
+const selectedPresetTheme = computed(() => (
+  PRESET_THEMES.find((theme) => theme.id === selectedThemeId.value) ?? null
+))
+const selectedCustomTheme = computed(() => (
+  customThemes.value.find((theme) => theme.id === selectedThemeId.value) ?? null
+))
+const selectedThemeLabel = computed(() => (
+  selectedTheme.value?.name ?? 'Theme'
+))
+const selectedThemeKindLabel = computed(() => (
+  selectedCustomTheme.value ? 'My Theme - autosaves edits' : 'Premade base - customize to edit'
+))
+const themeCssVariables = computed(() => Object.fromEntries(
+  Object.entries(activeThemeTokens.value).map(([key, value]) => [`--theme-${key}`, value])
+))
+const themeTokenScrollIndicatorStyle = computed(() => ({
+  height: `${themeTokenScrollIndicator.value.height}%`,
+  top: `${themeTokenScrollIndicator.value.top}%`
+}))
+const themeBrowserScrollIndicatorStyle = computed(() => ({
+  height: `${themeBrowserScrollIndicator.value.height}%`,
+  top: `${themeBrowserScrollIndicator.value.top}%`
+}))
+const toggleTrackStyle = computed(() => ({
+  backgroundColor: activeThemeTokens.value.toggleAccent
+}))
 const leadColumnWidth = 96
 const nameColumnWidth = 250
 const roleColumnWidth = 390
@@ -2477,6 +2822,8 @@ let tauriResizeReady = false
 let tauriResizeReadyTimeout: ReturnType<typeof setTimeout> | null = null
 let assetWarmupPromise: Promise<void> | null = null
 let appStoragePersistTimeout: ReturnType<typeof setTimeout> | null = null
+let customThemePersistTimeout: ReturnType<typeof setTimeout> | null = null
+let customThemeCreatePromise: Promise<ThemeLibraryItem> | null = null
 const rankNumberPlatformOffsetX = import.meta.client && isTauri() ? -1 : 0
 const rankNumberPlatformOffsetY = import.meta.client && isTauri() ? 1 : 0
 const rankNumberPlatformFontAdjust = import.meta.client && isTauri() ? -1 : 0
@@ -2848,6 +3195,16 @@ const buildUiSettingsPayload = () => ({
   rankNumberOffsetX: normalizeRankNumberOffset(rankNumberOffsetX.value),
   rankNumberOffsetY: normalizeRankNumberOffset(rankNumberOffsetY.value),
   rankNumberFontSize: normalizeRankNumberFontSize(rankNumberFontSize.value),
+  themeTokens: { ...activeThemeTokens.value },
+  importedThemes: tauriDesktop
+    ? []
+    : customThemes.value.map((theme) => ({
+        id: theme.id,
+        name: theme.name,
+        source: 'custom' as const,
+        tokens: { ...normalizeThemeTokens(theme.tokens) }
+      })),
+  selectedThemeId: selectedThemeId.value,
   groups: buildGroupsPayload()
 })
 const currentUiScale = computed(() => uiZoom.value / 125)
@@ -3048,6 +3405,101 @@ const handleUiZoomInput = () => {
   scheduleTauriWindowResize(0)
 }
 
+const getSettingsRangeConfig = (key: SettingsRangeKey) => (
+  key === 'uiZoom'
+    ? { min: MIN_UI_ZOOM, max: MAX_UI_ZOOM, step: UI_ZOOM_STEP }
+    : { min: MIN_CLIPBOARD_CLEAR_SECONDS, max: INFINITE_CLIPBOARD_CLEAR_SECONDS, step: 1 }
+)
+
+const normalizeSettingsRangeValue = (key: SettingsRangeKey, value: number) => (
+  key === 'uiZoom' ? normalizeUiZoom(value) : normalizeClipboardClearTimer(value)
+)
+
+const applySettingsRangeValue = (key: SettingsRangeKey, value: number) => {
+  if (key === 'uiZoom') {
+    uiZoom.value = normalizeUiZoom(value)
+    handleUiZoomInput()
+    return
+  }
+
+  clipboardClearTimerSeconds.value = normalizeClipboardClearTimer(value)
+}
+
+const updateSettingsRangeFromPointer = (key: SettingsRangeKey, element: HTMLInputElement, clientX: number) => {
+  const rect = element.getBoundingClientRect()
+  const width = Math.max(1, rect.width)
+  const config = getSettingsRangeConfig(key)
+  const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / width))
+  const rawValue = config.min + ((config.max - config.min) * ratio)
+  const steppedValue = config.min + (Math.round((rawValue - config.min) / config.step) * config.step)
+  applySettingsRangeValue(key, normalizeSettingsRangeValue(key, steppedValue))
+}
+
+const stopSettingsRangeDrag = (event?: PointerEvent) => {
+  if (!settingsRangeDrag) {
+    return
+  }
+
+  if (event && event.pointerId !== settingsRangeDrag.pointerId) {
+    return
+  }
+
+  try {
+    settingsRangeDrag.element.releasePointerCapture(settingsRangeDrag.pointerId)
+  } catch {
+    // Ignore browsers that do not keep pointer capture active here.
+  }
+
+  window.removeEventListener('pointermove', handleSettingsRangePointerMove)
+  window.removeEventListener('pointerup', handleSettingsRangePointerUp)
+  window.removeEventListener('pointercancel', handleSettingsRangePointerUp)
+  settingsRangeDrag = null
+}
+
+const handleSettingsRangePointerMove = (event: PointerEvent) => {
+  if (!settingsRangeDrag || event.pointerId !== settingsRangeDrag.pointerId) {
+    return
+  }
+
+  event.preventDefault()
+  updateSettingsRangeFromPointer(settingsRangeDrag.key, settingsRangeDrag.element, event.clientX)
+}
+
+const handleSettingsRangePointerUp = (event: PointerEvent) => {
+  stopSettingsRangeDrag(event)
+}
+
+const beginSettingsRangeDrag = (key: SettingsRangeKey, event: PointerEvent) => {
+  if (event.button !== 0) {
+    return
+  }
+
+  const element = event.currentTarget as HTMLInputElement | null
+  if (!element) {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  stopSettingsRangeDrag()
+  settingsRangeDrag = {
+    key,
+    pointerId: event.pointerId,
+    element
+  }
+
+  try {
+    element.setPointerCapture(event.pointerId)
+  } catch {
+    // Pointer capture is optional; window listeners keep dragging responsive.
+  }
+
+  updateSettingsRangeFromPointer(key, element, event.clientX)
+  window.addEventListener('pointermove', handleSettingsRangePointerMove, { passive: false })
+  window.addEventListener('pointerup', handleSettingsRangePointerUp)
+  window.addEventListener('pointercancel', handleSettingsRangePointerUp)
+}
+
 const warmupImageAsset = async (source: string) => {
   const image = new Image()
   image.decoding = 'async'
@@ -3133,6 +3585,13 @@ const applyStoredUiSettings = (storedUiSettings: unknown) => {
   rankNumberOffsetX.value = normalizeRankNumberOffset(importedUiSettings?.rankNumberOffsetX)
   rankNumberOffsetY.value = normalizeRankNumberOffset(importedUiSettings?.rankNumberOffsetY)
   rankNumberFontSize.value = normalizeRankNumberFontSize(importedUiSettings?.rankNumberFontSize)
+  activeThemeTokens.value = normalizeThemeTokens(importedUiSettings?.themeTokens)
+  if (!tauriDesktop) {
+    customThemes.value = normalizeCustomThemes(importedUiSettings?.importedThemes)
+  }
+  selectedThemeId.value = typeof importedUiSettings?.selectedThemeId === 'string'
+    ? importedUiSettings.selectedThemeId
+    : DEFAULT_THEME_ID
 }
 
 const applyStoredGroups = (storedGroups: unknown, storedUiSettings?: unknown) => {
@@ -3167,6 +3626,7 @@ const loadTauriStoredAppState = async () => {
     accounts.value = normalizedAccounts.length > 0 ? normalizedAccounts : buildEmptyAccounts()
     applyStoredGroups(storedAppState.groups, storedAppState.uiSettings)
     applyStoredUiSettings(storedAppState.uiSettings)
+    await migrateStoredCustomThemesToFolder(storedAppState.uiSettings)
     if (parsedStoredAppState.migratedLegacy) {
       await persistAppStorage()
     }
@@ -3234,6 +3694,7 @@ onMounted(() => {
       try {
         await ensurePersistedAppStorageReady()
         await loadTauriStoredAppState()
+        await loadCustomThemesFromFolder()
         storageAccessMode.value = 'ready'
         startupStorageError.value = ''
         if (hasPendingUpdateRecoveryMarker()) {
@@ -3312,7 +3773,7 @@ watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, u
   scheduleTauriWindowResize()
 })
 
-watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, uiZoom, clipboardClearTimerSeconds, rankNumberOffsetX, rankNumberOffsetY, rankNumberFontSize], () => {
+watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, uiZoom, clipboardClearTimerSeconds, rankNumberOffsetX, rankNumberOffsetY, rankNumberFontSize, activeThemeTokens, customThemes, selectedThemeId], () => {
   if (!import.meta.client) {
     return
   }
@@ -3320,6 +3781,42 @@ watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, u
     localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(buildUiSettingsPayload()))
   }
   schedulePersistAppStorage()
+})
+
+watch([selectedThemeId, customThemes], () => {
+  themeNameDraft.value = selectedCustomTheme.value?.name ?? selectedThemeLabel.value
+}, { deep: true, immediate: true })
+
+watch(themeEditorOpen, async (open) => {
+  if (!open) {
+    themeBrowserScrollIndicator.value = { height: 100, top: 0, visible: false }
+    themeTokenScrollIndicator.value = { height: 100, top: 0, visible: false }
+    return
+  }
+
+  await nextTick()
+  scrollThemeBrowserToSelected()
+  updateThemeBrowserScrollIndicator()
+  updateThemeTokenScrollIndicator()
+})
+
+watch([() => PRESET_THEMES.length, customThemes], async () => {
+  if (!themeEditorOpen.value) {
+    return
+  }
+
+  await nextTick()
+  scrollThemeBrowserToSelected()
+  updateThemeBrowserScrollIndicator()
+}, { deep: true })
+
+watch(selectedThemeId, async () => {
+  if (!themeEditorOpen.value) {
+    return
+  }
+
+  await nextTick()
+  scrollThemeBrowserToSelected()
 })
 
 const exportData = () => {
@@ -3506,6 +4003,422 @@ const getAccountNameForDisplay = (accountId: number) => {
 
 const closeSettingsMenu = () => {
   settingsMenuOpen.value = false
+}
+
+const toggleThemeEditor = () => {
+  themeEditorOpen.value = !themeEditorOpen.value
+  if (themeEditorOpen.value) {
+    settingsMenuOpen.value = false
+  }
+}
+
+const closeThemeEditor = () => {
+  themeEditorOpen.value = false
+  themeDropdownOpen.value = false
+}
+
+const calculateScrollIndicator = (element: HTMLElement | null) => {
+  if (!element) {
+    return { height: 100, top: 0, visible: false }
+  }
+
+  const scrollableDistance = element.scrollHeight - element.clientHeight
+  if (scrollableDistance <= 1) {
+    return { height: 100, top: 0, visible: false }
+  }
+
+  const height = Math.max(12, (element.clientHeight / element.scrollHeight) * 100)
+  const top = (element.scrollTop / scrollableDistance) * (100 - height)
+  return {
+    height,
+    top,
+    visible: true
+  }
+}
+
+const updateThemeBrowserScrollIndicator = () => {
+  themeBrowserScrollIndicator.value = calculateScrollIndicator(themeBrowserScrollElement.value)
+}
+
+const updateThemeTokenScrollIndicator = () => {
+  themeTokenScrollIndicator.value = calculateScrollIndicator(themeTokenScrollElement.value)
+}
+
+const scrollThemeBrowserToSelected = () => {
+  const scrollElement = themeBrowserScrollElement.value
+  if (!scrollElement) {
+    return
+  }
+
+  const selectedElement = Array.from(scrollElement.querySelectorAll<HTMLElement>('[data-theme-id]'))
+    .find((element) => element.dataset.themeId === selectedThemeId.value)
+  if (!selectedElement) {
+    updateThemeBrowserScrollIndicator()
+    return
+  }
+
+  const selectedTop = selectedElement.offsetTop
+  const selectedBottom = selectedTop + selectedElement.offsetHeight
+  const visibleTop = scrollElement.scrollTop
+  const visibleBottom = visibleTop + scrollElement.clientHeight
+  const padding = 8
+
+  if (selectedTop >= visibleTop + padding && selectedBottom <= visibleBottom - padding) {
+    updateThemeBrowserScrollIndicator()
+    return
+  }
+
+  const nextScrollTop = selectedTop - ((scrollElement.clientHeight - selectedElement.offsetHeight) / 2)
+  scrollElement.scrollTo({
+    top: Math.max(0, nextScrollTop),
+    behavior: 'auto'
+  })
+  updateThemeBrowserScrollIndicator()
+}
+
+const applyThemeOption = (theme: ThemeLibraryItem) => {
+  activeThemeTokens.value = normalizeThemeTokens(theme.tokens)
+  selectedThemeId.value = theme.id
+  themeDropdownOpen.value = false
+}
+
+const removeCustomTheme = async (themeId: string) => {
+  const theme = customThemes.value.find((entry) => entry.id === themeId)
+  if (!theme) {
+    return
+  }
+
+  try {
+    await deleteStoredCustomTheme(themeId)
+    customThemes.value = customThemes.value.filter((entry) => entry.id !== themeId)
+    if (selectedThemeId.value === themeId) {
+      applyThemeOption(PRESET_THEMES[0])
+    }
+    if (themeDeleteModal.value?.id === themeId) {
+      themeDeleteModal.value = null
+    }
+    pushNotification('Theme removed', {
+      message: `${theme.name} was removed from your custom themes folder.`,
+      kind: 'info'
+    })
+  } catch (error) {
+    pushNotification('Theme remove failed', {
+      message: error instanceof Error ? error.message : 'Could not remove that custom theme.',
+      kind: 'error'
+    })
+  }
+}
+
+const requestDeleteCustomTheme = () => {
+  const theme = selectedCustomTheme.value
+  if (!theme) {
+    return
+  }
+  themeDeleteModal.value = theme
+}
+
+const closeThemeDeleteModal = () => {
+  themeDeleteModal.value = null
+}
+
+const confirmDeleteCustomTheme = async () => {
+  const theme = themeDeleteModal.value
+  if (!theme) {
+    return
+  }
+  await removeCustomTheme(theme.id)
+}
+
+const saveThemeNameDraft = async () => {
+  const theme = selectedCustomTheme.value
+  if (!theme) {
+    themeNameDraft.value = selectedThemeLabel.value
+    return
+  }
+
+  const nextName = sanitizeThemeName(themeNameDraft.value, theme.name)
+  themeNameDraft.value = nextName
+  if (nextName === theme.name) {
+    return
+  }
+
+  try {
+    const updatedTheme = await saveStoredCustomTheme({
+      ...theme,
+      name: nextName,
+      tokens: normalizeThemeTokens(activeThemeTokens.value)
+    })
+    customThemes.value = customThemes.value
+      .map((entry) => entry.id === updatedTheme.id ? updatedTheme : entry)
+      .sort((left, right) => left.name.localeCompare(right.name))
+  } catch (error) {
+    themeNameDraft.value = theme.name
+    pushNotification('Theme rename failed', {
+      message: error instanceof Error ? error.message : 'Could not rename that custom theme.',
+      kind: 'error'
+    })
+  }
+}
+
+const saveNewCustomTheme = async (baseTheme: ThemeLibraryItem, name: string, tokens = normalizeThemeTokens(baseTheme.tokens)) => {
+  const customTheme = await saveStoredCustomTheme({
+    id: buildCustomThemeId(name),
+    name,
+    source: 'custom',
+    tokens
+  })
+  customThemes.value = [
+    ...customThemes.value.filter((theme) => theme.id !== customTheme.id),
+    customTheme
+  ].sort((left, right) => left.name.localeCompare(right.name))
+  activeThemeTokens.value = normalizeThemeTokens(customTheme.tokens)
+  selectedThemeId.value = customTheme.id
+  themeDropdownOpen.value = false
+  return customTheme
+}
+
+const createDefaultCustomTheme = async () => {
+  try {
+    const customTheme = await saveNewCustomTheme(PRESET_THEMES[0], 'New Theme', { ...DEFAULT_THEME_TOKENS })
+    pushNotification('Theme created', {
+      message: `${customTheme.name} was saved to your custom themes folder.`,
+      kind: 'success'
+    })
+  } catch (error) {
+    pushNotification('Theme create failed', {
+      message: error instanceof Error ? error.message : 'Could not create a custom theme.',
+      kind: 'error'
+    })
+  }
+}
+
+const createCustomThemeFromBase = async (baseTheme: ThemeLibraryItem, name: string, tokens = normalizeThemeTokens(baseTheme.tokens)) => {
+  if (customThemeCreatePromise) {
+    return customThemeCreatePromise
+  }
+
+  customThemeCreatePromise = saveNewCustomTheme(baseTheme, name, tokens)
+  try {
+    return await customThemeCreatePromise
+  } finally {
+    customThemeCreatePromise = null
+  }
+}
+
+const customizeSelectedPreset = async () => {
+  const presetTheme = selectedPresetTheme.value
+  if (!presetTheme) {
+    return
+  }
+
+  try {
+    const customTheme = await createCustomThemeFromBase(
+      presetTheme,
+      `${presetTheme.name} Custom`,
+      normalizeThemeTokens(presetTheme.tokens)
+    )
+    pushNotification('Theme created', {
+      message: `${customTheme.name} is now your editable copy.`,
+      kind: 'success'
+    })
+  } catch (error) {
+    pushNotification('Theme create failed', {
+      message: error instanceof Error ? error.message : 'Could not create a custom copy.',
+      kind: 'error'
+    })
+  }
+}
+
+const duplicateSelectedTheme = async () => {
+  const theme = selectedTheme.value
+  if (!theme) {
+    return
+  }
+
+  try {
+    const customTheme = await createCustomThemeFromBase(
+      theme,
+      `${theme.name} Copy`,
+      normalizeThemeTokens(activeThemeTokens.value)
+    )
+    pushNotification('Theme duplicated', {
+      message: `${customTheme.name} is ready to edit.`,
+      kind: 'success'
+    })
+  } catch (error) {
+    pushNotification('Theme duplicate failed', {
+      message: error instanceof Error ? error.message : 'Could not duplicate that theme.',
+      kind: 'error'
+    })
+  }
+}
+
+const loadCustomThemesFromFolder = async () => {
+  if (!tauriDesktop) {
+    return
+  }
+
+  try {
+    customThemes.value = await listStoredCustomThemes()
+    const selectedCustomTheme = customThemes.value.find((theme) => theme.id === selectedThemeId.value)
+    if (selectedCustomTheme) {
+      activeThemeTokens.value = normalizeThemeTokens(selectedCustomTheme.tokens)
+      return
+    }
+
+    if (selectedThemeId.value.startsWith('custom-')) {
+      applyThemeOption(PRESET_THEMES[0])
+      return
+    }
+
+    const selectedPresetTheme = PRESET_THEMES.find((theme) => theme.id === selectedThemeId.value)
+    if (selectedPresetTheme) {
+      activeThemeTokens.value = normalizeThemeTokens(selectedPresetTheme.tokens)
+    }
+  } catch (error) {
+    pushNotification('Custom themes unavailable', {
+      message: error instanceof Error ? error.message : 'Could not read your custom themes folder.',
+      kind: 'error'
+    })
+  }
+}
+
+const saveActiveCustomTheme = async (themeId: string) => {
+  const theme = customThemes.value.find((entry) => entry.id === themeId)
+  if (!theme) {
+    return
+  }
+
+  const updatedTheme = await saveStoredCustomTheme({
+    ...theme,
+    tokens: normalizeThemeTokens(activeThemeTokens.value)
+  })
+  customThemes.value = customThemes.value
+    .map((entry) => entry.id === updatedTheme.id ? updatedTheme : entry)
+    .sort((left, right) => left.name.localeCompare(right.name))
+}
+
+const scheduleActiveCustomThemeSave = (themeId: string) => {
+  if (customThemePersistTimeout) {
+    clearTimeout(customThemePersistTimeout)
+  }
+
+  customThemePersistTimeout = setTimeout(() => {
+    customThemePersistTimeout = null
+    void saveActiveCustomTheme(themeId).catch((error) => {
+      pushNotification('Theme save failed', {
+        message: error instanceof Error ? error.message : 'Could not save that custom theme.',
+        kind: 'error'
+      })
+    })
+  }, 320)
+}
+
+const setThemeToken = async (key: ThemeTokenKey, value: string) => {
+  if (!isThemeColor(value)) {
+    return
+  }
+
+  const nextTokens = {
+    ...activeThemeTokens.value,
+    [key]: value
+  }
+
+  if (selectedCustomTheme.value) {
+    activeThemeTokens.value = nextTokens
+    scheduleActiveCustomThemeSave(selectedCustomTheme.value.id)
+    return
+  }
+
+  const baseTheme = selectedPresetTheme.value ?? PRESET_THEMES[0]
+  try {
+    const customTheme = await createCustomThemeFromBase(
+      baseTheme,
+      `${baseTheme.name} Custom`,
+      normalizeThemeTokens(nextTokens)
+    )
+    activeThemeTokens.value = normalizeThemeTokens(nextTokens)
+    scheduleActiveCustomThemeSave(customTheme.id)
+  } catch (error) {
+    pushNotification('Theme create failed', {
+      message: error instanceof Error ? error.message : 'Could not create a custom copy.',
+      kind: 'error'
+    })
+  }
+}
+
+const resetThemeTokens = () => {
+  applyThemeOption(PRESET_THEMES[0])
+}
+
+const exportTheme = () => {
+  if (!import.meta.client) {
+    return
+  }
+
+  const themeFileName = selectedThemeLabel.value
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[. ]+$/g, '')
+  const exportedThemeFileName = `${themeFileName || 'rankdb-theme'}.json`
+  const blob = new Blob([`${JSON.stringify(buildThemeExportPayload(selectedThemeId.value, selectedThemeLabel.value, activeThemeTokens.value), null, 2)}\n`], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = exportedThemeFileName
+  anchor.click()
+  URL.revokeObjectURL(url)
+  pushNotification('Theme exported', {
+    message: 'Your current theme was downloaded as a JSON file.',
+    kind: 'success'
+  })
+}
+
+const triggerImportTheme = () => {
+  themeImportFileInput.value?.click()
+}
+
+const handleImportTheme = async (event: Event) => {
+  if (!import.meta.client) {
+    return
+  }
+
+  const input = event.target as HTMLInputElement | null
+  const file = input?.files?.[0]
+  if (!file) {
+    return
+  }
+
+  try {
+    const parsed = JSON.parse(await file.text())
+    const importedTheme = parseThemeImportPayload(parsed, file.name.replace(/\.json$/i, ''))
+    const customTheme = await saveStoredCustomTheme({
+      id: buildCustomThemeId(importedTheme.name),
+      name: importedTheme.name,
+      source: 'custom',
+      tokens: importedTheme.tokens
+    })
+    customThemes.value = [
+      ...customThemes.value.filter((theme) => theme.id !== customTheme.id),
+      customTheme
+    ].sort((left, right) => left.name.localeCompare(right.name))
+    activeThemeTokens.value = normalizeThemeTokens(customTheme.tokens)
+    selectedThemeId.value = customTheme.id
+    pushNotification('Theme imported', {
+      message: `${customTheme.name} was saved to your custom themes folder.`,
+      kind: 'success'
+    })
+  } catch (error) {
+    pushNotification('Theme import failed', {
+      message: error instanceof Error ? error.message : 'Could not read that theme JSON file.',
+      kind: 'error'
+    })
+  } finally {
+    if (input) {
+      input.value = ''
+    }
+  }
 }
 
 const openRankResetModal = () => {
@@ -4977,9 +5890,31 @@ const syncGroupDragLayout = (section: 'normal' | 'banned') => {
   })
 }
 
+const applyThemeStylesToDragClone = (element: HTMLElement) => {
+  element.classList.add('rankdb-theme-root')
+  for (const [key, value] of Object.entries(activeThemeTokens.value)) {
+    element.style.setProperty(`--theme-${key}`, value)
+  }
+  element.style.setProperty('--rank-number-offset-x', `${rankNumberOffsetX.value}`)
+  element.style.setProperty('--rank-number-offset-y', `${rankNumberOffsetY.value}`)
+  element.style.setProperty('--rank-number-font-size', `${rankNumberFontSize.value}`)
+  element.style.setProperty('--rank-badge-glow-offset-x', `${RANK_BADGE_GLOW_OFFSET_X}`)
+  element.style.setProperty('--rank-badge-glow-offset-y', `${RANK_BADGE_GLOW_OFFSET_Y}`)
+  element.style.setProperty('--rank-badge-glow-radius', `${RANK_BADGE_GLOW_RADIUS}%`)
+  element.style.setProperty('--rank-badge-glow-opacity', `${RANK_BADGE_GLOW_OPACITY / 100}`)
+  element.style.setProperty('--rank-badge-glow-pulse-amount', `${RANK_BADGE_GLOW_PULSE_AMOUNT / 100}`)
+  element.style.setProperty('--rank-badge-glow-pulse-duration', `${RANK_BADGE_GLOW_PULSE_DURATION}s`)
+  element.style.setProperty('--rank-number-platform-offset-x', `${rankNumberPlatformOffsetX}`)
+  element.style.setProperty('--rank-number-platform-offset-y', `${rankNumberPlatformOffsetY}`)
+  element.style.setProperty('--rank-number-platform-font-adjust', `${rankNumberPlatformFontAdjust}`)
+  element.style.backgroundColor = activeThemeTokens.value.appBackground
+  element.style.color = activeThemeTokens.value.textPrimary
+}
+
 const createGroupDragClone = (sourceElement: HTMLElement, sourceRect: DOMRect, event: PointerEvent) => {
   groupDragSourceElement = sourceElement
   groupDragCloneElement = sourceElement.cloneNode(true) as HTMLElement
+  applyThemeStylesToDragClone(groupDragCloneElement)
   const cloneScale = currentUiScale.value
   const pointerOffsetY = event.clientY - sourceRect.top
   groupDragCloneElement.style.position = 'fixed'
@@ -5151,6 +6086,7 @@ const handleBarPointerDown = (accountId: number, event: PointerEvent) => {
 
   dragSourceElement = sourceElement
   dragCloneElement = sourceElement.cloneNode(true) as HTMLElement
+  applyThemeStylesToDragClone(dragCloneElement)
   const cloneScale = currentUiScale.value
   const pointerOffsetY = event.clientY - sourceRect.top
   dragCloneElement.style.position = 'fixed'
@@ -5762,6 +6698,7 @@ const getModalOptionOpacityClass = (option: ModalOption) => {
 }
 
 onBeforeUnmount(() => {
+  stopSettingsRangeDrag()
   notificationTimeouts.forEach((timeoutHandle) => {
     clearTimeout(timeoutHandle)
   })
@@ -5770,10 +6707,136 @@ onBeforeUnmount(() => {
     clearTimeout(timeoutHandle)
   })
   clipboardExpiryTimeouts.clear()
+  if (customThemePersistTimeout) {
+    clearTimeout(customThemePersistTimeout)
+    customThemePersistTimeout = null
+  }
 })
 </script>
 
 <style>
+.rankdb-theme-root {
+  background: var(--theme-appBackground);
+  color: var(--theme-textPrimary);
+}
+
+.rankdb-theme-root .theme-panel-surface {
+  background-color: var(--theme-panelSurface);
+  border-color: var(--theme-borderSubtle);
+}
+
+.rankdb-theme-root .theme-panel-raised {
+  background-color: var(--theme-panelSurfaceRaised);
+  border-color: var(--theme-borderSubtle);
+}
+
+.rankdb-theme-root .theme-row-surface {
+  background-color: var(--theme-rowPrimarySurface);
+  border-color: var(--theme-borderSubtle);
+}
+
+.rankdb-theme-root .theme-hover-surface:hover {
+  background-color: var(--theme-hoverSurface);
+}
+
+.rankdb-theme-root .theme-text-primary {
+  color: var(--theme-textPrimary);
+}
+
+.rankdb-theme-root .theme-text-muted {
+  color: var(--theme-textMuted);
+}
+
+.rankdb-theme-root .theme-border-subtle {
+  border-color: var(--theme-borderSubtle);
+}
+
+.rankdb-theme-root .theme-accent-focus:focus,
+.rankdb-theme-root .theme-accent-focus:focus-visible {
+  border-color: color-mix(in srgb, var(--theme-accent) 70%, transparent);
+}
+
+.rankdb-theme-root [class*="bg-[#11141b]"],
+.rankdb-theme-root [class*="bg-[#0a0e13]"] {
+  background-color: var(--theme-panelSurface);
+}
+
+.rankdb-theme-root .theme-header-surface {
+  background-color: var(--theme-headerSurface);
+  border-color: var(--theme-borderSubtle);
+}
+
+.rankdb-theme-root .theme-header-icon-mask {
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: var(--theme-headerIcon);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.rankdb-theme-root [class*="bg-[#0c1018]"] {
+  background-color: var(--theme-panelSurfaceRaised);
+}
+
+.rankdb-theme-root [class*="bg-[#10131a]"] {
+  background-color: var(--theme-rowPrimarySurface);
+}
+
+.rankdb-theme-root [class*="bg-[#0d1118]"],
+.rankdb-theme-root [class*="bg-[#0d1116]"] {
+  background-color: var(--theme-rowPrimarySurface);
+}
+
+.rankdb-theme-root [class*="border-[#323744]"],
+.rankdb-theme-root [class*="border-[#272b35]"],
+.rankdb-theme-root [class*="border-[#27313a]"] {
+  border-color: var(--theme-borderSubtle);
+}
+
+.rankdb-theme-root [class*="text-slate-100"],
+.rankdb-theme-root [class*="text-slate-200"] {
+  color: var(--theme-textPrimary);
+}
+
+.rankdb-theme-root [class*="text-slate-300"],
+.rankdb-theme-root [class*="text-slate-400"],
+.rankdb-theme-root [class*="text-slate-500"] {
+  color: var(--theme-textMuted);
+}
+
+.rankdb-theme-root .theme-header-icon-color {
+  color: var(--theme-headerIcon);
+}
+
+.rankdb-theme-root [class*="hover:bg-[#181c26]"]:hover {
+  background-color: var(--theme-hoverSurface);
+}
+
+.rankdb-theme-root input[type='range'] {
+  accent-color: var(--theme-accent);
+}
+
+.rankdb-theme-root [class*="border-cyan-400"],
+.rankdb-theme-root [class*="bg-cyan-500"] {
+  border-color: color-mix(in srgb, var(--theme-accent) 45%, transparent);
+}
+
+.rankdb-theme-root [class*="text-cyan-100"] {
+  color: color-mix(in srgb, var(--theme-accent) 35%, white);
+}
+
+.rankdb-theme-root [class*="bg-[#4a2630]"] {
+  background-color: var(--theme-bannedAccent);
+}
+
+.rankdb-theme-root [class*="border-[#4a2630]"] {
+  border-color: var(--theme-bannedAccent);
+}
+
 .role-rank-column,
 .sixv6-rank-column {
   --rank-badge-width: 112px;
@@ -6205,6 +7268,31 @@ onBeforeUnmount(() => {
 .account-list-viewport::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+.theme-token-scroll {
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.theme-token-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.theme-dropdown-scroll {
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.theme-dropdown-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.settings-range {
+  cursor: pointer;
+  touch-action: none;
 }
 
 input::-ms-reveal,

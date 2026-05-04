@@ -93,4 +93,29 @@ export type UiSettings = {
   rankNumberOffsetX: number
   rankNumberOffsetY: number
   rankNumberFontSize: number
+  themeTokens?: Partial<Record<ThemeTokenKey, string>>
+  importedThemes?: ThemeLibraryItem[]
+  selectedThemeId?: string
+}
+
+export type ThemeTokenKey =
+  | 'appBackground'
+  | 'headerSurface'
+  | 'headerIcon'
+  | 'panelSurface'
+  | 'panelSurfaceRaised'
+  | 'rowPrimarySurface'
+  | 'borderSubtle'
+  | 'textPrimary'
+  | 'textMuted'
+  | 'hoverSurface'
+  | 'accent'
+  | 'toggleAccent'
+  | 'bannedAccent'
+
+export type ThemeLibraryItem = {
+  id: string
+  name: string
+  tokens: Partial<Record<ThemeTokenKey, string>>
+  source: 'preset' | 'custom'
 }

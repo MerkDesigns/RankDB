@@ -1,0 +1,19 @@
+{
+  "id": "preset-sunkissed",
+  "name": "Volcanic",
+  "tokens": {
+    "appBackground": "#050505",
+    "headerSurface": "#111111",
+    "headerIcon": "#fafafa",
+    "panelSurface": "#111111",
+    "panelSurfaceRaised": "#0a0a0a",
+    "rowPrimarySurface": "#181818",
+    "borderSubtle": "#3f3f46",
+    "textPrimary": "#fafafa",
+    "textMuted": "#a1a1aa",
+    "hoverSurface": "#242424",
+    "accent": "#ef233c",
+    "toggleAccent": "#ef233c",
+    "bannedAccent": "#7f1d1d"
+  }
+}

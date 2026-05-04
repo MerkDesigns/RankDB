@@ -1,0 +1,19 @@
+{
+  "id": "preset-graphite",
+  "name": "Graphite",
+  "tokens": {
+    "appBackground": "#0b0b0d",
+    "headerSurface": "#17181b",
+    "headerIcon": "#f4f4f5",
+    "panelSurface": "#131416",
+    "panelSurfaceRaised": "#111216",
+    "rowPrimarySurface": "#1d1f24",
+    "borderSubtle": "#3c3f46",
+    "textPrimary": "#f4f4f5",
+    "textMuted": "#a1a1aa",
+    "hoverSurface": "#24262d",
+    "accent": "#a3e635",
+    "toggleAccent": "#a3e635",
+    "bannedAccent": "#4a2a2a"
+  }
+}

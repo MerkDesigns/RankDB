@@ -1,0 +1,19 @@
+{
+  "id": "preset-overwatch-night",
+  "name": "Overwatch Night",
+  "tokens": {
+    "appBackground": "#070914",
+    "headerSurface": "#101624",
+    "headerIcon": "#f6f8fb",
+    "panelSurface": "#0d121c",
+    "panelSurfaceRaised": "#0d1320",
+    "rowPrimarySurface": "#151c2b",
+    "borderSubtle": "#344156",
+    "textPrimary": "#f6f8fb",
+    "textMuted": "#9fb0c7",
+    "hoverSurface": "#1b2638",
+    "accent": "#f99e1a",
+    "toggleAccent": "#f99e1a",
+    "bannedAccent": "#51212b"
+  }
+}

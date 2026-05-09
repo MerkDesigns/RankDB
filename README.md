@@ -15,10 +15,10 @@ It helps you keep ranks, notes, currencies, login details, and account status or
 - Refresh account ranks using ow api (very limited)
 - Reset Rank button on actual full on rank reset. (resets all ranks for all accounts and keeps previous ranks in account info tab)
 - Track Mythic Prisms, Overwatch Coins, Overwatch Credits, Competitive Points, and Legacy Points
-- Grouping accounts for the actual degenerates with 1million accounts
-- Sorting accounts by rank regardless of groups (clickon role icons)
-- Move banned accounts into their own section (dont use a groups because sorting will keep banned accounts in their own category)
-- Track dodged games and see how long the next penalty is going to be the next penalty.
+- Expandable and collapsable Account Groups (For the actual degenerates with 1million accounts)
+- Sorting accounts by rank regardless of groups (click on role icons to sort)
+- Move banned accounts into their own section (dont use groups because sorting will keep banned accounts in their own category)
+- Track dodged games and see how long the next penalty is going to be.
 - Customize the app with themes (import / export them or use the premade themes)
 - Export and import all your data in password-protected encrypted backups
 - Check for app updates from inside RankDB (doesnt update automatically)

@@ -59,6 +59,7 @@ export type AccountRow = {
   password: string
   lastRankModifiedAt: string | null
   countryCode: string
+  gamesDodged: number
   groupId: string | null
   isBanned: boolean
   notes: string

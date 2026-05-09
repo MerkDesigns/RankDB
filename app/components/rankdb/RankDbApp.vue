@@ -1174,6 +1174,7 @@
       :account-id="accountContextMenu?.accountId ?? null"
       :current-group-id="accountContextMenuAccount?.groupId ?? null"
       :groups="accountContextMenuGroupOptions"
+      :games-dodged="accountContextMenuAccount?.gamesDodged ?? 0"
       :is-banned="accountContextMenuAccount?.isBanned ?? false"
       :last-rank-modified-label="accountContextMenuLastRankModifiedLabel"
       :position-style="accountContextMenuPositionStyle"
@@ -1184,6 +1185,8 @@
       @delete-account="requestDeleteAccount"
       @edit-battletag="requestEditBattletag"
       @edit-credentials="requestEditCredentials"
+      @record-game-dodge="recordGameDodge"
+      @reset-game-dodges="resetGameDodges"
       @move-to-group="moveAccountToGroup($event.accountId, $event.groupId)"
       @refresh-rank="refreshSingleAccountRank"
     />
@@ -1511,8 +1514,8 @@ const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
   [CURRENT_WHATS_NEW_VERSION]: [
     {
-      title: 'Added Theme Editor',
-      description: 'Customize RankDB colors, save your own themes, and import or export theme files.'
+      title: 'Added Games Dodged Tracker',
+      description: 'Right-click an account to track dodged games, preview the next penalty, and reset the count after 20 clean games.'
     }
   ]
 }
@@ -1709,6 +1712,7 @@ const buildEmptyAccount = (id: number): AccountRow => ({
   password: '',
   lastRankModifiedAt: null,
   countryCode: '',
+  gamesDodged: 0,
   groupId: null,
   isBanned: false,
   notes: '',
@@ -2413,6 +2417,15 @@ const restoreUpdateRecoveryBackup = async () => {
   return invoke<unknown>('restore_update_recovery_backup')
 }
 
+const normalizeGamesDodged = (value: unknown) => {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) {
+    return 0
+  }
+
+  return Math.max(0, Math.floor(numericValue))
+}
+
 const listStoredCustomThemes = async () => {
   if (!import.meta.client || !isTauri()) {
     return [] as ThemeLibraryItem[]
@@ -2552,6 +2565,7 @@ const normalizeStoredAccount = (fromStorage: any, fallbackId: number): AccountRo
     password: typeof fromStorage?.password === 'string' ? fromStorage.password : emptyAccount.password,
     lastRankModifiedAt,
     countryCode: typeof fromStorage?.countryCode === 'string' ? fromStorage.countryCode.toUpperCase() : emptyAccount.countryCode,
+    gamesDodged: normalizeGamesDodged(fromStorage?.gamesDodged),
     groupId: typeof fromStorage?.groupId === 'string' && fromStorage.groupId.trim() ? fromStorage.groupId.trim() : null,
     isBanned: Boolean(fromStorage?.isBanned ?? fromStorage?.banned),
     notes: typeof fromStorage?.notes === 'string' ? fromStorage.notes : emptyAccount.notes,
@@ -3145,6 +3159,7 @@ const buildAccountsPayload = () => getAccountsInPersistedOrder().map((account) =
   password: account.password,
   lastRankModifiedAt: account.lastRankModifiedAt,
   countryCode: account.countryCode,
+  gamesDodged: account.gamesDodged,
   groupId: account.groupId,
   isBanned: account.isBanned,
   notes: account.notes,
@@ -5220,6 +5235,28 @@ const moveAccountToGroup = (accountId: number, groupId: string | null) => {
       : `${getAccountNameForDisplay(account.id)} moved to no group.`,
     kind: 'success'
   })
+}
+
+const recordGameDodge = (accountId: number) => {
+  const account = accounts.value.find((entry) => entry.id === accountId)
+  if (!account) {
+    closeAccountContextMenu()
+    return
+  }
+
+  account.gamesDodged = normalizeGamesDodged(account.gamesDodged) + 1
+  schedulePersistAppStorage()
+}
+
+const resetGameDodges = (accountId: number) => {
+  const account = accounts.value.find((entry) => entry.id === accountId)
+  if (!account) {
+    closeAccountContextMenu()
+    return
+  }
+
+  account.gamesDodged = 0
+  schedulePersistAppStorage()
 }
 
 const saveCredentials = async () => {

@@ -2,20 +2,26 @@
 
 RankDB is a simple desktop app for tracking multiple Overwatch accounts in one place.
 
-It helps you keep account ranks, notes, currencies, and login details organized without needing a spreadsheet.
+It helps you keep ranks, notes, currencies, login details, and account status organized without needing a spreadsheet.
 
 ![RankDB preview](preview.gif)
 
-## What It Does
+## Features
 
-- Tracks multiple Overwatch accounts in one app
-- Stores ranks for `Tank`, `Damage`, `Support`, and `6v6`
-- Stores Battletags, email/password details, notes, and country info
-- Tracks `Mythic Prisms`, `Overwatch Coins`, `Overwatch Credits`, `Competitive Points`, and `Legacy Points`
-- Lets you group accounts and reorder them
-- Separates banned accounts into their own section
-- Supports encrypted backup export and import
-- Supports desktop app updates through GitHub Releases
+- Easy access copy Battletag button next to account name
+- Credential manager with autodelete from copy-paste. (Password and E-Mail)
+- Track Tank, Damage, Support, and 6v6 ranks
+- Mark ranks as predicted (P) (shows with lower opacity)
+- Refresh account ranks using ow api (very limited)
+- Reset Rank button on actual full on rank reset. (resets all ranks for all accounts and keeps previous ranks in account info tab)
+- Track Mythic Prisms, Overwatch Coins, Overwatch Credits, Competitive Points, and Legacy Points
+- Grouping accounts for the actual degenerates with 1million accounts
+- Sorting accounts by rank regardless of groups (clickon role icons)
+- Move banned accounts into their own section (dont use a groups because sorting will keep banned accounts in their own category)
+- Track dodged games and see how long the next penalty is going to be the next penalty.
+- Customize the app with themes (import / export them or use the premade themes)
+- Export and import all your data in password-protected encrypted backups
+- Check for app updates from inside RankDB (doesnt update automatically)
 
 ## Windows Warning
 
@@ -25,18 +31,7 @@ Because of that, Windows may show a warning like `Unknown Publisher` or `Windows
 
 This is expected for now. A code-signing certificate costs money, and the project does not currently have one.
 
-## Main Features
-
-- Add, edit, remove, and reorder accounts
-- Copy Battletags, emails, and passwords directly from the app
-- Set ranks with a simple rank picker
-- Mark ranks as predicted
-- Create collapsible groups for account organization
-- Export encrypted `.rankdb-export` backup files
-- Import encrypted backup files on another PC
-- Check for app updates from inside the desktop app
-
-## Storage And Security
+## Privacy
 
 RankDB is built to keep your data local.
 
@@ -50,12 +45,7 @@ As always, keep your PC secure and use a strong device password if you store acc
 
 Go to the repository `Releases` section and download the latest Windows installer.
 
-After the first install, future updates can be checked from inside the app when a new GitHub release is available.
-
-## Backup Notes
-
-- The app uses encrypted `.rankdb-export` backups
-- Legacy plain JSON backups are no longer supported
+After the first install, future updates can be checked from inside RankDB.
 
 ## License
 

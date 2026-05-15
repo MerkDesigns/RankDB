@@ -1,5 +1,6 @@
 use aes_gcm::{Aes256Gcm, Nonce};
 use base64::Engine;
+use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 use keyring::{Entry as KeyringEntry, Error as KeyringError};
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use rusqlite::{params, Connection, OptionalExtension};
@@ -20,7 +21,12 @@ const LOCAL_KEYRING_SERVICE: &str = "RankDB";
 const LOCAL_KEYRING_USER: &str = "local-db-key";
 const UPDATE_RECOVERY_FORMAT: &str = "rankdb-update-recovery-v1";
 const UPDATE_RECOVERY_FILE_NAME: &str = "update-recovery.rankdb-recovery";
+const INSTALL_DATE_FILE_NAME: &str = "install-date.txt";
 const OWAPI_PROFILE_BASE_URL: &str = "https://www.owapi.eu/stats";
+const DISCORD_RPC_CLIENT_ID: &str = "1504897730596704266";
+const GITHUB_REPOSITORY_URL: &str = "https://github.com/MerkDesigns/RankDB";
+const DISCORD_RPC_LARGE_IMAGE_URL: &str =
+    "https://raw.githubusercontent.com/MerkDesigns/RankDB/main/public/app-icon-512.png";
 const CUSTOM_THEMES_DIR_NAME: &str = "custom-themes";
 const THEME_FILE_FORMAT: &str = "rankdb-theme";
 const THEME_FILE_SCHEMA_VERSION: u32 = 1;
@@ -43,6 +49,12 @@ const THEME_TOKEN_KEYS: [&str; 13] = [
 #[derive(Default)]
 struct AppState {
     encryption_key: Mutex<Option<Vec<u8>>>,
+    discord_rpc: Mutex<DiscordRpcState>,
+}
+
+#[derive(Default)]
+struct DiscordRpcState {
+    client: Option<DiscordIpcClient>,
 }
 
 #[derive(Serialize)]
@@ -141,6 +153,15 @@ fn update_recovery_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(recovery_dir.join(UPDATE_RECOVERY_FILE_NAME))
 }
 
+fn install_date_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
+    fs::create_dir_all(&app_data_dir).map_err(|error| error.to_string())?;
+    Ok(app_data_dir.join(INSTALL_DATE_FILE_NAME))
+}
+
 fn custom_themes_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let themes_dir = app
         .path()
@@ -214,6 +235,79 @@ fn current_unix_timestamp() -> String {
 
 fn current_iso_timestamp() -> String {
     format!("{}Z", current_unix_timestamp())
+}
+
+fn current_utc_date() -> String {
+    let seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    let days = seconds / 86_400;
+    let (year, month, day) = civil_from_days(days);
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
+fn civil_from_days(days_since_unix_epoch: i64) -> (i64, i64, i64) {
+    let z = days_since_unix_epoch + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let mut year = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = mp + if mp < 10 { 3 } else { -9 };
+    if month <= 2 {
+        year += 1;
+    }
+    (year, month, day)
+}
+
+fn is_valid_install_date(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 10
+        && bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| index == 4 || index == 7 || byte.is_ascii_digit())
+}
+
+fn read_install_date(app: &AppHandle) -> Result<Option<String>, String> {
+    let path = install_date_path(app)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let install_date = fs::read_to_string(path)
+        .map_err(|error| error.to_string())?
+        .trim()
+        .to_string();
+    if is_valid_install_date(&install_date) {
+        Ok(Some(install_date))
+    } else {
+        Ok(None)
+    }
+}
+
+fn write_install_date(app: &AppHandle, installed_on: &str) -> Result<(), String> {
+    if !is_valid_install_date(installed_on) {
+        return Err("Install date must use YYYY-MM-DD format.".into());
+    }
+
+    fs::write(install_date_path(app)?, format!("{installed_on}\n"))
+        .map_err(|error| error.to_string())
+}
+
+fn get_or_create_install_date_value(app: &AppHandle) -> Result<String, String> {
+    if let Some(install_date) = read_install_date(app)? {
+        return Ok(install_date);
+    }
+
+    let install_date = current_utc_date();
+    write_install_date(app, &install_date)?;
+    Ok(install_date)
 }
 
 fn has_stored_app_state(connection: &Connection) -> Result<bool, String> {
@@ -813,6 +907,28 @@ fn unlocked_key(state: &State<AppState>) -> Result<Vec<u8>, String> {
         .ok_or_else(|| "Database key is unavailable.".to_string())
 }
 
+fn close_discord_rpc(rpc_state: &mut DiscordRpcState) {
+    if let Some(client) = rpc_state.client.as_mut() {
+        let _ = client.clear_activity();
+        let _ = client.close();
+    }
+    rpc_state.client = None;
+}
+
+fn discord_rpc_activity(user_since: &str) -> activity::Activity<'_> {
+    activity::Activity::new()
+        .details("Managing Overwatch accounts")
+        .assets(
+            activity::Assets::new()
+                .large_image(DISCORD_RPC_LARGE_IMAGE_URL)
+                .large_text(format!("User since {user_since}")),
+        )
+        .buttons(vec![activity::Button::new(
+            "Get RankDB on Github",
+            GITHUB_REPOSITORY_URL,
+        )])
+}
+
 #[tauri::command]
 fn ensure_app_storage_ready(app: AppHandle, state: State<AppState>) -> Result<(), String> {
     let local_key = prepare_app_storage_key(&app)?;
@@ -822,6 +938,57 @@ fn ensure_app_storage_ready(app: AppHandle, state: State<AppState>) -> Result<()
 #[tauri::command]
 fn save_app_storage(app: AppHandle, state: State<AppState>, payload: Value) -> Result<(), String> {
     save_app_storage_payload(&app, &state, &payload)
+}
+
+#[tauri::command]
+fn get_or_create_install_date(app: AppHandle) -> Result<String, String> {
+    get_or_create_install_date_value(&app)
+}
+
+#[tauri::command]
+fn import_install_date(app: AppHandle, installed_on: String) -> Result<(), String> {
+    write_install_date(&app, &installed_on)
+}
+
+#[tauri::command]
+fn set_discord_rpc_activity(
+    state: State<AppState>,
+    enabled: bool,
+    user_since: String,
+) -> Result<(), String> {
+    let mut rpc_state = state
+        .discord_rpc
+        .lock()
+        .map_err(|_| "Could not acquire Discord RPC state lock.".to_string())?;
+
+    if !enabled {
+        close_discord_rpc(&mut rpc_state);
+        return Ok(());
+    }
+
+    if DISCORD_RPC_CLIENT_ID.trim().is_empty() {
+        return Err("Discord RPC client ID is empty. Set RANKDB_DISCORD_CLIENT_ID before building RankDB.".to_string());
+    }
+
+    if rpc_state.client.is_none() {
+        let mut client = DiscordIpcClient::new(DISCORD_RPC_CLIENT_ID);
+        client.connect().map_err(|error| error.to_string())?;
+        rpc_state.client = Some(client);
+    }
+
+    let Some(client) = rpc_state.client.as_mut() else {
+        return Ok(());
+    };
+
+    let activity = discord_rpc_activity(&user_since);
+    if client.set_activity(activity.clone()).is_ok() {
+        return Ok(());
+    }
+
+    client.reconnect().map_err(|error| error.to_string())?;
+    client
+        .set_activity(activity)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -1009,6 +1176,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             ensure_app_storage_ready,
             save_app_storage,
+            get_or_create_install_date,
+            import_install_date,
+            set_discord_rpc_activity,
             encrypt_export_payload,
             decrypt_export_payload,
             load_app_storage,

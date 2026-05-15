@@ -89,6 +89,7 @@ export type UiSettings = {
   showNonRankColumns: boolean
   showLeadButtons: boolean
   badgeAnimationsEnabled: boolean
+  discordRpcEnabled: boolean
   uiZoom: number
   clipboardClearTimerSeconds: number
   rankNumberOffsetX: number
@@ -97,6 +98,10 @@ export type UiSettings = {
   themeTokens?: Partial<Record<ThemeTokenKey, string>>
   importedThemes?: ThemeLibraryItem[]
   selectedThemeId?: string
+}
+
+export type AppMetadata = {
+  installedOn: string
 }
 
 export type ThemeTokenKey =

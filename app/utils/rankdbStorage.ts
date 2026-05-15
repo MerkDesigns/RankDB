@@ -14,6 +14,7 @@ export type PersistedAppStoragePayload = {
   accounts?: unknown
   groups?: unknown
   uiSettings?: unknown
+  appMetadata?: unknown
 }
 
 export type PersistedAppStorageEnvelope = {
@@ -126,7 +127,8 @@ export const parsePersistedAppStorage = (value: unknown): { payload: PersistedAp
       payload: {
         accounts: payload.accounts,
         groups: payload.groups,
-        uiSettings: payload.uiSettings
+        uiSettings: payload.uiSettings,
+        appMetadata: payload.appMetadata
       },
       migratedLegacy: false
     }
@@ -136,7 +138,8 @@ export const parsePersistedAppStorage = (value: unknown): { payload: PersistedAp
     payload: {
       accounts: value.accounts,
       groups: value.groups,
-      uiSettings: value.uiSettings
+      uiSettings: value.uiSettings,
+      appMetadata: value.appMetadata
     },
     migratedLegacy: true
   }

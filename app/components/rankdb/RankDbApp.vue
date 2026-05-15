@@ -611,17 +611,30 @@
           </button>
         </div>
 
-        <button
-          type="button"
-          class="mt-3 inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
-          @click="openRankResetModal"
-        >
-          <span class="flex items-center gap-2.5 tracking-tight">
+        <div class="mt-3 grid grid-cols-[minmax(0,1fr)_76px] gap-3">
+          <button
+            type="button"
+            class="inline-flex h-11 w-full items-center gap-2.5 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-left text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+            @click="openRankResetModal"
+          >
             <RotateCcw class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
-            <span>Season Rank Reset</span>
-          </span>
-          <span class="text-[11px] uppercase tracking-[0.14em] text-slate-400/80">Open</span>
-        </button>
+            <span>Rank Reset</span>
+          </button>
+          <button
+            v-if="tauriDesktop"
+            type="button"
+            class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border px-2 text-[12px] font-semibold text-white transition hover:bg-[#181c26]"
+            :class="discordRpcEnabled ? 'border-indigo-300/30 bg-indigo-500/18' : 'border-[#272b35] bg-[#11141b] opacity-70'"
+            :title="discordRpcEnabled ? 'Disable Discord Rich Presence' : 'Enable Discord Rich Presence'"
+            :aria-label="discordRpcEnabled ? 'Disable Discord Rich Presence' : 'Enable Discord Rich Presence'"
+            @click="discordRpcEnabled = !discordRpcEnabled"
+          >
+            <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M20.32 4.37A19.8 19.8 0 0 0 15.36 2.8a13.82 13.82 0 0 0-.63 1.3 18.27 18.27 0 0 0-5.46 0 13.82 13.82 0 0 0-.64-1.3 19.73 19.73 0 0 0-4.95 1.57C.55 9.09-.3 13.7.13 18.25a19.9 19.9 0 0 0 6.08 3.07 14.8 14.8 0 0 0 1.3-2.1 12.9 12.9 0 0 1-2.05-.98c.17-.12.34-.25.5-.38a14.2 14.2 0 0 0 12.08 0c.16.13.33.26.5.38-.65.38-1.34.71-2.06.98.38.74.82 1.44 1.3 2.1a19.86 19.86 0 0 0 6.09-3.07c.5-5.27-.84-9.84-3.55-13.88ZM8.02 15.45c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.2 0 2.17 1.1 2.15 2.42 0 1.34-.96 2.42-2.15 2.42Zm7.96 0c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.2 0 2.17 1.1 2.15 2.42 0 1.34-.95 2.42-2.15 2.42Z" />
+            </svg>
+            <span>RPC</span>
+          </button>
+        </div>
 
         <button
           v-if="tauriDesktop"
@@ -1323,7 +1336,7 @@
       <div class="absolute left-1/2 top-1/2 w-[420px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-5 shadow-[0_20px_50px_rgba(0,0,0,0.55)]" @click.stop>
         <div class="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 class="text-[17px] font-semibold tracking-tight text-slate-100">Season Rank Reset</h2>
+            <h2 class="text-[17px] font-semibold tracking-tight text-slate-100">Rank Reset</h2>
           </div>
           <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-[6px] text-slate-100/80 hover:bg-[#181c26]" aria-label="Close rank reset modal" @click="closeRankResetModal">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true">
@@ -1483,6 +1496,7 @@ import {
 import type {
   AccountRow,
   ArchivedRankSnapshot,
+  AppMetadata,
   CountryOption,
   EditableField,
   ModalOption,
@@ -1514,8 +1528,8 @@ const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
 const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
   [CURRENT_WHATS_NEW_VERSION]: [
     {
-      title: 'Added Games Dodged Tracker',
-      description: 'Right-click an account to track dodged games, preview the next penalty, and reset the count after 20 clean games.'
+      title: 'Added Discord Rich Presence',
+      description: ''
     }
   ]
 }
@@ -2019,6 +2033,7 @@ const buildDefaultUiSettings = () => ({
   showNonRankColumns: true,
   showLeadButtons: true,
   badgeAnimationsEnabled: true,
+  discordRpcEnabled: true,
   uiZoom: DEFAULT_UI_ZOOM,
   clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
   rankNumberOffsetX: DEFAULT_RANK_NUMBER_OFFSET_X,
@@ -2028,6 +2043,35 @@ const buildDefaultUiSettings = () => ({
   importedThemes: [] as ThemeLibraryItem[],
   selectedThemeId: DEFAULT_THEME_ID
 })
+
+const getTodayInstallDate = () => new Date().toISOString().slice(0, 10)
+
+const isValidInstallDate = (value: unknown): value is string => (
+  typeof value === 'string'
+  && /^\d{4}-\d{2}-\d{2}$/.test(value)
+  && !Number.isNaN(new Date(`${value}T00:00:00.000Z`).getTime())
+)
+
+const normalizeAppMetadata = (value: unknown): AppMetadata => {
+  const rawMetadata = value && typeof value === 'object'
+    ? value as Record<string, unknown>
+    : null
+
+  return {
+    installedOn: isValidInstallDate(rawMetadata?.installedOn)
+      ? rawMetadata.installedOn
+      : getTodayInstallDate()
+  }
+}
+
+const formatInstallDateForDiscord = (installedOn: string) => {
+  if (!isValidInstallDate(installedOn)) {
+    return ''
+  }
+
+  const [year, month, day] = installedOn.split('-')
+  return `${day}.${month}.${year}`
+}
 
 const getOwApiRatings = (payload: OwApiProfilePayload) => (
   Array.isArray(payload.ratings) ? payload.ratings : []
@@ -2176,6 +2220,7 @@ const loadStoredUiSettings = () => {
         showNonRankColumns: typeof parsed?.showNonRankColumns === 'boolean' ? parsed.showNonRankColumns : true,
         showLeadButtons: typeof parsed?.showLeadButtons === 'boolean' ? parsed.showLeadButtons : true,
         badgeAnimationsEnabled: typeof parsed?.badgeAnimationsEnabled === 'boolean' ? parsed.badgeAnimationsEnabled : true,
+        discordRpcEnabled: typeof parsed?.discordRpcEnabled === 'boolean' ? parsed.discordRpcEnabled : true,
         uiZoom: normalizeUiZoom(parsed?.uiZoom),
         clipboardClearTimerSeconds: normalizeClipboardClearTimer(parsed?.clipboardClearTimerSeconds),
         rankNumberOffsetX: normalizeRankNumberOffset(parsed?.rankNumberOffsetX),
@@ -2198,6 +2243,7 @@ const loadStoredUiSettings = () => {
       showNonRankColumns: typeof parsed?.showNonRankColumns === 'boolean' ? parsed.showNonRankColumns : true,
       showLeadButtons: true,
       badgeAnimationsEnabled: true,
+      discordRpcEnabled: true,
       uiZoom: normalizeLegacyUiZoom(parsed?.uiZoom),
       clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
       rankNumberOffsetX: DEFAULT_RANK_NUMBER_OFFSET_X,
@@ -2353,7 +2399,8 @@ const savePersistedAppStorage = async () => {
     payload: buildPersistedAppStorageEnvelope({
       accounts: buildAccountsPayload(),
       groups: buildGroupsPayload(),
-      uiSettings: buildUiSettingsPayload()
+      uiSettings: buildUiSettingsPayload(),
+      appMetadata: buildAppMetadataPayload()
     })
   })
 }
@@ -2415,6 +2462,51 @@ const restoreUpdateRecoveryBackup = async () => {
   }
 
   return invoke<unknown>('restore_update_recovery_backup')
+}
+
+const getOrCreateBackendInstallDate = async () => {
+  if (!import.meta.client || !isTauri()) {
+    return getTodayInstallDate()
+  }
+
+  return invoke<string>('get_or_create_install_date')
+}
+
+const importBackendInstallDate = async (installedOn: string) => {
+  if (!import.meta.client || !isTauri()) {
+    return
+  }
+
+  await invoke('import_install_date', { installedOn })
+}
+
+const updateDiscordRichPresence = async () => {
+  if (!import.meta.client || !isTauri()) {
+    return
+  }
+
+  const userSince = formatInstallDateForDiscord(appMetadata.value.installedOn)
+  await invoke('set_discord_rpc_activity', {
+    enabled: discordRpcEnabled.value,
+    userSince
+  }).catch((error) => {
+    console.warn('Discord RPC update failed:', error)
+  })
+}
+
+const scheduleDiscordRichPresenceUpdate = (delay = 300) => {
+  if (!import.meta.client || !tauriDesktop) {
+    return
+  }
+
+  if (discordRpcUpdateTimeout) {
+    clearTimeout(discordRpcUpdateTimeout)
+  }
+
+  discordRpcUpdateTimeout = setTimeout(() => {
+    discordRpcUpdateTimeout = null
+    void updateDiscordRichPresence()
+  }, delay)
 }
 
 const normalizeGamesDodged = (value: unknown) => {
@@ -2710,6 +2802,7 @@ const showSixV6 = ref(initialUiSettings.showSixV6)
 const showNonRankColumns = ref(initialUiSettings.showNonRankColumns)
 const showLeadButtons = ref(initialUiSettings.showLeadButtons)
 const badgeAnimationsEnabled = ref(initialUiSettings.badgeAnimationsEnabled)
+const discordRpcEnabled = ref(initialUiSettings.discordRpcEnabled)
 const uiZoom = ref(initialUiSettings.uiZoom)
 const clipboardClearTimerSeconds = ref(initialUiSettings.clipboardClearTimerSeconds)
 const rankNumberOffsetX = ref(initialUiSettings.rankNumberOffsetX)
@@ -2718,6 +2811,7 @@ const rankNumberFontSize = ref(initialUiSettings.rankNumberFontSize)
 const activeThemeTokens = ref<Record<ThemeTokenKey, string>>(normalizeThemeTokens(initialUiSettings.themeTokens))
 const customThemes = ref<ThemeLibraryItem[]>(normalizeCustomThemes(initialUiSettings.importedThemes))
 const selectedThemeId = ref(initialUiSettings.selectedThemeId)
+const appMetadata = ref<AppMetadata>(normalizeAppMetadata(null))
 const themeNameDraft = ref('')
 const allThemeOptions = computed<ThemeLibraryItem[]>(() => [
   ...PRESET_THEMES,
@@ -2837,6 +2931,7 @@ let tauriResizeReadyTimeout: ReturnType<typeof setTimeout> | null = null
 let assetWarmupPromise: Promise<void> | null = null
 let appStoragePersistTimeout: ReturnType<typeof setTimeout> | null = null
 let customThemePersistTimeout: ReturnType<typeof setTimeout> | null = null
+let discordRpcUpdateTimeout: ReturnType<typeof setTimeout> | null = null
 let customThemeCreatePromise: Promise<ThemeLibraryItem> | null = null
 const rankNumberPlatformOffsetX = import.meta.client && isTauri() ? -1 : 0
 const rankNumberPlatformOffsetY = import.meta.client && isTauri() ? 1 : 0
@@ -3200,11 +3295,16 @@ const buildGroupsPayload = () => accountGroups.value.map((group) => ({
   anchorPosition: group.anchorPosition
 }))
 
+const buildAppMetadataPayload = () => ({
+  installedOn: appMetadata.value.installedOn
+})
+
 const buildUiSettingsPayload = () => ({
   showSixV6: showSixV6.value,
   showNonRankColumns: showNonRankColumns.value,
   showLeadButtons: showLeadButtons.value,
   badgeAnimationsEnabled: badgeAnimationsEnabled.value,
+  discordRpcEnabled: discordRpcEnabled.value,
   uiZoom: normalizeUiZoom(uiZoom.value),
   clipboardClearTimerSeconds: normalizeClipboardClearTimer(clipboardClearTimerSeconds.value),
   rankNumberOffsetX: normalizeRankNumberOffset(rankNumberOffsetX.value),
@@ -3595,6 +3695,7 @@ const applyStoredUiSettings = (storedUiSettings: unknown) => {
   showNonRankColumns.value = typeof importedUiSettings?.showNonRankColumns === 'boolean' ? importedUiSettings.showNonRankColumns : true
   showLeadButtons.value = typeof importedUiSettings?.showLeadButtons === 'boolean' ? importedUiSettings.showLeadButtons : true
   badgeAnimationsEnabled.value = typeof importedUiSettings?.badgeAnimationsEnabled === 'boolean' ? importedUiSettings.badgeAnimationsEnabled : true
+  discordRpcEnabled.value = typeof importedUiSettings?.discordRpcEnabled === 'boolean' ? importedUiSettings.discordRpcEnabled : true
   uiZoom.value = normalizeUiZoom(importedUiSettings?.uiZoom)
   clipboardClearTimerSeconds.value = normalizeClipboardClearTimer(importedUiSettings?.clipboardClearTimerSeconds)
   rankNumberOffsetX.value = normalizeRankNumberOffset(importedUiSettings?.rankNumberOffsetX)
@@ -3633,20 +3734,25 @@ const applyStoredGroups = (storedGroups: unknown, storedUiSettings?: unknown) =>
 const loadTauriStoredAppState = async () => {
   const parsedStoredAppState = parsePersistedAppStorage(await loadPersistedAppStorage())
   const storedAppState = parsedStoredAppState.payload
+  const backendInstallDate = await getOrCreateBackendInstallDate()
 
   if (storedAppState?.accounts && Array.isArray(storedAppState.accounts)) {
     const normalizedAccounts = storedAppState.accounts
       .filter((entry: unknown) => entry && typeof entry === 'object')
       .map((entry: unknown, idx: number) => normalizeStoredAccount(entry, idx + 1))
     accounts.value = normalizedAccounts.length > 0 ? normalizedAccounts : buildEmptyAccounts()
+    appMetadata.value = storedAppState.appMetadata
+      ? normalizeAppMetadata(storedAppState.appMetadata)
+      : { installedOn: backendInstallDate }
     applyStoredGroups(storedAppState.groups, storedAppState.uiSettings)
     applyStoredUiSettings(storedAppState.uiSettings)
     await migrateStoredCustomThemesToFolder(storedAppState.uiSettings)
-    if (parsedStoredAppState.migratedLegacy) {
+    if (parsedStoredAppState.migratedLegacy || !storedAppState.appMetadata) {
       await persistAppStorage()
     }
   } else {
     accounts.value = buildEmptyAccounts()
+    appMetadata.value = { installedOn: backendInstallDate }
     accountGroups.value = []
     applyStoredUiSettings(null)
     await persistAppStorage()
@@ -3712,6 +3818,7 @@ onMounted(() => {
         await loadCustomThemesFromFolder()
         storageAccessMode.value = 'ready'
         startupStorageError.value = ''
+        scheduleDiscordRichPresenceUpdate(0)
         if (hasPendingUpdateRecoveryMarker()) {
           clearPendingUpdateRecoveryMarker()
           pendingUpdateRecoveryMetadata.value = null
@@ -3788,7 +3895,7 @@ watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, u
   scheduleTauriWindowResize()
 })
 
-watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, uiZoom, clipboardClearTimerSeconds, rankNumberOffsetX, rankNumberOffsetY, rankNumberFontSize, activeThemeTokens, customThemes, selectedThemeId], () => {
+watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, discordRpcEnabled, uiZoom, clipboardClearTimerSeconds, rankNumberOffsetX, rankNumberOffsetY, rankNumberFontSize, activeThemeTokens, customThemes, selectedThemeId], () => {
   if (!import.meta.client) {
     return
   }
@@ -3796,6 +3903,10 @@ watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, u
     localStorage.setItem(UI_SETTINGS_KEY, JSON.stringify(buildUiSettingsPayload()))
   }
   schedulePersistAppStorage()
+})
+
+watch([discordRpcEnabled, () => appMetadata.value.installedOn], () => {
+  scheduleDiscordRichPresenceUpdate()
 })
 
 watch([selectedThemeId, customThemes], () => {
@@ -4572,7 +4683,8 @@ const installAvailableUpdate = async () => {
     const recoveryPayload = buildPersistedAppStorageEnvelope({
       accounts: buildAccountsPayload(),
       groups: buildGroupsPayload(),
-      uiSettings: buildUiSettingsPayload()
+      uiSettings: buildUiSettingsPayload(),
+      appMetadata: buildAppMetadataPayload()
     })
     const recoveryMetadata = await createUpdateRecoveryBackup(recoveryPayload)
     setPendingUpdateRecoveryMarker(recoveryMetadata)
@@ -4651,7 +4763,7 @@ const restoreFromPendingUpdateRecovery = async () => {
     pendingUpdateRecoveryMetadata.value = null
     closeUpdateRecoveryModal()
     clearPendingUpdateRecoveryMarker()
-    applyImportedAppData(restoredPayload.payload)
+    await applyImportedAppData(restoredPayload.payload)
 
     pushNotification('Recovery restored', {
       message: 'Recovered your last automatic pre-update backup.',
@@ -4962,7 +5074,7 @@ const toggleSettingsMenu = () => {
   settingsMenuOpen.value = !settingsMenuOpen.value
 }
 
-const applyImportedAppData = (parsed: { accounts?: unknown; groups?: unknown; uiSettings?: unknown }) => {
+const applyImportedAppData = async (parsed: { accounts?: unknown; groups?: unknown; uiSettings?: unknown; appMetadata?: unknown }) => {
   const importedAccounts = Array.isArray(parsed?.accounts) ? parsed.accounts : null
   if (!importedAccounts) {
     throw new Error('Invalid data file')
@@ -4973,6 +5085,8 @@ const applyImportedAppData = (parsed: { accounts?: unknown; groups?: unknown; ui
     .map((entry: unknown, idx: number) => normalizeStoredAccount(entry, idx + 1))
 
   accounts.value = normalizedAccounts.length > 0 ? normalizedAccounts : buildEmptyAccounts()
+  appMetadata.value = normalizeAppMetadata(parsed?.appMetadata)
+  await importBackendInstallDate(appMetadata.value.installedOn)
   applyStoredGroups(parsed?.groups, parsed?.uiSettings)
   applyStoredUiSettings(parsed?.uiSettings)
   schedulePersistAppStorage(0)
@@ -5003,7 +5117,8 @@ const submitBackupTransfer = async () => {
         exportedAt: new Date().toISOString(),
         accounts: buildAccountsPayload(),
         groups: buildGroupsPayload(),
-        uiSettings: buildUiSettingsPayload()
+        uiSettings: buildUiSettingsPayload(),
+        appMetadata: buildAppMetadataPayload()
       }
 
       const encryptedExport = await encryptPortableExportPayload(exportPayload, backupTransferPassword.value)
@@ -5029,7 +5144,7 @@ const submitBackupTransfer = async () => {
     const raw = await pendingImportFile.text()
     const parsed = await decryptPortableExportPayload(raw, backupTransferPassword.value)
 
-    applyImportedAppData(parsed)
+    await applyImportedAppData(parsed)
     const importedCount = accounts.value.length
     closeBackupTransferModal()
     pushNotification('Import complete', {
@@ -6747,6 +6862,16 @@ onBeforeUnmount(() => {
   if (customThemePersistTimeout) {
     clearTimeout(customThemePersistTimeout)
     customThemePersistTimeout = null
+  }
+  if (discordRpcUpdateTimeout) {
+    clearTimeout(discordRpcUpdateTimeout)
+    discordRpcUpdateTimeout = null
+  }
+  if (tauriDesktop) {
+    void invoke('set_discord_rpc_activity', {
+      enabled: false,
+      userSince: ''
+    }).catch(() => {})
   }
 })
 </script>

@@ -61,6 +61,16 @@
           <button
             type="button"
             class="theme-hover-surface theme-header-icon-color theme-toolbar-button inline-flex h-full w-9 items-center justify-center text-slate-100/90 hover:bg-[#181c26]"
+            :aria-label="privacyModeEnabled ? 'Disable privacy mode' : 'Enable privacy mode'"
+            :title="privacyModeEnabled ? 'Privacy Mode On' : 'Privacy Mode Off'"
+            @click.stop="$emit('toggle-privacy-mode')"
+          >
+            <EyeOff v-if="privacyModeEnabled" class="h-5 w-5" :stroke-width="2.1" aria-hidden="true" />
+            <Eye v-else class="h-5 w-5" :stroke-width="2.1" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="theme-hover-surface theme-header-icon-color theme-toolbar-button inline-flex h-full w-9 items-center justify-center text-slate-100/90 hover:bg-[#181c26]"
             aria-label="Open settings"
             title="Settings"
             @click.stop="$emit('toggle-settings')"
@@ -142,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronDown, FolderPlus, Palette, SlidersHorizontal, UserPlus } from 'lucide-vue-next'
+import { ChevronDown, Eye, EyeOff, FolderPlus, Palette, SlidersHorizontal, UserPlus } from 'lucide-vue-next'
 
 import type { RoleSortState } from '~~/app/types/rankdb'
 
@@ -153,6 +163,7 @@ defineProps<{
   topBarOffsetX: string
   topBarWidth: string
   rowColumns: string
+  privacyModeEnabled: boolean
   showLeadButtons: boolean
   showNonRankColumns: boolean
   showSixV6: boolean
@@ -173,6 +184,7 @@ defineEmits<{
   'cycle-role-sort': [roleIndex: number]
   'restore-role-sort': [roleIndex: number]
   'toggle-lead-buttons': []
+  'toggle-privacy-mode': []
   'toggle-settings': []
   'toggle-theme-editor': []
 }>()

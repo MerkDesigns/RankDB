@@ -1,7 +1,13 @@
 <template>
-  <div v-if="accountId !== null" class="fixed inset-0 z-[85] bg-black/60" @click="$emit('close')">
+  <div
+    v-if="accountId !== null"
+    class="fixed inset-0 z-[85] bg-black/60"
+    @pointerdown.self="backdropPointerDown = true"
+    @click.self="handleBackdropClick"
+  >
     <div
       class="absolute left-1/2 top-1/2 w-[380px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+      @pointerdown="backdropPointerDown = false"
       @click.stop
     >
       <div class="mb-4 flex items-center justify-between gap-3">
@@ -46,7 +52,7 @@
         <button type="button" class="inline-flex h-10 items-center justify-center rounded-[8px] border border-[#272b35] bg-[#11141b] px-4 text-[13px] font-semibold text-slate-100/90 hover:bg-[#181c26]" @click="$emit('close')">
           Cancel
         </button>
-        <button type="button" class="inline-flex h-10 items-center justify-center rounded-[8px] border border-cyan-400/20 bg-cyan-500/15 px-4 text-[13px] font-semibold text-cyan-100 hover:bg-cyan-500/25" @click="$emit('save')">
+        <button type="button" class="theme-accent-button inline-flex h-10 items-center justify-center rounded-[8px] border px-4 text-[13px] font-semibold" @click="$emit('save')">
           Save
         </button>
       </div>
@@ -55,7 +61,28 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Eye, EyeOff } from 'lucide-vue-next'
+
+const emit = defineEmits<{
+  close: []
+  save: []
+  'toggle-email-visibility': []
+  'toggle-password-visibility': []
+  'update:emailDraft': [value: string]
+  'update:passwordDraft': [value: string]
+}>()
+
+const backdropPointerDown = ref(false)
+
+const handleBackdropClick = () => {
+  if (!backdropPointerDown.value) {
+    return
+  }
+
+  backdropPointerDown.value = false
+  emit('close')
+}
 
 defineProps<{
   accountId: number | null
@@ -66,12 +93,4 @@ defineProps<{
   passwordVisible: boolean
 }>()
 
-defineEmits<{
-  close: []
-  save: []
-  'toggle-email-visibility': []
-  'toggle-password-visibility': []
-  'update:emailDraft': [value: string]
-  'update:passwordDraft': [value: string]
-}>()
 </script>

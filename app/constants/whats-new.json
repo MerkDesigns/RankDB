@@ -1,0 +1,16 @@
+{
+  "v0.2.8": [
+    {
+      "title": "Added Privacy Mode",
+      "description": "Configure how many characters remain uncensored"
+    },
+    {
+      "title": "Reworked Settings Menu",
+      "description": "Added tabs to keep the settings structured and compact in size"
+    },
+    {
+      "title": "Small Fix For Credentials Menu",
+      "description": "Doesn't close menu when not intended"
+    }
+  ]
+}

@@ -40,6 +40,7 @@
             :overwatch-credits-icon="overwatchCreditsIcon"
             :overwatch-icon="overwatchIcon"
             :row-columns="rowColumns"
+            :privacy-mode-enabled="privacyModeEnabled"
             :show-lead-buttons="showLeadButtons"
             :show-non-rank-columns="showNonRankColumns"
             :show-six-v6="showSixV6"
@@ -51,6 +52,7 @@
             @cycle-role-sort="cycleRoleSort"
             @restore-role-sort="restoreCustomRoleSort"
             @toggle-lead-buttons="toggleLeadButtons"
+            @toggle-privacy-mode="privacyModeEnabled = !privacyModeEnabled"
             @toggle-settings="toggleSettingsMenu"
             @toggle-theme-editor="toggleThemeEditor"
           />
@@ -461,11 +463,11 @@
       @click.self="closeSettingsMenu"
     >
       <div
-        class="absolute left-1/2 top-1/2 w-[320px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 rounded-[10px] border border-[#323744] bg-[#0c1018] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+        class="absolute left-1/2 top-1/2 flex h-[472px] w-[340px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-[10px] border border-[#323744] bg-[#0c1018] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
         @pointerdown.stop
         @click.stop
       >
-        <div class="mb-4 flex items-center justify-between gap-3">
+        <div class="mb-3 flex items-center justify-between gap-3">
           <h2 class="text-[16px] font-semibold tracking-tight text-slate-100">Settings</h2>
           <button
             type="button"
@@ -490,169 +492,261 @@
           </button>
         </div>
 
-        <button
-          type="button"
-          class="inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
-          @click="showNonRankColumns = !showNonRankColumns"
-        >
-          <span class="flex items-center gap-2.5 tracking-tight">
-            <img :src="overwatchCoinsIcon" alt="" class="-ml-[4px] h-[29px] w-[29px] object-contain" aria-hidden="true">
-            <span>Currency</span>
-          </span>
-          <span
-            class="inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
-            :class="showNonRankColumns ? 'bg-cyan-500/80' : 'bg-slate-600/80'"
-            :style="showNonRankColumns ? toggleTrackStyle : undefined"
+        <div class="theme-tab-strip mb-3 flex shrink-0 items-end gap-1 px-1">
+          <button
+            type="button"
+            class="theme-tab inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-t-[8px] px-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition"
+            :class="activeSettingsTab === 'visuals'
+              ? 'theme-tab-active'
+              : 'text-slate-400/85 hover:bg-[#181c26] hover:text-slate-100'"
+            @click="activeSettingsTab = 'visuals'"
           >
-            <span
-              class="h-4 w-4 rounded-full bg-white transition"
-              :class="showNonRankColumns ? 'translate-x-5' : 'translate-x-0'"
-            />
-          </span>
-        </button>
-
-        <button
-          type="button"
-          class="mt-3 inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
-          @click="showSixV6 = !showSixV6"
-        >
-          <span class="flex items-center gap-2.5 tracking-tight">
-            <img :src="flexRoleIcon" alt="" class="h-[23px] w-[23px] object-contain" aria-hidden="true">
-            <span>6v6 Ranks</span>
-          </span>
-          <span
-            class="inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
-            :class="showSixV6 ? 'bg-cyan-500/80' : 'bg-slate-600/80'"
-            :style="showSixV6 ? toggleTrackStyle : undefined"
+            Visuals
+          </button>
+          <button
+            type="button"
+            class="theme-tab inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-t-[8px] px-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition"
+            :class="activeSettingsTab === 'data'
+              ? 'theme-tab-active'
+              : 'text-slate-400/85 hover:bg-[#181c26] hover:text-slate-100'"
+            @click="activeSettingsTab = 'data'"
           >
-            <span
-              class="h-4 w-4 rounded-full bg-white transition"
-              :class="showSixV6 ? 'translate-x-5' : 'translate-x-0'"
-            />
-          </span>
-        </button>
-
-        <button
-          type="button"
-          class="mt-3 inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
-          @click="badgeAnimationsEnabled = !badgeAnimationsEnabled"
-        >
-          <span class="flex items-center gap-2.5 tracking-tight">
-            <img :src="championModalIcon" alt="" class="h-[23px] w-[23px] object-contain" aria-hidden="true">
-            <span>Rank Badge Animations</span>
-          </span>
-          <span
-            class="inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
-            :class="badgeAnimationsEnabled ? 'bg-cyan-500/80' : 'bg-slate-600/80'"
-            :style="badgeAnimationsEnabled ? toggleTrackStyle : undefined"
+            Data
+          </button>
+          <button
+            type="button"
+            class="theme-tab inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-t-[8px] px-2 text-[11px] font-semibold uppercase tracking-[0.1em] transition"
+            :class="activeSettingsTab === 'misc'
+              ? 'theme-tab-active'
+              : 'text-slate-400/85 hover:bg-[#181c26] hover:text-slate-100'"
+            @click="activeSettingsTab = 'misc'"
           >
-            <span
-              class="h-4 w-4 rounded-full bg-white transition"
-              :class="badgeAnimationsEnabled ? 'translate-x-5' : 'translate-x-0'"
-            />
-          </span>
-        </button>
+            Misc
+          </button>
+        </div>
 
-        <div class="mt-4 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 py-3">
-          <div class="mb-2 flex items-center justify-between gap-3">
-            <span class="flex items-center gap-2.5 text-[13px] font-semibold tracking-tight text-slate-100/95">
-              <ZoomIn class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
-              <span>UI Zoom</span>
-            </span>
-            <span class="text-[12px] font-semibold tabular-nums text-slate-300/90">{{ uiZoom }}%</span>
+        <div class="min-h-0 flex-1 overflow-hidden">
+          <div v-if="activeSettingsTab === 'visuals'">
+            <button
+              type="button"
+              class="inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+              @click="showNonRankColumns = !showNonRankColumns"
+            >
+              <span class="flex items-center gap-2.5 tracking-tight">
+                <img :src="overwatchCoinsIcon" alt="" class="-ml-[4px] h-[29px] w-[29px] object-contain" aria-hidden="true">
+                <span>Currency</span>
+              </span>
+              <span
+                class="theme-toggle-track inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
+                :style="showNonRankColumns ? toggleTrackStyle : toggleTrackOffStyle"
+              >
+                <span
+                  class="theme-toggle-thumb h-4 w-4 rounded-full transition"
+                  :class="showNonRankColumns ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="mt-3 inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+              @click="showSixV6 = !showSixV6"
+            >
+              <span class="flex items-center gap-2.5 tracking-tight">
+                <img :src="flexRoleIcon" alt="" class="h-[23px] w-[23px] object-contain" aria-hidden="true">
+                <span>6v6 Ranks</span>
+              </span>
+              <span
+                class="theme-toggle-track inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
+                :style="showSixV6 ? toggleTrackStyle : toggleTrackOffStyle"
+              >
+                <span
+                  class="theme-toggle-thumb h-4 w-4 rounded-full transition"
+                  :class="showSixV6 ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="mt-3 inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+              @click="badgeAnimationsEnabled = !badgeAnimationsEnabled"
+            >
+              <span class="flex items-center gap-2.5 tracking-tight">
+                <img :src="championModalIcon" alt="" class="h-[23px] w-[23px] object-contain" aria-hidden="true">
+                <span>Rank Badge Animations</span>
+              </span>
+              <span
+                class="theme-toggle-track inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
+                :style="badgeAnimationsEnabled ? toggleTrackStyle : toggleTrackOffStyle"
+              >
+                <span
+                  class="theme-toggle-thumb h-4 w-4 rounded-full transition"
+                  :class="badgeAnimationsEnabled ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </span>
+            </button>
+
+            <div class="mt-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 py-2.5">
+              <div class="mb-0.5 flex items-center justify-between gap-3">
+                <span class="flex items-center gap-2.5 text-[13px] font-semibold tracking-tight text-slate-100/95">
+                  <ZoomIn class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
+                  <span>UI Zoom</span>
+                </span>
+                <span class="text-[13px] font-semibold tabular-nums text-slate-200/95">{{ uiZoom }}%</span>
+              </div>
+              <input
+                v-model.number="uiZoom"
+                @input="handleUiZoomInput"
+                @pointerdown="beginSettingsRangeDrag('uiZoom', $event)"
+                type="range"
+                :min="MIN_UI_ZOOM"
+                :max="MAX_UI_ZOOM"
+                :step="UI_ZOOM_STEP"
+                :style="uiZoomRangeStyle"
+                class="settings-range w-full accent-cyan-400"
+              >
+            </div>
           </div>
-          <input
-            v-model.number="uiZoom"
-            @input="handleUiZoomInput"
-            @pointerdown="beginSettingsRangeDrag('uiZoom', $event)"
-            type="range"
-            :min="MIN_UI_ZOOM"
-            :max="MAX_UI_ZOOM"
-            :step="UI_ZOOM_STEP"
-            class="settings-range w-full accent-cyan-400"
-          >
-        </div>
 
-        <div class="mt-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 py-3">
-          <div class="mb-2 flex items-center justify-between gap-3">
-            <span class="flex items-center gap-2.5 text-[13px] font-semibold tracking-tight text-slate-100/95">
-              <ClipboardClock class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
-              <span>Automatically clear Clipboard after:</span>
-            </span>
-            <span class="text-[12px] font-semibold tabular-nums text-slate-300/90">{{ clipboardClearTimerLabel }}</span>
+          <div v-else-if="activeSettingsTab === 'data'">
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+                @click="exportData"
+              >
+                <Download class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
+                Export Data
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+                @click="triggerImportData"
+              >
+                <Upload class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
+                Import Data
+              </button>
+            </div>
+
+            <div class="mt-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 py-3">
+              <div class="mb-2 flex items-center justify-between gap-3">
+                <span class="flex items-center gap-2.5 text-[13px] font-semibold tracking-tight text-slate-100/95">
+                  <ClipboardClock class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
+                  <span>Automatically clear Clipboard after:</span>
+                </span>
+                <span class="text-[12px] font-semibold tabular-nums text-slate-300/90">{{ clipboardClearTimerLabel }}</span>
+              </div>
+              <input
+                v-model.number="clipboardClearTimerSeconds"
+                @pointerdown="beginSettingsRangeDrag('clipboardClearTimerSeconds', $event)"
+                type="range"
+                min="5"
+                max="31"
+                step="1"
+                :style="clipboardTimerRangeStyle"
+                class="settings-range w-full accent-cyan-400"
+              >
+            </div>
+
+            <button
+              type="button"
+              class="mt-3 inline-flex h-11 w-full items-center gap-2.5 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-left text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+              @click="openRankResetModal"
+            >
+              <RotateCcw class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
+              <span>Rank Reset</span>
+            </button>
           </div>
-          <input
-            v-model.number="clipboardClearTimerSeconds"
-            @pointerdown="beginSettingsRangeDrag('clipboardClearTimerSeconds', $event)"
-            type="range"
-            min="5"
-            max="31"
-            step="1"
-            class="settings-range w-full accent-cyan-400"
-          >
-        </div>
 
-        <div class="mt-4 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
-            @click="exportData"
-          >
-            <Download class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
-            Export Data
-          </button>
-          <button
-            type="button"
-            class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
-            @click="triggerImportData"
-          >
-            <Upload class="h-[15px] w-[15px] shrink-0" :stroke-width="2.2" aria-hidden="true" />
-            Import Data
-          </button>
-        </div>
+          <div v-else class="flex h-full flex-col">
+            <button
+              type="button"
+              class="inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+              @click="privacyModeEnabled = !privacyModeEnabled"
+            >
+              <span class="flex items-center gap-2.5 tracking-tight">
+                <EyeOff class="h-[18px] w-[18px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
+                <span>Privacy Mode</span>
+              </span>
+              <span
+                class="theme-toggle-track inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
+                :style="privacyModeEnabled ? toggleTrackStyle : toggleTrackOffStyle"
+              >
+                <span
+                  class="theme-toggle-thumb h-4 w-4 rounded-full transition"
+                  :class="privacyModeEnabled ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </span>
+            </button>
 
-        <div class="mt-3 grid grid-cols-[minmax(0,1fr)_76px] gap-3">
-          <button
-            type="button"
-            class="inline-flex h-11 w-full items-center gap-2.5 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-left text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
-            @click="openRankResetModal"
-          >
-            <RotateCcw class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
-            <span>Rank Reset</span>
-          </button>
-          <button
-            v-if="tauriDesktop"
-            type="button"
-            class="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border px-2 text-[12px] font-semibold text-white transition hover:bg-[#181c26]"
-            :class="discordRpcEnabled ? 'border-indigo-300/30 bg-indigo-500/18' : 'border-[#272b35] bg-[#11141b] opacity-70'"
-            :title="discordRpcEnabled ? 'Disable Discord Rich Presence' : 'Enable Discord Rich Presence'"
-            :aria-label="discordRpcEnabled ? 'Disable Discord Rich Presence' : 'Enable Discord Rich Presence'"
-            @click="discordRpcEnabled = !discordRpcEnabled"
-          >
-            <svg class="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M20.32 4.37A19.8 19.8 0 0 0 15.36 2.8a13.82 13.82 0 0 0-.63 1.3 18.27 18.27 0 0 0-5.46 0 13.82 13.82 0 0 0-.64-1.3 19.73 19.73 0 0 0-4.95 1.57C.55 9.09-.3 13.7.13 18.25a19.9 19.9 0 0 0 6.08 3.07 14.8 14.8 0 0 0 1.3-2.1 12.9 12.9 0 0 1-2.05-.98c.17-.12.34-.25.5-.38a14.2 14.2 0 0 0 12.08 0c.16.13.33.26.5.38-.65.38-1.34.71-2.06.98.38.74.82 1.44 1.3 2.1a19.86 19.86 0 0 0 6.09-3.07c.5-5.27-.84-9.84-3.55-13.88ZM8.02 15.45c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.2 0 2.17 1.1 2.15 2.42 0 1.34-.96 2.42-2.15 2.42Zm7.96 0c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.2 0 2.17 1.1 2.15 2.42 0 1.34-.95 2.42-2.15 2.42Z" />
-            </svg>
-            <span>RPC</span>
-          </button>
-        </div>
+            <div class="mt-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 py-2.5">
+              <div class="mb-0.5 flex items-center justify-between gap-3">
+                <span class="flex items-center gap-2.5 text-[13px] font-semibold tracking-tight text-slate-100/95">
+                  <Shield class="h-[16px] w-[16px] shrink-0 text-slate-300/85" :stroke-width="2.2" aria-hidden="true" />
+                  <span>Visible Name Characters</span>
+                </span>
+                <span class="text-[13px] font-semibold tabular-nums text-slate-200/95">{{ privacyVisibleCharactersLabel }}</span>
+              </div>
+              <input
+                v-model.number="privacyVisibleCharacters"
+                @pointerdown="beginSettingsRangeDrag('privacyVisibleCharacters', $event)"
+                type="range"
+                :min="MIN_PRIVACY_VISIBLE_CHARACTERS"
+                :max="MAX_PRIVACY_VISIBLE_CHARACTERS"
+                step="1"
+                :style="privacyVisibleCharactersRangeStyle"
+                class="settings-range w-full"
+              >
+            </div>
 
-        <button
-          v-if="tauriDesktop"
-          type="button"
-          class="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border px-3 text-[13px] font-semibold transition disabled:cursor-wait disabled:opacity-70"
-          :class="hasPendingAppUpdate
-            ? 'border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-100 hover:bg-fuchsia-500/18'
-            : 'border-[#272b35] bg-[#11141b] text-slate-100/95 hover:bg-[#181c26]'"
-          :disabled="updateCheckBusy"
-          @click="handleUpdateButtonClick"
-        >
-          <span
-            class="h-2.5 w-2.5 rounded-full"
-            :class="hasPendingAppUpdate ? 'bg-fuchsia-300/90 shadow-[0_0_14px_rgba(244,114,182,0.7)]' : 'bg-slate-400/75'"
-            aria-hidden="true"
-          />
-          {{ updateCheckBusy ? 'Checking for Updates...' : hasPendingAppUpdate ? 'Update Available' : 'Check for Updates' }}
-        </button>
+            <button
+              v-if="tauriDesktop"
+              type="button"
+              class="mt-3 inline-flex h-11 w-full items-center justify-between gap-3 rounded-[8px] border border-[#272b35] bg-[#11141b] px-3 text-[13px] font-semibold text-slate-100/95 hover:bg-[#181c26]"
+              :class="discordRpcEnabled ? '' : 'opacity-85'"
+              :title="discordRpcEnabled ? 'Disable Discord Rich Presence' : 'Enable Discord Rich Presence'"
+              :aria-label="discordRpcEnabled ? 'Disable Discord Rich Presence' : 'Enable Discord Rich Presence'"
+              @click="discordRpcEnabled = !discordRpcEnabled"
+            >
+              <span class="flex min-w-0 items-center gap-2.5 tracking-tight">
+                <svg class="h-[18px] w-[18px] shrink-0 text-slate-300/85" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M20.32 4.37A19.8 19.8 0 0 0 15.36 2.8a13.82 13.82 0 0 0-.63 1.3 18.27 18.27 0 0 0-5.46 0 13.82 13.82 0 0 0-.64-1.3 19.73 19.73 0 0 0-4.95 1.57C.55 9.09-.3 13.7.13 18.25a19.9 19.9 0 0 0 6.08 3.07 14.8 14.8 0 0 0 1.3-2.1 12.9 12.9 0 0 1-2.05-.98c.17-.12.34-.25.5-.38a14.2 14.2 0 0 0 12.08 0c.16.13.33.26.5.38-.65.38-1.34.71-2.06.98.38.74.82 1.44 1.3 2.1a19.86 19.86 0 0 0 6.09-3.07c.5-5.27-.84-9.84-3.55-13.88ZM8.02 15.45c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.2 0 2.17 1.1 2.15 2.42 0 1.34-.96 2.42-2.15 2.42Zm7.96 0c-1.18 0-2.15-1.08-2.15-2.42 0-1.33.95-2.42 2.15-2.42 1.2 0 2.17 1.1 2.15 2.42 0 1.34-.95 2.42-2.15 2.42Z" />
+                </svg>
+                <span>Discord Rich Presence</span>
+              </span>
+              <span
+                class="theme-toggle-track inline-flex h-5 w-10 items-center rounded-full p-0.5 transition"
+                :style="discordRpcEnabled ? toggleTrackStyle : toggleTrackOffStyle"
+              >
+                <span
+                  class="theme-toggle-thumb h-4 w-4 rounded-full transition"
+                  :class="discordRpcEnabled ? 'translate-x-5' : 'translate-x-0'"
+                />
+              </span>
+            </button>
+
+            <div class="flex-1" />
+
+            <button
+              v-if="tauriDesktop"
+              type="button"
+              class="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[8px] border px-3 text-[13px] font-semibold transition disabled:cursor-wait disabled:opacity-70"
+              :class="hasPendingAppUpdate
+                ? 'border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-100 hover:bg-fuchsia-500/18'
+                : 'border-[#272b35] bg-[#11141b] text-slate-100/95 hover:bg-[#181c26]'"
+              :disabled="updateCheckBusy"
+              @click="handleUpdateButtonClick"
+            >
+              <span
+                class="h-2.5 w-2.5 rounded-full"
+                :class="hasPendingAppUpdate ? 'bg-fuchsia-300/90 shadow-[0_0_14px_rgba(244,114,182,0.7)]' : 'bg-slate-400/75'"
+                aria-hidden="true"
+              />
+              {{ updateCheckBusy ? 'Checking for Updates...' : hasPendingAppUpdate ? 'Update Available' : 'Check for Updates' }}
+            </button>
+          </div>
+        </div>
 
         <input
           ref="importFileInput"
@@ -1259,7 +1353,7 @@
 
     <RankDbAccountInfoModal
       :account-id="accountInfoModal?.accountId ?? null"
-      :account-name="accountInfoModal ? accounts.find((entry) => entry.id === accountInfoModal.accountId)?.accountName ?? 'Battletag' : ''"
+      :account-name="accountInfoModal ? getAccountNameForDisplay(accountInfoModal.accountId) : ''"
       :archived-rank-snapshots="accountInfoModal ? accounts.find((entry) => entry.id === accountInfoModal.accountId)?.archivedRankSnapshots ?? [] : []"
       :banned-draft="accountInfoBannedDraft"
       :country-draft="accountInfoCountryDraft"
@@ -1380,7 +1474,7 @@ import { LogicalSize } from '@tauri-apps/api/dpi'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { check as checkForUpdate } from '@tauri-apps/plugin-updater'
 import { currentMonitor, getCurrentWindow } from '@tauri-apps/api/window'
-import { ChevronDown, ClipboardClock, Download, KeyRound, Plus, RotateCcw, Upload, User, ZoomIn } from 'lucide-vue-next'
+import { ChevronDown, ClipboardClock, Download, EyeOff, KeyRound, Plus, RotateCcw, Shield, Upload, User, ZoomIn } from 'lucide-vue-next'
 import 'flag-icons/css/flag-icons.min.css'
 import RankDbAccountContextMenu from '~~/app/components/rankdb/RankDbAccountContextMenu.vue'
 import RankDbAccountInfoModal from '~~/app/components/rankdb/RankDbAccountInfoModal.vue'
@@ -1389,6 +1483,7 @@ import RankDbDeleteModal from '~~/app/components/rankdb/RankDbDeleteModal.vue'
 import RankDbHeader from '~~/app/components/rankdb/RankDbHeader.vue'
 import RankDbNotifications from '~~/app/components/rankdb/RankDbNotifications.vue'
 import RankDbRankPicker from '~~/app/components/rankdb/RankDbRankPicker.vue'
+import whatsNewItemsByVersion from '~~/app/constants/whats-new.json'
 import tauriConfig from '~~/src-tauri/tauri.conf.json'
 import {
   buildPersistedAppStorageEnvelope,
@@ -1513,7 +1608,8 @@ type AppUpdate = NonNullable<Awaited<ReturnType<typeof checkForUpdate>>>
 type UpdateRecoveryMetadata = {
   createdAt: string
 }
-type SettingsRangeKey = 'uiZoom' | 'clipboardClearTimerSeconds'
+type SettingsRangeKey = 'uiZoom' | 'clipboardClearTimerSeconds' | 'privacyVisibleCharacters'
+type SettingsTab = 'visuals' | 'data' | 'misc'
 
 useHead({
   link: [
@@ -1525,16 +1621,10 @@ const tauriDesktop = import.meta.client && isTauri()
 const UPDATE_RECOVERY_PENDING_KEY = 'rankdb_update_recovery_pending_v1'
 const WHATS_NEW_VERSION_KEY = 'rankdb_last_seen_version_v1'
 const CURRENT_WHATS_NEW_VERSION = `v${tauriConfig.version}`
-const WHATS_NEW_ITEMS_BY_VERSION: Record<string, Array<{ title: string; description: string }>> = {
-  [CURRENT_WHATS_NEW_VERSION]: [
-    {
-      title: 'Added Discord Rich Presence',
-      description: ''
-    }
-  ]
-}
+const WHATS_NEW_ITEMS_BY_VERSION = whatsNewItemsByVersion as Record<string, Array<{ title: string; description: string }>>
 const rankPicker = ref<{ accountId: number; target: 'role' | 'sixv6'; rankIndex?: number } | null>(null)
 const settingsMenuOpen = ref(false)
+const activeSettingsTab = ref<SettingsTab>('visuals')
 const themeEditorOpen = ref(false)
 const themeDropdownOpen = ref(false)
 const rankResetModalOpen = ref(false)
@@ -2028,11 +2118,17 @@ const buildOwApiHeaders = () => ({
   'Accept-Language': 'en-US,en;q=0.9'
 })
 
+const MIN_PRIVACY_VISIBLE_CHARACTERS = 0
+const MAX_PRIVACY_VISIBLE_CHARACTERS = 7
+const DEFAULT_PRIVACY_VISIBLE_CHARACTERS = 3
+
 const buildDefaultUiSettings = () => ({
   showSixV6: true,
   showNonRankColumns: true,
   showLeadButtons: true,
   badgeAnimationsEnabled: true,
+  privacyModeEnabled: false,
+  privacyVisibleCharacters: DEFAULT_PRIVACY_VISIBLE_CHARACTERS,
   discordRpcEnabled: true,
   uiZoom: DEFAULT_UI_ZOOM,
   clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
@@ -2045,6 +2141,15 @@ const buildDefaultUiSettings = () => ({
 })
 
 const getTodayInstallDate = () => new Date().toISOString().slice(0, 10)
+
+const normalizePrivacyVisibleCharacters = (value: unknown) => {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) {
+    return DEFAULT_PRIVACY_VISIBLE_CHARACTERS
+  }
+
+  return Math.min(MAX_PRIVACY_VISIBLE_CHARACTERS, Math.max(MIN_PRIVACY_VISIBLE_CHARACTERS, Math.round(numericValue)))
+}
 
 const isValidInstallDate = (value: unknown): value is string => (
   typeof value === 'string'
@@ -2220,6 +2325,8 @@ const loadStoredUiSettings = () => {
         showNonRankColumns: typeof parsed?.showNonRankColumns === 'boolean' ? parsed.showNonRankColumns : true,
         showLeadButtons: typeof parsed?.showLeadButtons === 'boolean' ? parsed.showLeadButtons : true,
         badgeAnimationsEnabled: typeof parsed?.badgeAnimationsEnabled === 'boolean' ? parsed.badgeAnimationsEnabled : true,
+        privacyModeEnabled: typeof parsed?.privacyModeEnabled === 'boolean' ? parsed.privacyModeEnabled : false,
+        privacyVisibleCharacters: normalizePrivacyVisibleCharacters(parsed?.privacyVisibleCharacters),
         discordRpcEnabled: typeof parsed?.discordRpcEnabled === 'boolean' ? parsed.discordRpcEnabled : true,
         uiZoom: normalizeUiZoom(parsed?.uiZoom),
         clipboardClearTimerSeconds: normalizeClipboardClearTimer(parsed?.clipboardClearTimerSeconds),
@@ -2243,6 +2350,8 @@ const loadStoredUiSettings = () => {
       showNonRankColumns: typeof parsed?.showNonRankColumns === 'boolean' ? parsed.showNonRankColumns : true,
       showLeadButtons: true,
       badgeAnimationsEnabled: true,
+      privacyModeEnabled: false,
+      privacyVisibleCharacters: DEFAULT_PRIVACY_VISIBLE_CHARACTERS,
       discordRpcEnabled: true,
       uiZoom: normalizeLegacyUiZoom(parsed?.uiZoom),
       clipboardClearTimerSeconds: DEFAULT_CLIPBOARD_CLEAR_SECONDS,
@@ -2802,6 +2911,8 @@ const showSixV6 = ref(initialUiSettings.showSixV6)
 const showNonRankColumns = ref(initialUiSettings.showNonRankColumns)
 const showLeadButtons = ref(initialUiSettings.showLeadButtons)
 const badgeAnimationsEnabled = ref(initialUiSettings.badgeAnimationsEnabled)
+const privacyModeEnabled = ref(initialUiSettings.privacyModeEnabled)
+const privacyVisibleCharacters = ref(initialUiSettings.privacyVisibleCharacters)
 const discordRpcEnabled = ref(initialUiSettings.discordRpcEnabled)
 const uiZoom = ref(initialUiSettings.uiZoom)
 const clipboardClearTimerSeconds = ref(initialUiSettings.clipboardClearTimerSeconds)
@@ -2846,6 +2957,23 @@ const themeBrowserScrollIndicatorStyle = computed(() => ({
 const toggleTrackStyle = computed(() => ({
   backgroundColor: activeThemeTokens.value.toggleAccent
 }))
+const toggleTrackOffStyle = computed(() => ({
+  backgroundColor: activeThemeTokens.value.borderSubtle
+}))
+const buildSettingsRangeStyle = (value: number, min: number, max: number) => {
+  const ratio = max === min ? 0 : ((value - min) / (max - min))
+  const progress = `${Math.min(100, Math.max(0, ratio * 100))}%`
+  return {
+    background: `linear-gradient(to right, ${activeThemeTokens.value.accent} 0%, ${activeThemeTokens.value.accent} ${progress}, ${activeThemeTokens.value.borderSubtle} ${progress}, ${activeThemeTokens.value.borderSubtle} 100%)`
+  }
+}
+const uiZoomRangeStyle = computed(() => buildSettingsRangeStyle(uiZoom.value, MIN_UI_ZOOM, MAX_UI_ZOOM))
+const clipboardTimerRangeStyle = computed(() => buildSettingsRangeStyle(clipboardClearTimerSeconds.value, 5, 31))
+const privacyVisibleCharactersRangeStyle = computed(() => buildSettingsRangeStyle(
+  privacyVisibleCharacters.value,
+  MIN_PRIVACY_VISIBLE_CHARACTERS,
+  MAX_PRIVACY_VISIBLE_CHARACTERS
+))
 const leadColumnWidth = 96
 const nameColumnWidth = 250
 const roleColumnWidth = 390
@@ -3304,6 +3432,8 @@ const buildUiSettingsPayload = () => ({
   showNonRankColumns: showNonRankColumns.value,
   showLeadButtons: showLeadButtons.value,
   badgeAnimationsEnabled: badgeAnimationsEnabled.value,
+  privacyModeEnabled: privacyModeEnabled.value,
+  privacyVisibleCharacters: normalizePrivacyVisibleCharacters(privacyVisibleCharacters.value),
   discordRpcEnabled: discordRpcEnabled.value,
   uiZoom: normalizeUiZoom(uiZoom.value),
   clipboardClearTimerSeconds: normalizeClipboardClearTimer(clipboardClearTimerSeconds.value),
@@ -3523,17 +3653,28 @@ const handleUiZoomInput = () => {
 const getSettingsRangeConfig = (key: SettingsRangeKey) => (
   key === 'uiZoom'
     ? { min: MIN_UI_ZOOM, max: MAX_UI_ZOOM, step: UI_ZOOM_STEP }
+    : key === 'privacyVisibleCharacters'
+      ? { min: MIN_PRIVACY_VISIBLE_CHARACTERS, max: MAX_PRIVACY_VISIBLE_CHARACTERS, step: 1 }
     : { min: MIN_CLIPBOARD_CLEAR_SECONDS, max: INFINITE_CLIPBOARD_CLEAR_SECONDS, step: 1 }
 )
 
 const normalizeSettingsRangeValue = (key: SettingsRangeKey, value: number) => (
-  key === 'uiZoom' ? normalizeUiZoom(value) : normalizeClipboardClearTimer(value)
+  key === 'uiZoom'
+    ? normalizeUiZoom(value)
+    : key === 'privacyVisibleCharacters'
+      ? normalizePrivacyVisibleCharacters(value)
+      : normalizeClipboardClearTimer(value)
 )
 
 const applySettingsRangeValue = (key: SettingsRangeKey, value: number) => {
   if (key === 'uiZoom') {
     uiZoom.value = normalizeUiZoom(value)
     handleUiZoomInput()
+    return
+  }
+
+  if (key === 'privacyVisibleCharacters') {
+    privacyVisibleCharacters.value = normalizePrivacyVisibleCharacters(value)
     return
   }
 
@@ -3695,6 +3836,8 @@ const applyStoredUiSettings = (storedUiSettings: unknown) => {
   showNonRankColumns.value = typeof importedUiSettings?.showNonRankColumns === 'boolean' ? importedUiSettings.showNonRankColumns : true
   showLeadButtons.value = typeof importedUiSettings?.showLeadButtons === 'boolean' ? importedUiSettings.showLeadButtons : true
   badgeAnimationsEnabled.value = typeof importedUiSettings?.badgeAnimationsEnabled === 'boolean' ? importedUiSettings.badgeAnimationsEnabled : true
+  privacyModeEnabled.value = typeof importedUiSettings?.privacyModeEnabled === 'boolean' ? importedUiSettings.privacyModeEnabled : false
+  privacyVisibleCharacters.value = normalizePrivacyVisibleCharacters(importedUiSettings?.privacyVisibleCharacters)
   discordRpcEnabled.value = typeof importedUiSettings?.discordRpcEnabled === 'boolean' ? importedUiSettings.discordRpcEnabled : true
   uiZoom.value = normalizeUiZoom(importedUiSettings?.uiZoom)
   clipboardClearTimerSeconds.value = normalizeClipboardClearTimer(importedUiSettings?.clipboardClearTimerSeconds)
@@ -3895,7 +4038,7 @@ watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, u
   scheduleTauriWindowResize()
 })
 
-watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, discordRpcEnabled, uiZoom, clipboardClearTimerSeconds, rankNumberOffsetX, rankNumberOffsetY, rankNumberFontSize, activeThemeTokens, customThemes, selectedThemeId], () => {
+watch([showSixV6, showNonRankColumns, showLeadButtons, badgeAnimationsEnabled, privacyModeEnabled, privacyVisibleCharacters, discordRpcEnabled, uiZoom, clipboardClearTimerSeconds, rankNumberOffsetX, rankNumberOffsetY, rankNumberFontSize, activeThemeTokens, customThemes, selectedThemeId], () => {
   if (!import.meta.client) {
     return
   }
@@ -4033,9 +4176,34 @@ const isDefaultPlaceholderAccountName = (accountName: string) => (
   normalizeAccountNameForComparison(accountName) === 'battletag#0000'
 )
 
-const getDisplayAccountName = (accountName: string) => {
+const getRawDisplayAccountName = (accountName: string) => {
   const hashIndex = accountName.indexOf('#')
   return hashIndex === -1 ? accountName : accountName.slice(0, hashIndex)
+}
+
+const privacyVisibleCharactersLabel = computed(() => (
+  privacyVisibleCharacters.value === 0
+    ? 'Full Censor'
+    : privacyVisibleCharacters.value === 1
+      ? '1 Character'
+      : `${privacyVisibleCharacters.value} Characters`
+))
+
+const getDisplayAccountName = (accountName: string) => {
+  const displayName = getRawDisplayAccountName(accountName).trim()
+  if (!privacyModeEnabled.value) {
+    return displayName
+  }
+
+  if (!displayName || privacyVisibleCharacters.value <= 0) {
+    return '-'
+  }
+
+  if (displayName.length <= privacyVisibleCharacters.value) {
+    return displayName
+  }
+
+  return `${displayName.slice(0, privacyVisibleCharacters.value)}...`
 }
 
 const normalizeAccountNameForComparison = (accountName: string) => accountName.trim().toLowerCase()
@@ -4129,6 +4297,7 @@ const getAccountNameForDisplay = (accountId: number) => {
 
 const closeSettingsMenu = () => {
   settingsMenuOpen.value = false
+  activeSettingsTab.value = 'visuals'
 }
 
 const toggleThemeEditor = () => {
@@ -5072,6 +5241,9 @@ const requestEditGroup = (groupId: string) => {
 
 const toggleSettingsMenu = () => {
   settingsMenuOpen.value = !settingsMenuOpen.value
+  if (settingsMenuOpen.value) {
+    activeSettingsTab.value = 'visuals'
+  }
 }
 
 const applyImportedAppData = async (parsed: { accounts?: unknown; groups?: unknown; uiSettings?: unknown; appMetadata?: unknown }) => {
@@ -6481,7 +6653,7 @@ const copyAccountName = async (accountName: string) => {
   try {
     await writeClipboardText(accountName)
     pushNotification('Battletag copied', {
-      message: accountName,
+      message: getDisplayAccountName(accountName),
       kind: 'success'
     })
   } catch {
@@ -6892,6 +7064,16 @@ onBeforeUnmount(() => {
   border-color: var(--theme-borderSubtle);
 }
 
+.rankdb-theme-root .theme-accent-button {
+  border-color: color-mix(in srgb, var(--theme-accent) 45%, transparent);
+  background-color: color-mix(in srgb, var(--theme-accent) 9%, transparent);
+  color: color-mix(in srgb, var(--theme-accent) 22%, white);
+}
+
+.rankdb-theme-root .theme-accent-button:hover {
+  background-color: color-mix(in srgb, var(--theme-accent) 15%, transparent);
+}
+
 .rankdb-theme-root .theme-row-surface {
   background-color: var(--theme-rowPrimarySurface);
   border-color: var(--theme-borderSubtle);
@@ -6916,6 +7098,29 @@ onBeforeUnmount(() => {
 .rankdb-theme-root .theme-accent-focus:focus,
 .rankdb-theme-root .theme-accent-focus:focus-visible {
   border-color: color-mix(in srgb, var(--theme-accent) 70%, transparent);
+}
+
+.rankdb-theme-root .theme-tab-strip {
+  border-color: var(--theme-borderSubtle);
+}
+
+.rankdb-theme-root .theme-tab {
+  position: relative;
+  top: 1px;
+}
+
+.rankdb-theme-root .theme-tab-active {
+  background-color: color-mix(in srgb, var(--theme-accent) 14%, var(--theme-panelSurface));
+  color: var(--theme-textPrimary);
+}
+
+.rankdb-theme-root .theme-toggle-track {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-borderSubtle) 90%, transparent);
+}
+
+.rankdb-theme-root .theme-toggle-thumb {
+  background-color: var(--theme-panelSurfaceRaised);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--theme-borderSubtle) 85%, transparent);
 }
 
 .rankdb-theme-root [class*="bg-[#11141b]"],
@@ -6972,6 +7177,12 @@ onBeforeUnmount(() => {
 
 .rankdb-theme-root .theme-header-icon-color {
   color: var(--theme-headerIcon);
+}
+
+.rankdb-theme-root .theme-header-icon-active {
+  border-color: color-mix(in srgb, var(--theme-accent) 40%, transparent);
+  background-color: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+  color: color-mix(in srgb, var(--theme-accent) 35%, white);
 }
 
 .rankdb-theme-root [class*="hover:bg-[#181c26]"]:hover {
@@ -7453,8 +7664,53 @@ onBeforeUnmount(() => {
 }
 
 .settings-range {
+  appearance: none;
   cursor: pointer;
+  height: 6px;
+  border-radius: 999px;
   touch-action: none;
+}
+
+.settings-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.settings-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -5px;
+  height: 16px;
+  width: 16px;
+  border-radius: 999px;
+  background-color: var(--theme-panelSurfaceRaised);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--theme-accent) 25%, var(--theme-borderSubtle)),
+    0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.settings-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.settings-range::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background-color: var(--theme-accent);
+}
+
+.settings-range::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--theme-panelSurfaceRaised);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--theme-accent) 25%, var(--theme-borderSubtle)),
+    0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 input::-ms-reveal,

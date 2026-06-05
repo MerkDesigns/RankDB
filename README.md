@@ -20,7 +20,7 @@ It helps you keep ranks, notes, currencies, login details, and account status or
 - Move banned accounts into their own section (dont use groups because sorting will keep banned accounts in their own category)
 - Export and import all your data in password-protected encrypted backups
 - Check for app updates from inside RankDB (doesnt update automatically)
-New additions:
+- New additions:
 - Themes editor. create, import and export themes or use premade themes that come native with the app
 - Privacy Mode (incase you stream the application and dont want everyone to see the Account names)
 - Game Dodge counter, log your dodged games to see how long the next comp-ban will be after dodging

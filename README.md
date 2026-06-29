@@ -1,4 +1,7 @@
-![GitHub Downloads](https://img.shields.io/github/downloads/MerkDesigns/RankDB/total?style=for-the-badge&label=downloads)
+<p align="center">
+<img src="https://img.shields.io/github/downloads/MerkDesigns/RankDB/total?style=for-the-badge&label=downloads" />
+<a href="https://github.com/MerkDesigns/RankDB/releases/latest/download/RankDB_0.2.8_x64-setup.exe"> <img src="https://img.shields.io/badge/Download-Windows%20Installer-2ea44f?style=for-the-badge&logo=windows" /></a>
+</p>
 
 # RankDB
 

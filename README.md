@@ -1,3 +1,5 @@
+![GitHub Downloads](https://img.shields.io/github/downloads/MerkDesigns/RankDB/total?style=for-the-badge&label=downloads)
+
 # RankDB
 
 RankDB is a simple desktop app for tracking multiple Overwatch accounts in one place.

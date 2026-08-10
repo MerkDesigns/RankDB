@@ -1114,7 +1114,7 @@
           </button>
           <button
             type="button"
-            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-cyan-400/20 bg-cyan-500/15 px-4 text-[13px] font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-wait disabled:opacity-70"
+            class="theme-accent-button inline-flex h-10 items-center justify-center rounded-[8px] border px-4 text-[13px] font-semibold disabled:cursor-wait disabled:opacity-70"
             :disabled="updateInstallBusy"
             @click="installAvailableUpdate"
           >
@@ -1160,7 +1160,7 @@
           </button>
           <button
             type="button"
-            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-cyan-400/20 bg-cyan-500/15 px-4 text-[13px] font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:cursor-wait disabled:opacity-70"
+            class="theme-accent-button inline-flex h-10 items-center justify-center rounded-[8px] border px-4 text-[13px] font-semibold disabled:cursor-wait disabled:opacity-70"
             :disabled="updateRecoveryBusy"
             @click="restoreFromPendingUpdateRecovery"
           >
@@ -1254,7 +1254,7 @@
           </button>
           <button
             type="button"
-            class="inline-flex h-10 items-center justify-center rounded-[8px] border border-cyan-400/20 bg-cyan-500/15 px-4 text-[13px] font-semibold text-cyan-100 hover:bg-cyan-500/25"
+            class="theme-accent-button inline-flex h-10 items-center justify-center rounded-[8px] border px-4 text-[13px] font-semibold"
             @click="restartAfterUpdate"
           >
             Restart Now
@@ -3125,10 +3125,11 @@ const rankTierSortValue: Record<RankTier, number> = {
   Silver: 2,
   Gold: 3,
   Platinum: 4,
-  Diamond: 5,
-  Master: 6,
-  Grandmaster: 7,
-  Champion: 8
+  Emerald: 5,
+  Diamond: 6,
+  Master: 7,
+  Grandmaster: 8,
+  Champion: 9
 }
 
 const syncCustomAccountOrderFromAccounts = () => {
@@ -6878,7 +6879,7 @@ const openRankPicker = (accountId: number, rankIndex: number, event: MouseEvent)
   if (target) {
     const rect = target.getBoundingClientRect()
     const modalWidth = 224
-    const modalHeight = 312
+    const modalHeight = 388
     const viewportPadding = 10
     const desiredLeft = rect.right + 10
     const desiredTop = rect.top + (rect.height / 2) - (modalHeight / 2)
@@ -6908,7 +6909,7 @@ const openSixV6Picker = (accountId: number, event: MouseEvent) => {
   if (target) {
     const rect = target.getBoundingClientRect()
     const modalWidth = 224
-    const modalHeight = 312
+    const modalHeight = 388
     const viewportPadding = 10
     const desiredLeft = rect.right + 10
     const desiredTop = rect.top + (rect.height / 2) - (modalHeight / 2)

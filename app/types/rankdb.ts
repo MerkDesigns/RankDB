@@ -3,6 +3,7 @@ export type RankTier =
   | 'Silver'
   | 'Gold'
   | 'Platinum'
+  | 'Emerald'
   | 'Diamond'
   | 'Master'
   | 'Grandmaster'

@@ -1,6 +1,6 @@
 [package]
 name = "rankdb"
-version = "0.2.8"
+version = "0.2.9"
 description = "RankDB desktop app"
 authors = ["Merk"]
 license = ""

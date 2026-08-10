@@ -4,10 +4,10 @@
       class="relative absolute w-[224px] rounded-[7px] border-2 border-slate-300/55 bg-[#080c13] px-3 py-4 shadow-[0_0_30px_rgba(0,0,0,0.82)]"
       :style="positionStyle"
     >
-      <div class="flex items-stretch justify-center gap-3">
-        <div class="grid grid-cols-2 gap-2">
+      <div class="flex items-start justify-center gap-3">
+        <div class="grid grid-flow-col grid-rows-5 gap-2">
           <button
-            v-for="option in modalOptions"
+            v-for="option in tierOptions"
             :key="option.key"
             type="button"
             class="flex h-[52px] w-[52px] items-center justify-center rounded-[5px] border transition"
@@ -24,8 +24,8 @@
           </button>
         </div>
 
-        <div class="w-[64px]">
-          <div class="h-[230px] rounded-[5px] bg-[#171d27] p-1">
+        <div class="flex w-[64px] flex-col gap-2">
+          <div class="h-[232px] rounded-[5px] bg-[#171d27] p-1">
             <button
               v-for="division in divisions"
               :key="`division-${division}`"
@@ -37,26 +37,41 @@
               <span class="rank-division-number rank-picker-division-number">{{ division }}</span>
             </button>
           </div>
+
+          <button
+            v-if="predictedOption"
+            type="button"
+            class="flex h-[52px] w-[64px] items-center justify-center rounded-[5px] border transition"
+            :class="isModalOptionSelected(predictedOption) ? 'border-2 border-slate-300/70 bg-[#1b222c]' : 'border border-transparent bg-[#121925] hover:bg-[#1a2230]'"
+            @click="$emit('select-option', predictedOption)"
+          >
+            <img
+              :src="predictedOption.icon"
+              :alt="predictedOption.key"
+              class="h-[38px] w-[38px] object-contain"
+              :class="getModalOptionOpacityClass(predictedOption)"
+              draggable="false"
+            >
+          </button>
         </div>
       </div>
 
       <button
         type="button"
-        class="absolute bottom-4 right-[15px] h-[48px] w-[64px] rounded-[6px] border-2 border-slate-300/70 bg-[#0b1017] text-[26px] font-semibold text-slate-100 transition hover:bg-slate-300/10"
+        class="mt-3 h-[48px] w-full rounded-[6px] border-2 border-slate-300/70 bg-[#0b1017] text-[16px] font-semibold text-slate-100 transition hover:bg-slate-300/10"
         @click="$emit('apply')"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mx-auto h-6 w-6" aria-hidden="true">
-          <path d="M20 6 9 17l-5-5" />
-        </svg>
+        Confirm
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ModalOption } from '~~/app/types/rankdb'
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean
   positionStyle: Record<string, string>
   modalOptions: ModalOption[]
@@ -65,6 +80,9 @@ defineProps<{
   isModalOptionSelected: (option: ModalOption) => boolean
   getModalOptionOpacityClass: (option: ModalOption) => string
 }>()
+
+const tierOptions = computed(() => props.modalOptions.filter(option => option.tier))
+const predictedOption = computed(() => props.modalOptions.find(option => option.predictedToggle))
 
 defineEmits<{
   apply: []

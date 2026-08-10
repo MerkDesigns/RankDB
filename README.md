@@ -10,7 +10,7 @@ RankDB is a simple desktop app for tracking multiple Overwatch accounts in one p
 
 It helps you keep ranks, notes, currencies, login details, and account status organized without needing a spreadsheet.
 
-![RankDB preview](preview.gif)
+![RankDB preview](docs/media/preview.gif)
 
 ## Features
 

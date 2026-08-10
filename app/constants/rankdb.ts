@@ -4,6 +4,7 @@ import bronzeIcon from '~~/assets/Ranks/Rank_Icon_Bronze.png'
 import silverIcon from '~~/assets/Ranks/Rank_Icon_Silver.png'
 import goldIcon from '~~/assets/Ranks/Rank_Icon_Gold.png'
 import platinumIcon from '~~/assets/Ranks/Rank_Icon_Platinum.png'
+import emeraldIcon from '~~/assets/Ranks/Rank_Icon_Emerald.png'
 import diamondIcon from '~~/assets/Ranks/Rank_Icon_Diamond.png'
 import masterIcon from '~~/assets/Ranks/Rank_Icon_Master.png'
 import grandmasterIcon from '~~/assets/Ranks/Rank_Icon_Grandmaster.png'
@@ -12,6 +13,7 @@ import bronzeModalIcon from '~~/assets/Ranks/Bronze.png'
 import silverModalIcon from '~~/assets/Ranks/Silver.png'
 import goldModalIcon from '~~/assets/Ranks/Gold.png'
 import platinumModalIcon from '~~/assets/Ranks/Platinum.png'
+import emeraldModalIcon from '~~/assets/Ranks/Emerald.png'
 import diamondModalIcon from '~~/assets/Ranks/Diamond.png'
 import masterModalIcon from '~~/assets/Ranks/Master.png'
 import grandmasterModalIcon from '~~/assets/Ranks/Grandmaster.png'
@@ -39,6 +41,7 @@ export {
   competetivePointsIcon,
   damageRoleIcon,
   diamondIcon,
+  emeraldIcon,
   flexRoleIcon,
   goldIcon,
   grandmasterIcon,
@@ -60,6 +63,7 @@ export const assetWarmupSources = [
   silverIcon,
   goldIcon,
   platinumIcon,
+  emeraldIcon,
   diamondIcon,
   masterIcon,
   grandmasterIcon,
@@ -69,6 +73,7 @@ export const assetWarmupSources = [
   silverModalIcon,
   goldModalIcon,
   platinumModalIcon,
+  emeraldModalIcon,
   diamondModalIcon,
   masterModalIcon,
   grandmasterModalIcon,
@@ -83,7 +88,7 @@ export const assetWarmupSources = [
   battlenetIcon
 ] as const
 
-export const rankTiers: RankTier[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master', 'Grandmaster', 'Champion', 'Unranked']
+export const rankTiers: RankTier[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Champion', 'Unranked']
 export const divisions = [1, 2, 3, 4, 5]
 
 export const rankIcons: Record<RankTier, string> = {
@@ -91,6 +96,7 @@ export const rankIcons: Record<RankTier, string> = {
   Silver: silverIcon,
   Gold: goldIcon,
   Platinum: platinumIcon,
+  Emerald: emeraldIcon,
   Diamond: diamondIcon,
   Master: masterIcon,
   Grandmaster: grandmasterIcon,
@@ -103,6 +109,7 @@ export const modalRankIcons: Record<RankTier, string> = {
   Silver: silverModalIcon,
   Gold: goldModalIcon,
   Platinum: platinumModalIcon,
+  Emerald: emeraldModalIcon,
   Diamond: diamondModalIcon,
   Master: masterModalIcon,
   Grandmaster: grandmasterModalIcon,
@@ -115,6 +122,7 @@ export const modalOptions: ModalOption[] = [
   { key: 'Grandmaster', icon: modalRankIcons.Grandmaster, tier: 'Grandmaster' },
   { key: 'Master', icon: modalRankIcons.Master, tier: 'Master' },
   { key: 'Diamond', icon: modalRankIcons.Diamond, tier: 'Diamond' },
+  { key: 'Emerald', icon: modalRankIcons.Emerald, tier: 'Emerald' },
   { key: 'Platinum', icon: modalRankIcons.Platinum, tier: 'Platinum' },
   { key: 'Gold', icon: modalRankIcons.Gold, tier: 'Gold' },
   { key: 'Silver', icon: modalRankIcons.Silver, tier: 'Silver' },

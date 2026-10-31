@@ -1,0 +1,240 @@
+/* Reusable controls ported from TaskMap-Refactor (src/ui/primitives: navigation.css,
+   liquidToggleSwitch.css). Colours come from the app accent (--accent, --accent-rgb). */
+
+/* ---------- Liquid tabs ---------- */
+
+/* 1, or 0.35 while disabled. Registered so greying out fades (the factor transitions), while the
+   surface's presence still applies at once. */
+@property --tabs-dim {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+.liquid-tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 3px;
+  /* The track holds glass, so it fades by colour with its surface's presence (and greys out when
+     disabled), never by opacity. */
+  --tabs-dim: 1;
+  border: 1px solid rgb(255 255 255 / calc(0.1 * var(--presence) * var(--tabs-dim)));
+  border-radius: 11px;
+  background: rgb(3 4 6 / calc(0.3 * var(--presence) * var(--tabs-dim)));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / calc(0.025 * var(--presence) * var(--tabs-dim)));
+  transition: --tabs-dim 150ms;
+  touch-action: none;
+}
+
+.liquid-tabs[data-orientation="vertical"] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.liquid-tab {
+  position: relative;
+  z-index: 42;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  outline: 0;
+  background: transparent;
+  color: rgb(255 255 255 / 0.58);
+  font-size: 12.5px;
+  font-weight: 560;
+  white-space: nowrap;
+  transition: color 160ms;
+}
+
+.liquid-tabs[data-orientation="horizontal"] .liquid-tab {
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+
+.liquid-tabs[data-orientation="vertical"] .liquid-tab {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.liquid-tab:hover:not([aria-selected="true"]) {
+  color: rgb(255 255 255 / 0.8);
+}
+
+.liquid-tab:focus-visible {
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 0.6);
+}
+
+.liquid-tab[aria-selected="true"] {
+  color: rgb(255 255 255 / 0.94);
+  font-weight: 650;
+}
+
+.liquid-tab-icon {
+  display: grid;
+  place-items: center;
+  opacity: 0.85;
+}
+
+/* The selection glass: placed and sized by LiquidTabs each frame (transform + width/height). */
+.liquid-tabs-indicator.g {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  z-index: 41;
+  min-width: 1px;
+  box-shadow: 0 2px 7px rgb(0 0 0 / 0.24);
+  pointer-events: none;
+  will-change: width, transform;
+}
+
+.liquid-tabs[data-orientation="vertical"] > .liquid-tabs-indicator.g {
+  top: 0;
+  right: 3px;
+  bottom: auto;
+  left: 3px;
+  min-width: 0;
+  min-height: 1px;
+  will-change: height, transform;
+}
+
+/* Disabled: greyed out. The indicator holds glass, so its layers fade one by one; opacity on the
+   indicator (an ancestor of its filters) would flatten the blur. */
+.liquid-tabs[data-disabled] {
+  --tabs-dim: 0.35;
+  pointer-events: none;
+}
+
+.liquid-tabs[data-disabled] .liquid-tab,
+.liquid-tabs[data-disabled] .liquid-tab[aria-selected="true"] {
+  color: rgb(255 255 255 / 0.22);
+}
+
+.liquid-tabs > .liquid-tabs-indicator > :is(.g-rim, .g-shadow),
+.liquid-tabs > .liquid-tabs-indicator > .g-body > *,
+.liquid-tabs > .liquid-tabs-indicator::before {
+  opacity: calc(var(--presence) * var(--tabs-dim));
+}
+
+/* TaskMap's bright-selection effect: a faint white lift over the glass. */
+.liquid-tabs-indicator.g::before {
+  position: absolute;
+  z-index: 0;
+  border-radius: inherit;
+  background: rgb(255 255 255 / 0.075);
+  content: "";
+  inset: 0;
+  opacity: var(--presence);
+  pointer-events: none;
+}
+
+.liquid-tabs-indicator.g > .g-shadow {
+  display: none;
+}
+
+/* Overscanned filters are already masked to the pill. Keep their invisible bounds out of
+   ancestor scroll ranges, including while the end tab's spring stretches near the edge.
+   Overflow clipping preserves backdrop sampling; a mask on this ancestor would not. */
+.liquid-tabs-indicator.g > .g-body {
+  overflow: clip;
+}
+
+/* ---------- Liquid toggle switch ---------- */
+
+.liquid-toggle {
+  flex: none;
+  width: 40px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  outline: 0;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.liquid-toggle:focus-visible .liquid-toggle-track::before {
+  border-color: rgb(var(--accent-rgb) / 0.8);
+}
+
+.liquid-toggle-track {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.liquid-toggle-track::before {
+  position: absolute;
+  z-index: 0;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: inherit;
+  background: rgb(6 7 9 / 0.94);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.045),
+    0 1px 3px rgb(0 0 0 / 0.24);
+  content: "";
+  inset: 0;
+  opacity: var(--presence);
+  pointer-events: none;
+  transition:
+    background 200ms,
+    border-color 200ms,
+    box-shadow 200ms;
+}
+
+.liquid-toggle-track[data-checked]::before {
+  border-color: rgb(var(--accent-rgb) / 0.68);
+  background: color-mix(in srgb, var(--accent) 84%, #10161c);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.13),
+    0 2px 8px rgb(var(--accent-rgb) / 0.18);
+}
+
+/* Placed and sized by LiquidToggleSwitch each frame. */
+.liquid-toggle-knob.g {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 41;
+  overflow: hidden;
+  will-change: width, height, transform;
+}
+
+.liquid-toggle-knob.g > .g-shadow {
+  display: none;
+}
+
+.liquid-toggle-knob-tint {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  inset: 0;
+  pointer-events: none;
+  transition: background 200ms;
+}
+
+.liquid-toggle-knob[data-switch-state="off"] .liquid-toggle-knob-tint {
+  background: rgb(255 255 255 / 0.16);
+}
+
+.liquid-toggle-knob[data-switch-state="on"] .liquid-toggle-knob-tint {
+  background: rgb(0 0 0 / 0.67);
+}
+
+.liquid-toggle:disabled {
+  cursor: default;
+  opacity: 0.52;
+}

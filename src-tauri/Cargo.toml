@@ -1,0 +1,73 @@
+[package]
+name = "rankdb"
+version = "0.0.0"
+description = "RankDB rewrite"
+authors = ["Merk"]
+edition = "2021"
+rust-version = "1.85"
+
+[features]
+default = []
+# Debug-only automation bridge for the `tauri` MCP server (screenshots, JS, IPC). Never in releases.
+mcp-development = ["dep:tauri-plugin-mcp-bridge"]
+
+[build-dependencies]
+tauri-build = { version = "=2.7.3", features = [] }
+
+[dependencies]
+# Email/password encryption (src/secrets.rs): AES-256-GCM with a random data key.
+aes-gcm = { version = "=0.11.1", features = ["zeroize"] }
+zeroize = "=1.9.1"
+getrandom = "=0.4.3"
+# Master-password key wrapping: PBKDF2-SHA256 + AES-GCM.
+base64 = "=0.23.1"
+pbkdf2 = "=0.13.0"
+sha2 = "=0.11.1"
+# Update checks (GitHub releases, signed) and the restart after installing one.
+tauri-plugin-updater = "=2.14.0"
+tauri-plugin-process = "=2.4.0"
+# One running copy: a second start focuses the first instead of opening the database twice.
+tauri-plugin-single-instance = "=2.5.4"
+# Discord Rich Presence (src/discord.rs).
+discord-rich-presence = "=1.1.0"
+# Bundled SQLite: the data store (src/db.rs).
+rusqlite = { version = "=0.40.2", features = ["bundled"] }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+tauri = { version = "=2.12.4", features = [] }
+tauri-plugin-mcp-bridge = { version = "=0.13.1", optional = true }
+
+# Same versions Tauri already uses: WebView2 settings (browser features off) and the Win32
+# features for the resize-edge hit test.
+[target.'cfg(windows)'.dependencies]
+webview2-com = "=0.39.1"
+windows-core = "=0.62.2"
+windows = { version = "=0.62.2", features = [
+  "Win32_Foundation",
+  # Clipboard writes kept out of clipboard history, cleared after a delay (src/clipboard.rs).
+  "Win32_System_DataExchange",
+  "Win32_System_Memory",
+  "Win32_System_Ole",
+  "Win32_UI_Shell",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true
+
+# PBKDF2 (600 000 rounds per master-password operation) takes many seconds unoptimized; optimize just the
+# crypto crates in dev builds.
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.dev.package.pbkdf2]
+opt-level = 3
+
+[profile.dev.package.hmac]
+opt-level = 3
+
+[profile.dev.package.aes-gcm]
+opt-level = 3

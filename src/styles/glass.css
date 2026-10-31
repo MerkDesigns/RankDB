@@ -1,0 +1,326 @@
+/*
+ * Glass surfaces. Layer order follows TaskMap's MaterialSurface:
+ *   shadow (outside the body) → body [filters | baked image, tint] → rim → content
+ * Role variables (--major-*, --minor-*) are written by glass/engine.ts.
+ */
+
+/* Presence (ui/primitives/motion/presence.ts): 0 hidden → 1 visible, inherited so every glass layer
+   and marked content under a surface follows it. Registered so frames interpolate a number. */
+@property --presence {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+[data-presence-content] {
+  opacity: var(--presence);
+}
+
+.g {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--g-radius);
+}
+
+.g[data-role="major"] {
+  --g-radius: var(--major-radius);
+  --g-pre: var(--major-pre);
+  --g-blur: var(--major-blur);
+  --g-sat: var(--major-sat);
+  --g-bright: var(--major-bright);
+  --g-tint: var(--major-tint);
+  --g-os: var(--major-os);
+  --g-mask: var(--major-mask);
+  --g-shadow: var(--major-shadow);
+  --g-bake: var(--bake-major);
+  --g-rim-top: var(--major-rim-top);
+  --g-rim-bottom: var(--major-rim-bottom);
+  --g-rim-side: var(--major-rim-side);
+  --g-rim-hot: var(--major-rim-hot);
+}
+
+.g[data-role="minor"] {
+  --g-radius: var(--minor-radius);
+  --g-pre: var(--minor-pre);
+  --g-blur: var(--minor-blur);
+  --g-sat: var(--minor-sat);
+  --g-bright: var(--minor-bright);
+  --g-tint: var(--minor-tint);
+  --g-os: var(--minor-os);
+  --g-mask: var(--minor-mask);
+  --g-shadow: var(--minor-shadow);
+  --g-bake: var(--bake-minor);
+  --g-rim-top: var(--minor-rim-top);
+  --g-rim-bottom: var(--minor-rim-bottom);
+  --g-rim-side: var(--minor-rim-side);
+  --g-rim-hot: var(--minor-rim-hot);
+}
+
+.g-shadow,
+.g-body,
+.g-rim,
+.g-filter,
+.g-baked,
+.g-tint {
+  position: absolute;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.g-shadow {
+  z-index: -2;
+  inset: 0;
+  box-shadow: var(--g-shadow);
+  opacity: var(--presence);
+}
+
+/* Overlays (pickers, dialogs) always cast TaskMap's full shadow; the strength slider is for rows. */
+.g[data-role="major"][data-overlay] {
+  --g-shadow: var(--major-shadow-overlay);
+}
+
+.g[data-role="minor"][data-overlay] {
+  --g-shadow: var(--minor-shadow-overlay);
+}
+
+:root[data-shadows="false"] .g-shadow,
+.g[data-mode="opaque"] > .g-shadow {
+  display: none;
+}
+
+.g-body {
+  z-index: -1;
+  inset: 0;
+}
+
+/* Filters sample past their edge (overscan) and are masked back to the rounded shape, so the
+   glass picks up colour from just outside it. Masks sit on the filter outputs, never on an
+   ancestor: a masked ancestor becomes a backdrop root and the filters would sample nothing. */
+.g-filter {
+  /* TaskMap's blur presence: waits for the first 20% of the presence, then follows it. */
+  --blur-presence: clamp(0, calc((var(--presence) - 0.2) / 0.8), 1);
+  inset: calc(-1 * var(--g-os));
+  border-radius: 0;
+  background: rgb(0 0 0 / 0.001);
+  mask-image: var(--g-mask);
+  mask-size: calc(100% - 2 * var(--g-os)) calc(100% - 2 * var(--g-os));
+  mask-position: var(--g-os) var(--g-os);
+  mask-repeat: no-repeat;
+}
+
+.g-pre {
+  backdrop-filter: blur(calc(var(--g-pre) * var(--blur-presence)));
+}
+
+.g-blur {
+  backdrop-filter: blur(calc(var(--g-blur) * var(--blur-presence)))
+    saturate(calc(1 + (var(--g-sat) - 1) * var(--presence)))
+    brightness(calc(1 + (var(--g-bright) - 1) * var(--presence)));
+  transform: translateZ(0);
+}
+
+:root[data-major-pre="off"] .g[data-role="major"]:not(.sonner-major-material) > .g-body > .g-pre,
+:root[data-minor-pre="off"] .g[data-role="minor"] > .g-body > .g-pre,
+:root[data-minor-pre="off"] .plane-pre {
+  display: none;
+}
+
+.g-baked {
+  inset: 0;
+  background-image: var(--g-bake);
+  background-size: var(--bake-size);
+  background-repeat: no-repeat;
+}
+
+.g-tint {
+  inset: 0;
+  background-color: var(--g-tint);
+  opacity: var(--presence);
+}
+
+.g-baked {
+  opacity: var(--presence);
+}
+
+.g[data-mode="shell"] > .g-body > .g-tint {
+  background-color: var(--shell-body);
+  background-image: linear-gradient(var(--g-tint), var(--g-tint));
+}
+
+/* Shells in the list that would draw nothing (engine: data-list-shells): skip their layers. */
+:root[data-list-shells="empty"] .list-content .g[data-mode="shell"]:not([data-overlay]) {
+  isolation: auto;
+}
+
+:root[data-list-shells="empty"] .list-content .g[data-mode="shell"]:not([data-overlay]) > :is(.g-shadow, .g-body, .g-rim) {
+  display: none;
+}
+
+/* ---------- Off: today's RankDB ---------- */
+
+:root[data-strategy="off"] .g {
+  --g-radius: 9px;
+}
+
+:root[data-strategy="off"] .group {
+  --g-radius: 12px;
+}
+
+.g[data-mode="opaque"] > .g-body > .g-tint {
+  background: #0d1118;
+}
+
+.g[data-mode="opaque"][data-tone="primary"] > .g-body > .g-tint {
+  background: #10131a;
+}
+
+.g[data-mode="opaque"].group > .g-body > .g-tint {
+  background: #0a0e13;
+}
+
+.g[data-mode="opaque"] > .g-rim {
+  border: 1px solid #323744;
+}
+
+.g[data-mode="opaque"].group > .g-rim {
+  border-color: #27313a;
+}
+
+/* ---------- Rim ---------- */
+
+.g-rim {
+  z-index: 1;
+  inset: 0;
+  opacity: var(--presence);
+}
+
+.g-rim > canvas {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+/* Live glass with an exact rim draws it on its own canvas, redrawn as the surface resizes. */
+.g[data-rim-canvas] > .g-rim > canvas {
+  display: block;
+}
+
+
+/* Scroll-edge morph (glass/scrollEdgeMorph.ts): shadow, body and rim shrink to the visible
+   slice; the content clips to it with the same rounding. The card's box never changes. */
+.g[data-slice="true"] > :is(.g-shadow, .g-body, .g-rim) {
+  inset: var(--slice-top, 0px) var(--slice-right, 0px) var(--slice-bottom, 0px) var(--slice-left, 0px);
+}
+
+.g[data-slice="true"] > [data-slice-content] {
+  clip-path: inset(
+    var(--slice-top, 0px) var(--slice-right, 0px) var(--slice-bottom, 0px) var(--slice-left, 0px)
+      round var(--g-radius)
+  );
+}
+
+/* Wholly outside the visible area, e.g. in the viewport's shadow gutter. */
+.g[data-slice="hidden"] {
+  visibility: hidden;
+}
+
+/* Rim-only glass (Glass rimOnly): tint and rim, no blur and no dark shell backing. */
+.g[data-rim-only] > .g-body > .g-tint {
+  background-color: transparent;
+}
+
+/* Each material picks its own rim style (data-rim-major / data-rim-minor, set by the engine). */
+:root[data-rim-major="exact"] .g:is([data-role="major"], [data-overlay]):not([data-mode="opaque"], [data-live]) > .g-rim,
+:root[data-rim-minor="exact"] .g[data-role="minor"]:not([data-mode="opaque"], [data-live]) > .g-rim {
+  background-image: var(--rim-img);
+  background-size: 100% 100%;
+}
+
+/* Straight edges have constant normals, so a vertical gradient through the corner radius
+   approximates the directional rim; a radial hot spot adds the light-facing corner. */
+:root[data-rim-major="css"] .g:is([data-role="major"], [data-overlay]):not([data-mode="opaque"]) > .g-rim,
+:root[data-rim-minor="css"] .g[data-role="minor"]:not([data-mode="opaque"]) > .g-rim,
+/* Animated (live) glass without an exact rim canvas uses the CSS rim: it follows any size. */
+.g[data-live]:not([data-mode="opaque"], [data-rim-canvas]) > .g-rim {
+  /* TaskMap's 1.5px on screen at every UI scale (the app is zoomed; undo it). */
+  padding: calc(1.5px / var(--ui-zoom, 1));
+  background:
+    radial-gradient(circle at 0 0, var(--g-rim-hot) 0, transparent calc(var(--g-radius) * 2)),
+    linear-gradient(
+      to bottom,
+      var(--g-rim-top) 0,
+      var(--g-rim-side) var(--g-radius),
+      var(--g-rim-side) calc(100% - var(--g-radius)),
+      var(--g-rim-bottom) 100%
+    );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+:root[data-rim-major="flat"] .g:is([data-role="major"], [data-overlay]):not([data-mode="opaque"]) > .g-rim,
+:root[data-rim-minor="flat"] .g[data-role="minor"]:not([data-mode="opaque"]) > .g-rim {
+  border: calc(1px / var(--ui-zoom, 1)) solid rgb(255 255 255 / 0.13);
+}
+
+/* ---------- Shared list plane ---------- */
+
+.plane {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.plane-layer {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.001);
+  mask-image: var(--plane-mask);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+}
+
+.plane-pre {
+  backdrop-filter: blur(var(--minor-pre));
+}
+
+.plane-blur {
+  backdrop-filter: blur(var(--minor-blur)) saturate(var(--minor-sat)) brightness(var(--minor-bright));
+}
+
+/* Baked: the mask lives on the plane (scrolls with rows); the image inside is held still. */
+.plane[data-kind="baked"] {
+  mask-image: var(--plane-mask);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+}
+
+.plane-baked {
+  position: absolute;
+  top: 0;
+  left: var(--viewport-x);
+  width: var(--viewport-w);
+  height: var(--viewport-h);
+  background-image: var(--bake-minor);
+  background-size: var(--bake-size);
+  background-position: var(--bake-pos);
+  background-repeat: no-repeat;
+  will-change: transform;
+}
+
+.plane-baked {
+  animation: plane-counter-scroll linear both;
+  animation-timeline: --list-scroll;
+}
+
+@keyframes plane-counter-scroll {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--max-scroll));
+  }
+}

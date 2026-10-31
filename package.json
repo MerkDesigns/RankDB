@@ -1,0 +1,42 @@
+{
+  "name": "rankdb-rewrite",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5180 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test:toasts": "node --import ./scripts/test-typescript.mjs --test scripts/toasts.test.mjs",
+    "test:credentials": "node --experimental-vm-modules --test scripts/credential-security.test.mjs",
+    "app:dev": "node scripts/dev-app.mjs",
+    "app:dev:mcp": "node scripts/dev-app.mjs --features mcp-development --config src-tauri/tauri.mcp.conf.json",
+    "app:profile": "node scripts/dev-app.mjs --devtools-port 9333 --features mcp-development --config src-tauri/tauri.mcp.conf.json",
+    "bench": "node scripts/bench.mjs",
+    "bundle:dev": "tauri build --config src-tauri/tauri.devapp.conf.json",
+    "check": "npm run check:strings && tsc --noEmit && vite build && cargo check --manifest-path src-tauri/Cargo.toml --features mcp-development",
+    "tauri": "tauri",
+    "test:strings": "node --experimental-vm-modules --test scripts/strings.test.mjs",
+    "check:strings": "node scripts/check-strings.mjs",
+    "test:scroll": "node --test scripts/scroll-edge.test.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.4",
+    "@tauri-apps/plugin-process": "2.4.0",
+    "@tauri-apps/plugin-updater": "2.14.0",
+    "flag-icons": "7.6.0",
+    "lucide-react": "1.57.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "sonner": "2.0.8"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "rolldown": "1.2.15"
+  }
+}

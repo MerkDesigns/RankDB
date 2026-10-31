@@ -1,0 +1,8 @@
+node_modules
+dist
+bench-results
+*.log
+.vscode
+.idea
+Thumbs.db
+.DS_Store

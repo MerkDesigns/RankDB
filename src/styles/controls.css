@@ -1,0 +1,1075 @@
+/* Phase 2 controls, ported from TaskMap (contextMenu.css, forms.css, controls.css, ToastStack.css). */
+
+:root {
+  --danger: #ff4949;
+  --warning: #e39343;
+  --success: #51d88b;
+  --info: #5684e0;
+}
+
+/* ---------- Generic dialog panel ---------- */
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  padding: var(--tm-modal-padding);
+  color: var(--tm-text);
+}
+
+.account-dialog {
+  width: 400px;
+}
+
+.dialog-lead {
+  margin: 0 0 var(--tm-space-3);
+  color: var(--tm-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dialog-text,
+.dialog-note {
+  margin: 0 0 var(--tm-space-4);
+  color: rgb(255 255 255 / 0.75);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dialog-form {
+  display: grid;
+  gap: var(--tm-space-3);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--tm-space-2);
+  margin-top: var(--tm-space-2);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px var(--tm-space-4);
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.info-grid dt {
+  color: var(--tm-muted);
+}
+
+.info-grid dd {
+  margin: 0;
+}
+
+/* ---------- Fields ---------- */
+
+.field {
+  display: grid;
+  gap: var(--tm-space-1);
+}
+
+.field-label {
+  justify-self: start;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.field-description {
+  color: var(--tm-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.input-shell {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 8px;
+  background: rgb(8 9 10 / 0.66);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.045);
+}
+
+.input-shell:focus-within {
+  border-color: rgb(255 255 255 / 0.23);
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: var(--tm-control-height);
+  padding: 0 var(--tm-space-3);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 8px;
+  outline: none;
+  background: rgb(8 9 10 / 0.66);
+  color: var(--tm-text);
+  font: inherit;
+  font-size: 13px;
+  user-select: text;
+}
+
+.input:focus {
+  border-color: rgb(255 255 255 / 0.23);
+}
+
+.input-shell .input {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.input:disabled {
+  opacity: var(--tm-disabled-opacity);
+}
+
+/* WebView2 adds its own reveal button to password fields; ours is the eye button. */
+.input::-ms-reveal,
+.input::-ms-clear {
+  display: none;
+}
+
+.textarea {
+  height: auto;
+  padding: var(--tm-space-2) var(--tm-space-3);
+  resize: vertical;
+  line-height: 1.45;
+}
+
+/* Our own chevron (the native arrow sits flush against the edge and can't be moved). */
+.select {
+  appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+}
+
+.select option {
+  background: #18191b;
+}
+
+.input-trailing {
+  display: flex;
+  padding-right: 4px;
+}
+
+.input-icon-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tm-muted);
+}
+
+.input-icon-button:hover {
+  background: rgb(255 255 255 / 0.075);
+  color: var(--tm-text);
+}
+
+/* ---------- Buttons ---------- */
+
+.button {
+  height: var(--tm-control-height);
+  padding: 0 var(--tm-space-3);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.055);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background-color 120ms,
+    border-color 120ms,
+    opacity 150ms,
+    transform 120ms;
+}
+
+.button:hover:not(:disabled) {
+  border-color: rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.09);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.52;
+}
+
+.button[data-variant="primary"] {
+  border-color: rgb(var(--accent-rgb) / 0.72);
+  background: var(--accent);
+  color: #0d1014;
+}
+
+.button[data-variant="primary"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 88%, white);
+}
+
+.button[data-variant="danger"] {
+  border-color: color-mix(in srgb, var(--danger) 58%, transparent);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: color-mix(in srgb, var(--danger) 78%, white);
+}
+
+.button[data-variant="danger"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 21%, transparent);
+}
+
+/* ---------- Context menu (TaskMap: opaque, 165px) ---------- */
+
+.context-menu {
+  position: fixed;
+  z-index: 50;
+  display: grid;
+  width: max-content;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 4px;
+  border: 1px solid rgb(255 255 255 / 0.09);
+  border-top-color: rgb(255 255 255 / 0.12);
+  border-radius: 8px;
+  background: rgb(24 25 27);
+  box-shadow: 0 5px 12px rgb(0 0 0 / 0.44);
+  color: var(--tm-text);
+  transform-origin: top left;
+  animation: context-menu-enter 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.context-menu[data-motion-state="closing"] {
+  pointer-events: none;
+  animation: context-menu-exit 90ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-space-2);
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  outline: 0;
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.context-menu-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-menu-chevron {
+  flex: none;
+  margin-right: -2px;
+  opacity: 0.7;
+}
+
+.context-menu-item[data-open] {
+  background: rgb(255 255 255 / 0.075);
+}
+
+/* An item with a small icon button at its end (Add Dodge + reset). */
+.context-menu-split {
+  display: flex;
+  gap: 2px;
+}
+
+.context-menu-split > .context-menu-item:first-child {
+  flex: 1;
+}
+
+.context-menu-aside {
+  justify-content: center;
+  width: 32px;
+  padding: 0;
+}
+
+.context-menu-item:hover:not(:disabled),
+.context-menu-item:focus-visible {
+  background: rgb(255 255 255 / 0.075);
+}
+
+.context-menu-item[data-tone="danger"] {
+  color: var(--danger);
+}
+
+.context-menu-item:disabled {
+  opacity: 0.4;
+}
+
+.context-menu-icon {
+  flex: none;
+}
+
+.context-menu-divider {
+  height: 1px;
+  margin: 4px;
+  background: rgb(255 255 255 / 0.09);
+}
+
+@keyframes context-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.96);
+  }
+}
+
+@keyframes context-menu-exit {
+  to {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.97);
+  }
+}
+
+/* ---------- Sonner motion with the app's actual Major glass material ---------- */
+[data-sonner-toaster].rankdb-toaster {
+  z-index: 60;
+  font-family: inherit;
+  width: min(356px, calc(100vw - 2 * var(--toast-edge-x)));
+  right: var(--toast-edge-x) !important;
+  left: auto !important;
+  bottom: var(--toast-edge-y) !important;
+}
+
+/* A fading ancestor is a backdrop root. Keep Sonner's positioning surface transparent/opaque=1,
+   and let --presence fade the Major layers and glass-free content separately. */
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast[data-styled="true"] {
+  --presence: 0;
+  opacity: 1 !important;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 24px;
+  grid-template-rows: auto;
+  align-items: start;
+  gap: 7px 10px;
+  padding: 12px 16px;
+  border-radius: var(--toast-radius);
+  border: 0;
+  background: transparent;
+  color: rgb(255 255 255 / var(--toast-text-alpha));
+  box-shadow: none;
+  backdrop-filter: none;
+  width: 100%;
+  transition: transform var(--toast-move-ms), height var(--toast-move-ms), --presence var(--toast-fade-ms) ease;
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast][data-swipe-out="true"] { animation-duration: var(--toast-fade-ms); }
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast][data-mounted="true"][data-visible="true"]:not([data-removed="true"]) { --presence: 1; }
+
+[data-sonner-toaster].rankdb-toaster .sonner-major-material.g {
+  --g-radius: var(--toast-radius);
+  --g-pre: var(--toast-pre);
+  --g-blur: var(--toast-blur);
+  --g-sat: var(--toast-sat);
+  --g-bright: var(--toast-bright);
+  --g-tint: var(--toast-tint);
+  --g-os: var(--toast-os);
+  --g-mask: var(--toast-mask);
+  --g-shadow: var(--toast-shadow);
+  --g-rim-top: var(--toast-rim-top);
+  --g-rim-bottom: var(--toast-rim-bottom);
+  --g-rim-side: var(--toast-rim-side);
+  --g-rim-hot: var(--toast-rim-hot);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+:root[data-toast-pre="off"] .sonner-major-material > .g-body > .g-pre { display: none; }
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast] > :is([data-icon], [data-content], [data-close-button]) {
+  opacity: var(--presence);
+  z-index: 2;
+  /* Inherited presence already interpolates the fade; a second opacity transition lags behind. */
+  transition: none;
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast [data-icon] {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  background: none;
+  box-shadow: none;
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast [data-icon] svg {
+  margin: 0;
+  width: var(--toast-icon-size);
+  height: var(--toast-icon-size);
+  stroke-width: var(--toast-icon-stroke);
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast[data-type="success"] [data-icon] { color: var(--success); }
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast[data-type="info"] [data-icon] { color: var(--info); }
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast[data-type="warning"] [data-icon] { color: var(--warning); }
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast[data-type="error"] [data-icon] { color: var(--danger); }
+
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast [data-content] {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  gap: 3px;
+  min-width: 0;
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast [data-title] {
+  font-size: 13.5px;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast [data-description] {
+  color: rgb(255 255 255 / var(--toast-detail-alpha));
+  font-size: 12px;
+  line-height: 1.5;
+  /* Bound long details so three cards fit at the minimum window height. */
+  max-height: clamp(24px, calc((100dvh - 100px) / 3 - 120px), 110px);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast [data-close-button] {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+  position: relative;
+  inset: auto;
+  transform: none;
+  border: 0;
+  background: transparent;
+  color: var(--tm-muted);
+  width: 24px;
+  height: 24px;
+  margin: 0;
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast [data-close-button]:is(:hover, :focus-visible) {
+  background: rgb(255 255 255 / 0.09);
+  color: var(--tm-text);
+}
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.sonner-deadline {
+  position: absolute;
+  pointer-events: none;
+  bottom: 6px;
+  left: max(12px, var(--toast-radius));
+  right: max(12px, var(--toast-radius));
+  height: 2px;
+  border-radius: 999px;
+  background: rgb(var(--accent-rgb) / 0.65);
+  transform-origin: left;
+  animation: sonner-deadline var(--toast-duration) linear both;
+}
+@keyframes sonner-deadline { to { transform: scaleX(0); } }
+/* ---------- Row editing ---------- */
+
+.value {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: text;
+}
+
+.account-name-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.new-pill {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f3c94a;
+  color: #4b3600;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.inline-edit {
+  min-width: 0;
+  padding: 0 0 2px;
+  border: 0;
+  border-bottom: 1px solid rgb(148 163 184 / 0.8);
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  user-select: text;
+}
+
+.account-name-edit {
+  width: 100%;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.value-edit {
+  width: 100%;
+  font-size: 19px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.lead-button[data-empty] {
+  opacity: 0.45;
+}
+
+/* ---------- Phase 3: groups, sorting ---------- */
+
+.context-menu-section {
+  padding: 6px 10px 4px;
+  color: var(--tm-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* "Last edit: 11 Aug 2026": the value in normal case, brighter. */
+.context-menu-section-value {
+  margin-left: 6px;
+  color: rgb(255 255 255 / 0.88);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.group-menu-button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+}
+
+.group-menu-button:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--text);
+}
+
+.group-name-edit {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.group-empty {
+  margin: var(--row-gap) 0 0;
+  padding: 10px 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* The rank column the list is sorted by. */
+.island-flex .role-sort {
+  width: 64px;
+}
+
+.island-flex .role-sort img {
+  width: 26px;
+  height: 26px;
+}
+
+/* ---------- Drag to reorder (ui/listDrag.ts, TaskMap's canvas browser motion) ---------- */
+
+/* Everything else slides to open the gap (TaskMap: 190 ms, easeOutQuart). */
+.list-content[data-reordering] :is(.row, .group, .group-head, .group-rule, .group-empty, .section-divider) {
+  transition: translate 190ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.list-content[data-reordering] {
+  cursor: grabbing;
+}
+
+/* The held item: follows the pointer (no translate easing), lifts to 1.06x, above the others. */
+.list-content[data-reordering] :is(.row, .group)[data-held] {
+  z-index: 10;
+  pointer-events: none;
+  transition: scale 190ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Dropped: it glides into its gap and settles to its size on the same curve. */
+.list-content[data-reordering] :is(.row, .group)[data-held][data-settling] {
+  transition:
+    translate 190ms cubic-bezier(0.25, 1, 0.5, 1),
+    scale 190ms cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 190ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* The held row looks exactly as it did under the pointer (its plate and hover stay as they were);
+   it only gains a plain blur of whatever it passes over. The blur exists only while dragging, so
+   resting rows cost nothing. */
+.row[data-held]::before {
+  --row-hover: 1;
+  backdrop-filter: blur(var(--held-blur));
+  transition: none;
+}
+
+
+/* A row dragged out of its group: the group (its stacking context) rises with it. */
+.list-content > .group:has(.row[data-held]) {
+  z-index: 10;
+}
+
+/* No hover plates on the other rows mid-drag. */
+.list-content[data-reordering] .row:not([data-held]):hover::before {
+  --row-hover: 0;
+}
+
+/* A group being dragged is shown collapsed (its rows close up underneath while it is held). */
+.group[data-drag-collapsed] > .group-body {
+  display: none;
+}
+
+.group[data-drag-collapsed] .group-toggle svg {
+  transform: rotate(-90deg);
+}
+
+/* A group opening and closing (AccountList GroupBody): eased height through grid rows, with a
+   fade. The rows are clipped only while it animates, so hover plates and shadows show at rest. */
+.group-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 240ms cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 200ms ease;
+}
+
+.group-body[data-open] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.group-body-inner {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+/* Clipped top and bottom only: the rows' plates and lift reach past the sides. */
+.group-body[data-animating] > .group-body-inner {
+  overflow-x: visible;
+  overflow-y: clip;
+}
+
+/* A collapsed group's head taking the hovering row. */
+.group-head[data-drop-target] {
+  border-radius: 12px;
+  background: rgb(var(--accent-rgb) / 0.12);
+  box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 0.45);
+  transition:
+    background-color 150ms,
+    box-shadow 150ms;
+}
+
+/* ---------- Phase 4: games dodged, undo, rank history ---------- */
+
+/* A read-only block in a menu (next penalty). */
+.context-menu-note {
+  display: grid;
+  gap: 4px;
+  min-width: 206px;
+  padding: 8px 10px 8px;
+}
+
+.context-menu-note-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--tm-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Info icon with the old app's popout: a raised panel below it, fading in on hover or focus. */
+.context-menu-hint {
+  position: relative;
+  margin: -4px -4px -4px 0;
+}
+
+.context-menu-hint-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tm-muted);
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+
+.context-menu-hint-button:hover,
+.context-menu-hint-button:focus-visible {
+  outline: 0;
+  background: rgb(255 255 255 / 0.075);
+  color: var(--tm-text);
+}
+
+.context-menu-hint-popout {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 1;
+  width: 238px;
+  padding: 8px 12px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 8px;
+  background: rgb(30 31 34);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.42);
+  color: rgb(255 255 255 / 0.82);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms;
+}
+
+.context-menu-hint:hover > .context-menu-hint-popout,
+.context-menu-hint-button:focus-visible + .context-menu-hint-popout {
+  opacity: 1;
+}
+
+.context-menu-note-value {
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.1;
+}
+
+.context-menu-note-detail {
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.account-info {
+  width: 440px;
+}
+
+/* Title: account icon, "Account Info", a divider, the Battletag. */
+.info-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.info-title-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+.info-title-divider {
+  color: var(--tm-muted);
+  font-weight: 400;
+}
+
+.info-title-name {
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.78);
+  font-size: 15px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-tabs {
+  flex: none;
+  margin-bottom: 18px;
+}
+
+/* Both tabs in one grid cell: Details sizes it; the hidden one keeps its place unseen. In a short
+   window the cell shrinks with the dialog, and only the notes give up height. */
+.info-panels {
+  display: grid;
+  min-height: 0;
+  flex: 0 1 auto;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
+.info-panels > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.info-panels > [data-inactive] {
+  visibility: hidden;
+}
+
+/* Scrolls only when even the shrunk notes don't fit (a very short window). The bottom padding
+   holds the status tabs' glass overscan (sampled past their edge), so it never scrolls for that. */
+.info-details {
+  display: flex;
+  margin-bottom: -12px;
+  padding-bottom: 12px;
+  flex-direction: column;
+  gap: 18px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.info-details > * {
+  flex: none;
+}
+
+/* The one part that shrinks in a short window (down to about one line). */
+.info-details > .info-notes {
+  display: flex;
+  /* Label (14px), gap (8px) and one line of text with its padding (38px). */
+  min-height: 60px;
+  flex: 0 1 auto;
+  flex-direction: column;
+}
+
+.info-notes .textarea.notes {
+  height: 96px;
+  min-height: 38px;
+  scrollbar-width: thin;
+  flex: 0 1 auto;
+}
+
+.info-section {
+  display: grid;
+  gap: 8px;
+}
+
+.info-label {
+  color: var(--tm-muted);
+  font-size: 11px;
+  line-height: 14px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.account-info .input,
+.account-info .button {
+  height: 36px;
+}
+
+/* The old app's country picker: the dropdown, and the flag in a box beside it. */
+.country-row {
+  display: flex;
+  gap: 8px;
+}
+
+.country-row .select {
+  flex: 1;
+  min-width: 0;
+}
+
+.country-flag {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 60px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 8px;
+  background: rgb(8 9 10 / 0.66);
+}
+
+.country-flag img {
+  width: 28px;
+  height: 21px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+.battlenet-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.battlenet-button img {
+  width: 18px;
+  height: 18px;
+}
+
+.battlenet-button svg {
+  color: var(--tm-muted);
+}
+
+.account-info .textarea.notes {
+  resize: none;
+}
+
+/* Status: the selected label takes the section's colour. */
+.status-tabs[data-status="sms"] .liquid-tab[aria-selected="true"] {
+  color: rgb(253 214 160);
+}
+
+.status-tabs[data-status="banned"] .liquid-tab[aria-selected="true"] {
+  color: rgb(254 205 211);
+}
+
+.info-actions {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.info-actions .button {
+  min-width: 88px;
+}
+
+/* Rank history: role icons over four columns of badges, a reset's date on the left. */
+/* No height of its own (Details sets the cell's); fills the cell and scrolls its rows. */
+.rank-history {
+  --badge-w: 72px;
+  --badge-h: 31px;
+  --badge-number-size: 17px;
+  display: flex;
+  height: 0;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-body {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  align-content: start;
+  gap: 4px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: 1fr repeat(4, var(--badge-w));
+  align-items: center;
+  column-gap: 8px;
+  min-height: 40px;
+  padding: 0 4px;
+  border-radius: 8px;
+}
+
+.history-body > .history-row:nth-child(odd) {
+  background: rgb(255 255 255 / 0.03);
+}
+
+.history-head {
+  min-height: 32px;
+  justify-items: center;
+}
+
+.history-role {
+  width: 22px;
+  height: 22px;
+  opacity: 0.85;
+}
+
+.history-date {
+  color: rgb(255 255 255 / 0.72);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.history-empty {
+  margin: var(--tm-space-2) 0 0;
+  color: var(--tm-muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+/* ---------- Phase 6: What's new, updates ---------- */
+
+.whats-new-list {
+  display: grid;
+  gap: var(--tm-space-3);
+  max-height: 380px;
+  margin-bottom: var(--tm-space-2);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.whats-new-list ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.whats-new-list li {
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.whats-new-list li span {
+  color: var(--tm-muted);
+}
+
+.update-notes {
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre-line;
+}
+
+.update-progress {
+  height: 4px;
+  margin-bottom: var(--tm-space-3);
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.update-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}

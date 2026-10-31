@@ -1,0 +1,821 @@
+{
+  "common": {
+    "email": "Email",
+    "password": "Password",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "never": "Never",
+    "new": "New",
+    "settings": "Settings",
+    "rankdb": "RankDB",
+    "close": "Close",
+    "default": "Default",
+    "none": "None"
+  },
+  "settings": {
+    "tabs": {
+      "visuals": "Visuals",
+      "data": "Data",
+      "misc": "Misc",
+      "accessibleLabel": "Settings sections"
+    },
+    "footer": {
+      "author": "Made by Merk"
+    },
+    "credentialButtons": {
+      "label": "Credential buttons",
+      "description": "Copy the account's email and password"
+    },
+    "currency": {
+      "label": "Currency",
+      "description": "Prisms, coins, credits, competitive and legacy points"
+    },
+    "sixVersusSix": {
+      "description": "For people who play 6v6",
+      "label": "6v6 ranks"
+    },
+    "uiScale": {
+      "label": "UI scale",
+      "percent": "%"
+    },
+    "accentColour": {
+      "label": "Accent colour",
+      "description": "Change the app's accent colour",
+      "resetTooltip": "Reset to RankDB cyan",
+      "resetAccessibleLabel": "Reset accent colour"
+    },
+    "rankEffects": {
+      "label": "Rank effects",
+      "description": "May slightly affect performance on very low-end devices"
+    },
+    "encryption": {
+      "status": {
+        "plain": "Encryption off",
+        "locked": "Encrypted · locked",
+        "unlocked": "Encrypted · unlocked",
+        "loading": "Reading protection settings…"
+      },
+      "description": {
+        "plain": "Emails and passwords are stored without encryption",
+        "protected": "Only saved emails and passwords are protected"
+      },
+      "actions": {
+        "enable": "Enable encryption",
+        "unlock": "Unlock",
+        "lock": "Lock now",
+        "changePassword": "Change password",
+        "disable": "Turn off"
+      },
+      "lockFailed": "Could not lock credentials"
+    },
+    "rankReset": {
+      "label": "Rank reset",
+      "description": "Use this when ranks reset across all accounts. Old ranks are safely archived.",
+      "action": "Reset"
+    },
+    "privacyMode": {
+      "label": "Privacy mode",
+      "description": "Censor account names to avoid revealing secret accounts while screen sharing."
+    },
+    "visibleCharacters": {
+      "label": "Visible characters",
+      "description": "How many characters stay visible",
+      "hidden": "Hidden",
+      "decrease": "Fewer",
+      "increase": "More"
+    },
+    "clipboard": {
+      "label": "Clear clipboard",
+      "description": "Set the time after which credentials get cleared from your clipboard",
+      "decrease": "Sooner",
+      "increase": "Later",
+      "duration": "{seconds} s"
+    },
+    "discordPresence": {
+      "label": "Discord rich presence",
+      "description": "Enable to show the app in your Discord activity"
+    },
+    "updates": {
+      "check": "Check for updates",
+      "whatsNew": "What's new"
+    },
+    "soon": "Soon",
+    "sections": {
+      "columns": "Columns",
+      "credentialProtection": "Credential protection",
+      "privacy": "Privacy"
+    }
+  },
+  "toolbar": {
+    "groupDefaultName": "New group",
+    "addAccount": "Add account",
+    "addGroup": "Add group",
+    "privacy": {
+      "disableTooltip": "Privacy mode is on: show names",
+      "enableTooltip": "Privacy mode: hide names"
+    },
+    "history": {
+      "activeTooltip": "Showing past ranks",
+      "tooltip": "Past ranks"
+    }
+  },
+  "accountRows": {
+    "copyEmail": "Copy email",
+    "noEmailSaved": "No email saved",
+    "copyPassword": "Copy password",
+    "noPasswordSaved": "No password saved",
+    "copyBattletag": "Copy BattleTag",
+    "battletag": "BattleTag",
+    "amount": "Amount"
+  },
+  "accountList": {
+    "sections": {
+      "sms": "SMS verification",
+      "banned": "Banned accounts"
+    },
+    "expandGroup": "Expand group",
+    "collapseGroup": "Collapse group",
+    "groupName": "Group name",
+    "count": {
+      "singular": "account",
+      "plural": "accounts"
+    },
+    "groupActions": "Group actions",
+    "emptyGroup": "This group is empty. Drag accounts inside!"
+  },
+  "accountMenu": {
+    "penalties": {
+      "seasonBan": "Season ban",
+      "twoHours": "2 h",
+      "eightHours": "8 h",
+      "twentyHours": "20 h",
+      "fifteenMinutes": "15 min"
+    },
+    "status": {
+      "clean": "Clean",
+      "sms": "SMS",
+      "banned": "Banned"
+    },
+    "lastEditLabel": "Last edit",
+    "editBattletag": "Edit BattleTag",
+    "editCredentials": "Edit credentials",
+    "accountInfo": "Account info",
+    "dodges": {
+      "label": "Games dodged",
+      "penaltyLabel": "Next penalty",
+      "summary": "{dodged} dodged in last 20 games",
+      "help": "Play 20 games without dodging to reset penalties. Dodge 10 games total in a season and the season ban applies.",
+      "add": "Add dodge",
+      "reset": "Reset games dodged"
+    },
+    "move": {
+      "label": "Move to",
+      "heading": "Move to"
+    },
+    "removeFromGroup": "Remove from group",
+    "deleteAccount": "Delete account",
+    "accessibleLabel": "Account actions"
+  },
+  "accountDialogs": {
+    "credentials": {
+      "loadFailed": "Could not read the credentials",
+      "saved": "Credentials saved",
+      "title": "Credentials",
+      "dummyNotice": "Credentials are only kept for saved accounts, not the lab's dummy roster.",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password"
+    },
+    "delete": {
+      "title": "Delete account",
+      "promptPrefix": "Delete ",
+      "promptSuffix": "? Its ranks, currencies, credentials, notes and rank history are removed. This can't be undone.",
+      "success": "Account deleted"
+    },
+    "tabs": {
+      "details": "Details",
+      "history": "Rank history",
+      "accessibleLabel": "Account info sections"
+    },
+    "info": {
+      "loadFailed": "Could not read the account",
+      "saved": "Account info saved",
+      "saveFailed": "Could not save the account info",
+      "title": "Account info",
+      "dummyNotice": "Account info is only kept for saved accounts, not the lab's dummy roster."
+    },
+    "country": {
+      "label": "Country",
+      "empty": "No country selected",
+      "dialCodePrefix": " (",
+      "dialCodeSuffix": ")"
+    },
+    "battlenet": {
+      "action": "Battle.net account settings",
+      "openFailed": "Could not open Battle.net"
+    },
+    "notes": {
+      "label": "Notes"
+    },
+    "status": {
+      "label": "Status"
+    },
+    "history": {
+      "roles": {
+        "tank": "Tank",
+        "damage": "Damage",
+        "support": "Support",
+        "sixVersusSix": "6v6"
+      },
+      "empty": "No rank resets yet.",
+      "rank": "{tier} {division}",
+      "rankAccessibleLabel": "{label}: {rank}"
+    },
+    "titleSeparator": "|"
+  },
+  "groupMenu": {
+    "renameGroup": "Rename group",
+    "delete": {
+      "title": "Delete group",
+      "promptPrefix": "Delete the group ",
+      "description": "The accounts won't get deleted with it.",
+      "success": "Group deleted",
+      "promptSuffix": "?"
+    },
+    "accessibleLabel": "Group actions"
+  },
+  "rankPicker": {
+    "accessibleLabel": "Change rank",
+    "predicted": "Predicted",
+    "divisionHeading": "Div",
+    "divisionAccessibleLabel": "Division",
+    "confirm": "Confirm",
+    "placementsAccessibleLabel": "Placement games played",
+    "placementSeparator": " / "
+  },
+  "rankBadge": {
+    "predictionSuffix": " (predicted, placements {placements}/10)",
+    "editableAccessibleLabel": "{label}, change rank",
+    "rankLabel": "{rank} {division}{prediction}"
+  },
+  "rankNames": {
+    "Bronze": "Bronze",
+    "Silver": "Silver",
+    "Gold": "Gold",
+    "Platinum": "Platinum",
+    "Emerald": "Emerald",
+    "Diamond": "Diamond",
+    "Master": "Master",
+    "Grandmaster": "Grandmaster",
+    "Champion": "Champion",
+    "Unranked": "Unranked"
+  },
+  "pastRanks": {
+    "currentRanks": "Current ranks",
+    "heading": "Rank resets",
+    "empty": "No rank resets yet",
+    "accessibleLabel": "Past ranks"
+  },
+  "seasonReset": {
+    "dummy": {
+      "title": "Not available with dummy data",
+      "description": "Switch the lab to saved accounts."
+    },
+    "success": {
+      "title": "Ranks reset",
+      "description": "{cleared} {rankWord} moved to Past ranks."
+    },
+    "title": "Reset all ranks",
+    "description": "Set every rank of every account (6v6 included) back to Unranked, as at the start of a new season. The current ranks are kept under Past ranks in each account's info.",
+    "confirm": "Reset ranks",
+    "count": {
+      "singular": "rank",
+      "plural": "ranks"
+    }
+  },
+  "header": {
+    "tank": "Tank",
+    "damage": "Damage",
+    "support": "Support",
+    "accounts": " accounts",
+    "sixVersusSix": "6v6"
+  },
+  "windowControls": {
+    "minimize": "Minimize"
+  },
+  "notifications": {
+    "clipboardSuperseded": "Clipboard updated again.",
+    "dismiss": "Dismiss notification",
+    "region": "Notifications"
+  },
+  "clipboard": {
+    "dummy": {
+      "title": "Not available with dummy data",
+      "description": "Switch the lab to saved accounts."
+    },
+    "missingCredential": {
+      "title": "No {field} saved",
+      "description": "Add it with Edit Credentials (right-click the row)."
+    },
+    "secretCopyFailed": "Could not copy the {field}",
+    "copied": "{field} copied",
+    "autoClearDisabled": "Kept on the clipboard (auto-clear is off).",
+    "clearCountdown": "Cleared from the clipboard in {seconds} s.",
+    "battletagCopied": "BattleTag copied",
+    "battletagCopyFailed": "Could not copy the BattleTag"
+  },
+  "credentialSecurity": {
+    "titles": {
+      "enable": "Encrypt credentials",
+      "disable": "Turn off encryption",
+      "unlock": "Unlock credentials",
+      "changePassword": "Change master password"
+    },
+    "success": {
+      "unlocked": "Credentials unlocked",
+      "disabled": "Credential encryption turned off",
+      "passwordChanged": "Master password changed",
+      "enabled": "Credential encryption enabled"
+    },
+    "descriptions": {
+      "enable": "Protect saved email and password fields with a master password you choose. Account names, ranks, notes and other settings stay unencrypted.",
+      "disable": "Saved emails and passwords will be stored without encryption. You can enable protection again later.",
+      "changePassword": "Choose a new master password for your saved credentials.",
+      "unlock": "Enter your master password to access saved emails and passwords. You can use the rest of RankDB while credentials are locked."
+    },
+    "password": {
+      "recoveryWarning": "Keep this password safe: it cannot be recovered or reset.",
+      "label": "Master password",
+      "currentLabel": "Current master password",
+      "newLabel": "New master password",
+      "hint": "At least 8 characters.",
+      "confirmLabel": "Confirm master password",
+      "mismatch": "The passwords don't match."
+    },
+    "actions": {
+      "busy": "Working",
+      "unlock": "Unlock",
+      "changePassword": "Change password",
+      "enable": "Enable encryption"
+    },
+    "errors": {
+      "statusFailed": "Could not read credential protection",
+      "unlockFailed": "Could not unlock credentials"
+    }
+  },
+  "startupProblem": {
+    "title": "RankDB can't open your data",
+    "description": "Your data has not been changed. Copies from before each upgrade are in the data folder's upgrade-copies folder.",
+    "actions": {
+      "openFolder": "Open data folder",
+      "exit": "Exit RankDB"
+    }
+  },
+  "updates": {
+    "userSinceLabel": "User since {date}",
+    "discordPresence": "Discord presence",
+    "whatsNewTitle": "What's new",
+    "versionPrefix": "Version ",
+    "dismiss": "Got it",
+    "unavailable": {
+      "title": "Update checks start with the first release",
+      "description": "This is a development build; it isn't updated automatically."
+    },
+    "checkFailed": "Could not check for updates",
+    "upToDate": "RankDB is up to date",
+    "installFailed": "Could not install the update",
+    "available": {
+      "title": "Update available",
+      "promptPrefix": "RankDB ",
+      "versionSeparator": " is ready to install (you have ",
+      "promptSuffix": "). RankDB restarts after installation."
+    },
+    "actions": {
+      "later": "Later",
+      "install": "Install and restart",
+      "busy": "Installing"
+    }
+  },
+  "whatsNew": {
+    "redesign": {
+      "title": "A new RankDB",
+      "description": "Rebuilt from the ground up, with a glass look and a much faster list."
+    },
+    "migration": {
+      "title": "Your data stays yours",
+      "description": "Existing Windows-protected credentials are decrypted once, then work independently of Windows keys."
+    },
+    "credentials": {
+      "title": "Safer credentials",
+      "description": "Choose optional master-password protection for emails and passwords in Settings. Copies stay out of clipboard history."
+    },
+    "history": {
+      "title": "Rank history",
+      "description": "Season resets keep the previous ranks for review."
+    },
+    "reordering": {
+      "title": "Drag to reorder",
+      "description": "Move accounts and groups by dragging, with the list making room as you go."
+    }
+  },
+  "discord": {
+    "activity": "Managing Overwatch accounts",
+    "githubButton": "Get RankDB on GitHub"
+  },
+  "lab": {
+    "panel": {
+      "tooltip": "Glass Lab: click to expand, drag to move",
+      "title": "Glass Lab",
+      "expand": "Expand",
+      "expandAccessibleLabel": "Expand glass lab",
+      "persistenceTooltip": "Every change is saved immediately and restored on the next start",
+      "persistenceStatus": "saved live",
+      "collapse": "Collapse",
+      "collapseAccessibleLabel": "Collapse glass lab"
+    },
+    "resetTooltip": "Reset to default",
+    "meter": {
+      "frameStats": "median {median} · p95 {p95} · p99 {p99} ms · long {longPercent}% · {refreshHz} Hz",
+      "filterStats": "{visibleFilterLayers}/{filterLayers} filter layers visible · {megapixels} MPx blurred/frame · {surfaces} surfaces",
+      "fps": "fps",
+      "toggle": "live",
+      "measuring": "measuring…",
+      "disabled": "meter off",
+      "placeholder": "–"
+    },
+    "glassStrategy": "Glass strategy",
+    "strategyWarning": "Baked glass can't follow an animated backdrop: it shows a frozen blur.",
+    "toastPreviews": {
+      "success": "Success",
+      "error": "Error",
+      "countdown": "Countdown",
+      "stack": "Stack of 3",
+      "burst": "Burst of 20",
+      "clear": "Clear previews",
+      "help": "Real notifications, with harmless example content. Previews stay for 15 seconds; hover pauses ordinary ones. Clear previews only removes these examples."
+    },
+    "toastNotifications": "Toast notifications",
+    "shapeAndContent": "Shape and content",
+    "toastCorners": "Toast corners",
+    "toastIcon": "Toast icon",
+    "iconStroke": "Icon stroke",
+    "titleContrast": "Title contrast",
+    "detailContrast": "Detail contrast",
+    "placementAndMotion": "Placement and motion",
+    "rightInset": "Right inset",
+    "bottomInset": "Bottom inset",
+    "animationSpeed": "Animation speed",
+    "majorGlass": "Major glass",
+    "toastMaterial": {
+      "followShared": "Follow shared Major material",
+      "help": "Uncheck to tune glass for notifications only. The header and other overlays keep their own material."
+    },
+    "toastBlur": "Toast blur",
+    "toastPreBlur": "Toast pre-blur",
+    "toastSaturation": "Toast saturation",
+    "toastBrightness": "Toast brightness",
+    "toastTint": "Toast tint",
+    "toastRim": "Toast rim",
+    "toastShadow": "Toast shadow",
+    "scene": "Scene",
+    "background": "Background",
+    "colour": "Colour",
+    "backgroundColour": "Background colour",
+    "shadows": "Shadows",
+    "headerOverlap": "Rows scroll under the header (glass-on-glass)",
+    "draggedRow": "Dragged row",
+    "glassBlur": "Glass blur",
+    "off": "off",
+    "units": {
+      "pixels": "{value}px",
+      "signedPixels": "{sign}{value}px",
+      "seconds": "{value}s",
+      "percent": "{value}%",
+      "multiplier": "{value}×",
+      "percentSymbol": "%",
+      "ratio": "{ratio}×"
+    },
+    "list": "List",
+    "roster": {
+      "saved": "Saved accounts",
+      "dummy": "Dummy (unsaved)",
+      "savedHelp": "Edits are saved. Accounts and Reroll only shape the dummy roster below.",
+      "dummyHelp": "An in-memory roster for benchmarks: edits are thrown away.",
+      "replaceConfirm": "Click again: every saved account is replaced",
+      "replace": "Replace saved accounts with the dummy roster",
+      "replaceFailed": "Could not fill the database"
+    },
+    "accounts": "Accounts",
+    "rerollAccounts": "Reroll accounts",
+    "windowFrame": "Window frame",
+    "headerFade": "Header fade",
+    "strength": "Strength",
+    "headerFadeColour": "Header fade colour",
+    "defaultBackground": "background",
+    "rowBackground": "Row background",
+    "radius": "Radius",
+    "height": "Height",
+    "widthEachSide": "Width (each side)",
+    "outline": "Outline",
+    "rowOutlineColour": "Row outline colour",
+    "white": "white",
+    "outlineOpacity": "Outline opacity",
+    "material": "Material",
+    "preset": "Preset",
+    "custom": "Custom",
+    "majorMaterialHeading": "Major — header islands",
+    "minorMaterialHeading": "Minor — rows and groups",
+    "shared": "Shared",
+    "overscan": "Overscan",
+    "rimHighlight": "Rim highlight",
+    "shadow": "Shadow",
+    "shellBody": "Shell body",
+    "rimStyle": "Rim style",
+    "blur": "Blur",
+    "preBlur": "Pre-blur",
+    "saturation": "Saturation",
+    "brightness": "Brightness",
+    "tint": "Tint",
+    "rim": "Rim",
+    "rankPicker": "Rank picker",
+    "pickerPreview": "Open picker (first badge)",
+    "pickerPreviewHelp": "Clicks in the lab do not close the picker, so changes show live.",
+    "sizes": "Sizes",
+    "cell": "Cell",
+    "emblem": "Emblem",
+    "gap": "Gap",
+    "padding": "Padding",
+    "division": "Division",
+    "confirmHeight": "Confirm height",
+    "confirmRadius": "Confirm radius",
+    "offset": "Offset",
+    "look": "Look",
+    "cellFill": "Cell fill",
+    "selected": "Selected",
+    "benchmark": "Benchmark",
+    "benchmarkHelp": "Scrolls the list top to bottom and back at a constant speed and records every frame. Leave the mouse still while it runs.",
+    "duration": "Duration",
+    "runCurrent": "Run current",
+    "compareAllModes": "Compare all modes",
+    "mode": "Mode",
+    "p50": "p50",
+    "p95": "p95",
+    "long": "Long",
+    "vsOff": "vs Off",
+    "benchmarkRowTooltip": "{tuning} · rim {rim} · {filterLayers} filter layers · {megapixels} MPx",
+    "benchmarkResultsHelp": "Frame times in ms. Long = frames over 1.5× the display interval. Hover a row for details.",
+    "copied": "Copied",
+    "copyAsMarkdown": "Copy as Markdown",
+    "clear": "Clear",
+    "resetAllLabSettings": "Reset all lab settings",
+    "missingValue": "—",
+    "running": "Running…"
+  },
+  "labOptions": {
+    "strategies": {
+      "off": {
+        "label": "Off",
+        "description": "Today's RankDB: opaque boxes, no glass. The baseline every other mode is compared to."
+      },
+      "native": {
+        "label": "Native",
+        "description": "Every surface owns its backdrop filters (TaskMap MaterialSurface). Most faithful, most layers."
+      },
+      "shared": {
+        "label": "Shared",
+        "description": "Header is native; all list surfaces share one masked filter plane (TaskMap's shared Small batch)."
+      },
+      "shell": {
+        "label": "Shell",
+        "description": "Header is native; rows are shells: tint, rim and shadow with no blur at all."
+      },
+      "baked": {
+        "label": "Baked",
+        "description": "Zero backdrop-filter. The backdrop is blurred once into an image that glass surfaces reveal. Static backdrops only."
+      }
+    },
+    "backdrops": {
+      "flat": "Flat",
+      "dots": "Dots",
+      "aurora": "Aurora",
+      "auroraAnimated": "Aurora (animated)"
+    },
+    "windowChrome": {
+      "nativeDescription": "The Windows title bar.",
+      "caption": "Caption",
+      "captionDescription": "No title bar. Window buttons float in the top margin above the header; the margin, header gaps and background drag the window.",
+      "rail": "Rail",
+      "railDescription": "No title bar. A glass rail on the right holds the window buttons and the app actions; the first island shows the app name instead.",
+      "native": "Native"
+    },
+    "rowPlates": {
+      "all": "Every row",
+      "alternate": "Every other row",
+      "off": "Off"
+    },
+    "rims": {
+      "css": "CSS border",
+      "exact": "Exact (TaskMap canvas)",
+      "flat": "Flat 1px"
+    },
+    "errors": {
+      "saveFailed": "Could not save lab settings",
+      "loadFailed": "Could not load lab settings"
+    }
+  },
+  "glassPresets": {
+    "taskmap": {
+      "label": "TaskMap (current)",
+      "description": "Exact TaskMap recipe: Major 6+60px, Minor 5px pre-blur only."
+    },
+    "frosted": {
+      "label": "TaskMap (frosted Minor)",
+      "description": "TaskMap before 2026-10-11: Minor also had a 23.5px main blur."
+    },
+    "readable": {
+      "label": "Readable rows",
+      "description": "Darker tinted rows so names and numbers stay legible over bright colour."
+    },
+    "lean": {
+      "label": "Lean (cheap)",
+      "description": "Smaller radii, no pre-blur, overscan 1x. Same feel, far fewer pixels filtered."
+    }
+  },
+  "toastPreview": {
+    "success": {
+      "title": "Credentials saved",
+      "description": "Design preview · no account data changed."
+    },
+    "error": {
+      "title": "Could not save the account",
+      "description": "A longer notification preview to check contrast and wrapping. Your saved accounts are unchanged."
+    },
+    "countdown": {
+      "title": "Countdown preview",
+      "description": "A 15-second design preview. Nothing was copied or reset."
+    },
+    "burst": {
+      "title": "Preview notification {index} of 20",
+      "description": "The same three-card limit used by the app."
+    }
+  },
+  "labPerformance": {
+    "running": "Running {strategy}…",
+    "zoom": "zoom {uiScale}",
+    "environment": "Environment: {environment}",
+    "tuning": "M {majorPreblur}+{majorBlur} · m {minorPreblur}+{minorBlur} · os {overscan}×",
+    "listNotMounted": "Account list is not mounted",
+    "tableHeader": "| # | Mode | Backdrop | Tuning | Rim | Filter layers | Blurred MPx | Median ms | p95 ms | p99 ms | Long % | p95 vs Off |"
+  },
+  "rosterStore": {
+    "historyListFailed": "Could not read the rank resets",
+    "historyLoadFailed": "Could not read that rank reset",
+    "accountsLoadFailed": "Could not load accounts",
+    "rankSaveFailed": "Could not save the rank",
+    "accountRenameFailed": "Could not rename the account",
+    "currencySaveFailed": "Could not save the amount",
+    "accountCreateFailed": "Could not add the account",
+    "accountDeleteFailed": "Could not delete the account",
+    "credentialsSaveFailed": "Could not save the credentials",
+    "groupCreateFailed": "Could not add the group",
+    "groupRenameFailed": "Could not rename the group",
+    "groupSaveFailed": "Could not save the group",
+    "groupDeleteFailed": "Could not delete the group",
+    "statusSaveFailed": "Could not change the status",
+    "moveFailed": "Could not move it",
+    "dodgesSaveFailed": "Could not save games dodged",
+    "rankResetFailed": "Could not reset the ranks",
+    "rankResetUndoFailed": "Could not undo the reset"
+  },
+  "countries": {
+    "unitedStates": "United States",
+    "canada": "Canada",
+    "mexico": "Mexico",
+    "argentina": "Argentina",
+    "brazil": "Brazil",
+    "chile": "Chile",
+    "colombia": "Colombia",
+    "peru": "Peru",
+    "unitedKingdom": "United Kingdom",
+    "ireland": "Ireland",
+    "france": "France",
+    "germany": "Germany",
+    "spain": "Spain",
+    "italy": "Italy",
+    "netherlands": "Netherlands",
+    "belgium": "Belgium",
+    "luxembourg": "Luxembourg",
+    "switzerland": "Switzerland",
+    "austria": "Austria",
+    "denmark": "Denmark",
+    "sweden": "Sweden",
+    "norway": "Norway",
+    "finland": "Finland",
+    "poland": "Poland",
+    "czechRepublic": "Czech Republic",
+    "slovakia": "Slovakia",
+    "hungary": "Hungary",
+    "romania": "Romania",
+    "bulgaria": "Bulgaria",
+    "croatia": "Croatia",
+    "slovenia": "Slovenia",
+    "serbia": "Serbia",
+    "greece": "Greece",
+    "portugal": "Portugal",
+    "turkey": "Turkey",
+    "ukraine": "Ukraine",
+    "australia": "Australia",
+    "newZealand": "New Zealand",
+    "japan": "Japan",
+    "southKorea": "South Korea",
+    "taiwan": "Taiwan",
+    "hongKong": "Hong Kong",
+    "macau": "Macau",
+    "singapore": "Singapore",
+    "thailand": "Thailand",
+    "philippines": "Philippines",
+    "malaysia": "Malaysia",
+    "indonesia": "Indonesia",
+    "vietnam": "Vietnam",
+    "india": "India",
+    "unitedArabEmirates": "United Arab Emirates",
+    "saudiArabia": "Saudi Arabia",
+    "qatar": "Qatar",
+    "kuwait": "Kuwait",
+    "bahrain": "Bahrain",
+    "oman": "Oman",
+    "israel": "Israel",
+    "southAfrica": "South Africa",
+    "egypt": "Egypt",
+    "morocco": "Morocco"
+  },
+  "errors": {
+    "db": {
+      "unknownRankTier": "Unknown rank tier \"{tier}\".",
+      "unknownRankSlot": "Unknown rank slot \"{slot}\".",
+      "settingTooLarge": "Setting \"{key}\" is too large.",
+      "nameTooLong": "A name is at most {limit} characters.",
+      "unknownCurrency": "Unknown currency \"{kind}\".",
+      "notesTooLong": "Notes are at most {limit} characters.",
+      "groupNameTooLong": "A group name is at most {limit} characters.",
+      "dodgesOutOfRange": "Games dodged is 0 to {limit}.",
+      "invalidDivision": "A division is 1 to 5.",
+      "invalidPlacements": "Placements are 1 to 10 while predicted, else 0.",
+      "invalidPrediction": "An unranked rank can't be predicted.",
+      "accountNotFound": "That account no longer exists.",
+      "nameRequired": "A name can't be empty.",
+      "amountOutOfRange": "That amount is out of range.",
+      "unknownCountry": "Unknown country.",
+      "credentialTooLong": "That is too long.",
+      "emailMissing": "No email saved for this account.",
+      "passwordMissing": "No password saved for this account.",
+      "copyTooLong": "That is too long to copy.",
+      "groupingNotAllowed": "SMS and banned accounts aren't grouped.",
+      "groupNameRequired": "A group name can't be empty.",
+      "groupNotFound": "That group no longer exists.",
+      "groupNestingNotAllowed": "Groups can't be nested or put in a section.",
+      "listChanged": "The list changed meanwhile. Try again.",
+      "openFailed": "The database could not be opened: {error}",
+      "damaged": "The database file is damaged.",
+      "newerVersion": "This database was saved by a newer version of RankDB. Install the latest version to open it.",
+      "upgradeCopyFailed": "Could not save a copy of the database before upgrading it: {error}",
+      "migrationFailed": "Could not upgrade the database to version {version}: {error}",
+      "brokenReferences": "the upgrade would leave records pointing at missing ones"
+    },
+    "secrets": {
+      "credentialKeyDamaged": "The credential key is damaged.",
+      "invalidNonce": "Bad nonce length.",
+      "encryptionFailed": "Could not encrypt.",
+      "secretDamaged": "A saved secret is damaged.",
+      "decryptionFailed": "A saved secret could not be decrypted."
+    },
+    "clipboard": {
+      "busy": "The clipboard is busy. Try again.",
+      "copyFailed": "Could not copy.",
+      "unsupportedPlatform": "Copying is only supported on Windows."
+    },
+    "main": {
+      "browserOpenFailed": "Could not open the browser.",
+      "folderOpenFailed": "Could not open the data folder."
+    },
+    "discord": {
+      "workerStopped": "Discord presence stopped."
+    },
+    "credentialSecurity": {
+      "cleanupFailed": "Credential protection was changed, but database cleanup failed: {error}",
+      "metadataDamaged": "Credential encryption metadata is damaged.",
+      "unlockFailed": "Wrong master password, or credential encryption metadata is damaged.",
+      "invalidPasswordLength": "Use a master password of 8 to 1024 characters.",
+      "metadataMissing": "Credential encryption metadata is missing.",
+      "unknownMode": "Unknown credential protection mode.",
+      "unlockRequired": "Unlock credentials with your master password first.",
+      "credentialDamaged": "A saved credential is damaged.",
+      "alreadyEnabled": "Credential encryption is already enabled. Use Change password.",
+      "notEnabled": "Master-password encryption is not enabled.",
+      "legacyUnsupported": "Credentials in this database use the old Windows protection of early development builds, which RankDB no longer reads."
+    },
+    "labSettings": {
+      "tooLarge": "Lab settings are unexpectedly large."
+    }
+  }
+}

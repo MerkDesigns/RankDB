@@ -1,0 +1,1122 @@
+@font-face {
+  font-family: "RankBadgeNumber";
+  src: url("../assets/fonts/futura-no2-d-demi-bold.ttf") format("truetype");
+  font-weight: 600;
+  font-display: block;
+}
+
+:root {
+  color-scheme: dark;
+  /* One column grid shared by the header islands and every row. Items place themselves by line
+     name, so the engine (glass/engine.ts applyColumns) can drop the 6v6 or currency tracks and
+     everything else closes up. These defaults are the full layout. */
+  --col-lead: 92px;
+  --col-name: 236px;
+  --col-ranks: 344px;
+  --col-6v6: 114px;
+  --col-va: 186px;
+  --col-vb: 124px;
+  --gap: 12px;
+  --cols: [lead-start] 92px [lead-end name-start] 236px [name-end ranks-start] 344px
+    [ranks-end sixv6-start] 114px [sixv6-end va-start] 186px [va-end vb-start] 124px [vb-end];
+  --grid-w: calc(92px + 236px + 344px + 114px + 186px + 124px + 5 * 12px);
+  --row-h: 56px;
+  /* A slight shadow under everything in a row. */
+  --row-text-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+  --row-item-shadow: 0 2px 5px rgb(0 0 0 / 0.28);
+  --row-gap: 14px;
+  --header-h: 46px;
+  /* Rank badges: 90% of the old app's 106.4 × 45.6 with its 28px number. */
+  --badge-w: 95.8px;
+  --badge-h: 41px;
+  --badge-number-size: 25px;
+  --text: #f1f5f9;
+  --text-muted: rgb(241 245 249 / 0.55);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #06070b;
+}
+
+body {
+  color: var(--text);
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+/* ---------- Stage ---------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+}
+
+/* Unzoomed: no box of its own, and rim widths need no UI-scale correction inside it. */
+.overlays {
+  display: contents;
+  --ui-zoom: 1;
+}
+
+.app {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.backdrop-blob {
+  position: absolute;
+  border-radius: 50%;
+  /* Clicks fall through to the backdrop itself, which drags the window with a custom frame. */
+  pointer-events: none;
+}
+
+.backdrop[data-animated] .backdrop-blob {
+  will-change: transform;
+  animation: drift-0 17s ease-in-out infinite alternate;
+}
+
+.backdrop[data-animated] .backdrop-blob[data-drift="1"] {
+  animation-name: drift-1;
+  animation-duration: 21s;
+}
+
+.backdrop[data-animated] .backdrop-blob[data-drift="2"] {
+  animation-name: drift-2;
+  animation-duration: 13s;
+}
+
+.backdrop[data-animated] .backdrop-blob[data-drift="3"] {
+  animation-name: drift-3;
+  animation-duration: 19s;
+}
+
+@keyframes drift-0 {
+  to {
+    transform: translate(16vw, 12vh);
+  }
+}
+
+@keyframes drift-1 {
+  to {
+    transform: translate(-14vw, 16vh);
+  }
+}
+
+@keyframes drift-2 {
+  to {
+    transform: translate(12vw, -14vh) scale(1.15);
+  }
+}
+
+@keyframes drift-3 {
+  to {
+    transform: translate(-18vw, -10vh);
+  }
+}
+
+/* ---------- Frame ---------- */
+
+/* Space above the header. With the caption frame it is also the title bar holding the window
+   buttons, so it grows a little. */
+:root {
+  --top-gap: 20px;
+  --rail-w: 50px;
+}
+
+:root[data-chrome="caption"] {
+  --top-gap: 32px;
+}
+
+/* No z-index anywhere in the frame: it must not be a stacking context, so rows (1), the header
+   fade (2) and the header and rail (3) are ordered against each other and glass blurs beneath. */
+.frame {
+  position: relative;
+  display: flex;
+  width: fit-content;
+  height: 100%;
+  margin: 0 auto;
+}
+
+.frame-main {
+  /* Lets the overlay scrollbar (a sibling of the list) follow the list's scroll timeline. */
+  timeline-scope: --list-scroll;
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: calc(var(--grid-w) + 40px);
+  height: 100%;
+  padding-top: var(--top-gap);
+}
+
+.caption-strip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 4;
+  height: var(--top-gap);
+}
+
+/* ---------- Window buttons ---------- */
+
+.window-controls {
+  display: flex;
+}
+
+/* Caption frame: flush in the window's top-right corner like Windows' own caption buttons, so the
+   close button's red hover fills the corner. */
+.frame-main > .window-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 5;
+  height: var(--top-gap);
+}
+
+/* Caption frame: a solid patch of the fade colour behind the buttons, feathered on its left, so
+   rows scrolling above the header never show text under them. Below the header in z-order. */
+.window-controls-fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  width: calc(2 * 44px + 40px);
+  height: var(--top-gap);
+  pointer-events: none;
+  background: rgb(var(--fade-rgb));
+  mask-image: linear-gradient(to right, transparent, #000 40px);
+}
+
+.window-controls[data-layout="column"] {
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.window-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: rgb(241 245 249 / 0.72);
+}
+
+.window-controls[data-layout="column"] .window-button {
+  width: 36px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+/* Hover light falls from the top edge and fades out downwards instead of a solid block. */
+.window-button:hover {
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0));
+  color: #f8fafc;
+}
+
+.window-button[data-kind="close"]:hover {
+  background: linear-gradient(to bottom, rgb(196 43 28 / 0.95), rgb(196 43 28 / 0));
+  color: #fff;
+}
+
+/* ---------- Rail ---------- */
+
+.rail {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: var(--rail-w);
+  /* Sits a header-gap from the grid (the main column already pads 20px), and 20px from edges. */
+  margin: var(--top-gap) 20px 20px calc(var(--gap) - 20px);
+  padding: 8px 0;
+}
+
+.rail-divider {
+  width: 24px;
+  height: 1px;
+  margin: 6px 0;
+  background: rgb(255 255 255 / 0.14);
+}
+
+.rail-spacer {
+  flex: 1;
+  align-self: stretch;
+}
+
+.wordmark {
+  margin-left: 6px;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.island-meta {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ---------- Header ---------- */
+
+/* Under the header glass and over the rows: rows passing above the topbar no longer jump from
+   blurred to sharp in the thin strip at the top. Ends exactly at the header's bottom edge, so it
+   never covers the first row at scroll-top. Colour and strength come from the engine. */
+.header-fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  /* 10px past the header's bottom edge; rows start 16px below it, so the first row stays clear. */
+  height: calc(var(--top-gap) + var(--header-h) + 10px);
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--fade-rgb) / var(--fade-a)) 0%,
+    rgb(var(--fade-rgb) / var(--fade-a)) 30%,
+    rgb(var(--fade-rgb) / calc(var(--fade-a) * 0.72)) 52%,
+    rgb(var(--fade-rgb) / calc(var(--fade-a) * 0.4)) 70%,
+    rgb(var(--fade-rgb) / calc(var(--fade-a) * 0.14)) 87%,
+    rgb(var(--fade-rgb) / 0) 100%
+  );
+}
+
+.header {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: var(--cols);
+  column-gap: var(--gap);
+  height: var(--header-h);
+  margin: 0 20px 16px;
+  flex: none;
+}
+
+:root[data-overlay-header="true"] .frame-main {
+  padding-top: 0;
+}
+
+:root[data-overlay-header="true"] .header {
+  position: absolute;
+  top: var(--top-gap);
+  left: 0;
+  right: 0;
+}
+
+:root[data-overlay-header="true"] .list-content {
+  padding-top: calc(var(--top-gap) + var(--header-h) + 16px);
+}
+
+.island {
+  display: flex;
+  align-items: center;
+  height: var(--header-h);
+}
+
+.island-actions {
+  grid-column: lead-start / name-end;
+  gap: 4px;
+  padding: 0 12px 0 16px;
+}
+
+.island-spacer {
+  flex: 1;
+}
+
+.ow-logo {
+  width: 26px;
+  height: 26px;
+  margin-right: 4px;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: rgb(241 245 249 / 0.86);
+  transition: background-color 140ms, color 140ms;
+}
+
+:is(.island-actions, .rail) .icon-button:is(:hover, :focus-visible),
+.role-sort:is(:hover, :focus-visible) {
+  background-color: rgb(255 255 255 / 0.09);
+}
+
+:is(.island-actions, .rail) .icon-button:active,
+.role-sort:active {
+  background-color: rgb(255 255 255 / 0.14);
+}
+
+:root[data-show-credentials="false"] .row::before {
+  border-radius: 13px;
+}
+
+.island-roles {
+  grid-column: ranks-start / ranks-end;
+  display: grid;
+  grid-template-columns: repeat(3, var(--badge-w));
+  column-gap: 10px;
+  justify-content: center;
+}
+
+.role-sort {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  transition: background-color 140ms;
+}
+
+.role-sort img {
+  width: 24px;
+  height: 24px;
+}
+
+/* The active sort (old app): a small chevron 7px either side of the role icon. */
+.role-sort-arrow {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  color: rgb(241 245 249 / 0.9);
+  pointer-events: none;
+}
+
+.role-sort-arrow[data-side="left"] {
+  right: calc(50% + 12px + 7px);
+}
+
+.role-sort-arrow[data-side="right"] {
+  left: calc(50% + 12px + 7px);
+}
+
+.island-flex {
+  grid-column: sixv6-start / sixv6-end;
+  justify-content: center;
+}
+
+.island-values-a,
+.island-values-b {
+  display: grid;
+  justify-items: center;
+}
+
+.island-values-a {
+  grid-column: va-start / va-end;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.island-values-b {
+  grid-column: vb-start / vb-end;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Columns switched off in Settings: their header islands and row boxes go, the grid closes up. */
+:root[data-show-credentials="false"] .lead,
+:root[data-show-sixv6="false"] :is(.island-flex, .sixv6),
+:root[data-show-currency="false"] :is(.island-values-a, .island-values-b, .credits) {
+  display: none;
+}
+
+.header-icon {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+/* ---------- List ---------- */
+
+.list-scroller {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  scroll-timeline: --list-scroll block;
+  /* Composited scrolling. At 1x DPI Chromium keeps a see-through scroller on the main thread (to
+     keep LCD text), repainting the whole list every scroll frame: half the frame rate at 370 Hz.
+     Glass strategies with filters in the list were composited by accident; this makes it explicit. */
+  will-change: scroll-position;
+}
+
+.list-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--row-gap);
+  padding: 4px 20px 28px;
+}
+
+.list-content > .row,
+.list-content > .group,
+.list-content > .section-divider {
+  position: relative;
+  z-index: 1;
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--cols);
+  column-gap: var(--gap);
+  height: var(--row-h);
+  /* Culling: rows outside the viewport skip style, layout and paint, and a row that only moves (a
+     group opening above it) reuses its paint. Spamming a group open and closed went from half the
+     frames late to almost none. It clips to the row, so the margin leaves room for the largest row
+     plate the lab allows (30px each side). */
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--row-h);
+  overflow-clip-margin: 32px;
+}
+
+/* One rounded plate behind the whole row (under its islands, reaching halfway into the row gap):
+   the lab's row background (--row-plate-a on every row or every other row), plus the hover,
+   fading in quickly and out a little slower. */
+@property --row-hover {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+.row::before {
+  position: absolute;
+  inset: calc((var(--row-h) - var(--row-plate-h)) / 2) calc(-1 * var(--row-plate-x));
+  border-radius: var(--row-plate-radius);
+  background: rgb(255 255 255 / calc(var(--row-plate, 0) + 0.035 * var(--row-hover)));
+  /* The plate's outline (kept 1px on screen at every UI scale), then the hover's. */
+  box-shadow:
+    inset 0 0 0 calc(1px / var(--ui-zoom)) rgb(var(--row-outline-rgb) / var(--row-outline, 0)),
+    inset 0 0 0 1px rgb(255 255 255 / calc(0.03 * var(--row-hover)));
+  content: "";
+  pointer-events: none;
+  transition: --row-hover 220ms;
+}
+
+:root[data-row-plates="all"] .row,
+:root[data-row-plates="alternate"] .row[data-stripe] {
+  --row-plate: var(--row-plate-a);
+  --row-outline: var(--row-outline-a);
+}
+
+.row:hover::before {
+  --row-hover: 1;
+  transition-duration: 90ms;
+}
+
+.lead {
+  grid-column: lead-start / lead-end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Same outline, fill and height as the Battletag button, as one pill split by the divider. */
+.lead-pill {
+  display: flex;
+  align-items: stretch;
+  width: calc(100% - 6px);
+  height: 42px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.03);
+  box-shadow: var(--row-item-shadow);
+}
+
+.lead-button {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgb(241 245 249 / 0.8);
+}
+
+.lead-button:first-child {
+  padding-left: 3px;
+}
+
+.lead-button:last-child {
+  padding-right: 3px;
+}
+
+.lead-button:hover {
+  background: rgb(255 255 255 / 0.07);
+}
+
+.lead-divider {
+  flex: none;
+  width: 1px;
+  margin: 10px 0;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.primary {
+  grid-column: name-start / ranks-end;
+  display: grid;
+  grid-template-columns: var(--col-name) var(--col-ranks);
+  column-gap: var(--gap);
+  align-items: center;
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-left: 2px;
+}
+
+.bnet-button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.03);
+  box-shadow: var(--row-item-shadow);
+}
+
+.bnet-button:hover {
+  background: rgb(255 255 255 / 0.09);
+}
+
+.bnet-button img {
+  width: 34px;
+  height: 34px;
+}
+
+/* Cut off where the cell ends, no "..." (as in the old app). */
+.account-name {
+  overflow: hidden;
+  padding-right: 6px;
+  text-shadow: var(--row-text-shadow);
+  font-size: 22px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: clip;
+}
+
+.rank-lane {
+  display: grid;
+  grid-template-columns: repeat(3, var(--badge-w));
+  column-gap: 10px;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.sixv6 {
+  grid-column: sixv6-start / sixv6-end;
+  display: grid;
+  place-items: center;
+}
+
+.credits {
+  grid-column: va-start / vb-end;
+  display: grid;
+  grid-template-columns: var(--col-va) var(--col-vb);
+  column-gap: var(--gap);
+}
+
+.value-lane {
+  display: grid;
+  height: 100%;
+}
+
+.value-lane-a {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.value-lane-b {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.value {
+  display: grid;
+  text-shadow: var(--row-text-shadow);
+  place-items: center;
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Rank badge ---------- */
+
+.badge {
+  position: relative;
+  width: var(--badge-w);
+  height: var(--badge-h);
+  padding: 0;
+  border: 0;
+  background: none;
+  transition: filter 150ms;
+}
+
+.badge:hover:not([data-static]) {
+  filter: brightness(1.12);
+}
+
+/* The badge the rank picker edits: lifted with a little overshoot, settling back on close. */
+.badge {
+  transition:
+    filter 150ms,
+    scale 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.badge[data-editing] {
+  z-index: 1;
+  scale: 1.1;
+  transition:
+    filter 150ms,
+    scale 380ms cubic-bezier(0.34, 1.9, 0.5, 1);
+}
+
+/* ---------- Rank effects (RankBadge: Emerald and up, weaker the lower the rank) ----------
+   Every loop animates only opacity, scale, rotate or translate, so it runs on the compositor; rows
+   out of view (content-visibility) don't run them at all. A moving (transform) animation has no
+   fixed bounds, so the browser would assume it may overlap everything painted after it and
+   re-layerize half the list as rows scroll in (10 ms frames): the effect layer is clipped to just
+   around the badge, which bounds it. Settings → Appearance → Rank effects switches them off
+   (data-badge-effects on the root). */
+
+.badge-fx {
+  --rgb: 255 255 255;
+  --glow: 0;
+  --shine: 0;
+  --every: 6s;
+  --cx: 33%;
+  --cy: 47%;
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  overflow-clip-margin: calc(var(--badge-h) * 0.35);
+  pointer-events: none;
+}
+
+:root[data-badge-effects="false"] .badge-fx {
+  display: none;
+}
+
+.badge-fx[data-tier="Champion"] {
+  --sparkle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -10 40 40'%3E%3Cdefs%3E%3Cfilter id='b' x='-1' y='-1' width='3' height='3'%3E%3CfeGaussianBlur stdDeviation='2.2'/%3E%3C/filter%3E%3ClinearGradient id='g' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='rgb(200,121,249)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M10 0C11 7 13 9 20 10 13 11 11 13 10 20 9 13 7 11 0 10 7 9 9 7 10 0Z' fill='rgb(200,121,249)' filter='url(%23b)'/%3E%3Cpath d='M10 0C11 7 13 9 20 10 13 11 11 13 10 20 9 13 7 11 0 10 7 9 9 7 10 0Z' fill='url(%23g)'/%3E%3C/svg%3E");
+  --rgb: 200 121 249;
+  --glow: 0.8;
+  --shine: 0.44;
+  --every: 3.2s;
+  --cx: 32.8%;
+  --cy: 48%;
+}
+
+.badge-fx[data-tier="Grandmaster"] {
+  --sparkle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -10 40 40'%3E%3Cdefs%3E%3Cfilter id='b' x='-1' y='-1' width='3' height='3'%3E%3CfeGaussianBlur stdDeviation='2.2'/%3E%3C/filter%3E%3ClinearGradient id='g' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='rgb(132,110,244)'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M10 0C11 7 13 9 20 10 13 11 11 13 10 20 9 13 7 11 0 10 7 9 9 7 10 0Z' fill='rgb(132,110,244)' filter='url(%23b)'/%3E%3Cpath d='M10 0C11 7 13 9 20 10 13 11 11 13 10 20 9 13 7 11 0 10 7 9 9 7 10 0Z' fill='url(%23g)'/%3E%3C/svg%3E");
+  --rgb: 132 110 244;
+  --glow: 0.6;
+  --shine: 0.34;
+  --every: 4.4s;
+  --cx: 32.7%;
+  --cy: 44.2%;
+}
+
+.badge-fx[data-tier="Master"] {
+  --rgb: 137 225 95;
+  --glow: 0.44;
+  --shine: 0.19;
+  --every: 6s;
+  --cx: 33.2%;
+  --cy: 46%;
+}
+
+.badge-fx[data-tier="Diamond"] {
+  --rgb: 99 157 235;
+  --glow: 0.28;
+  --shine: 0.18;
+  --every: 7s;
+  --cx: 33.2%;
+  --cy: 48.5%;
+}
+
+.badge-fx[data-tier="Emerald"] {
+  --rgb: 5 214 125;
+  --glow: 0.12;
+  --cx: 33.3%;
+  --cy: 48.3%;
+}
+
+/* Glow: a soft light on the emblem in the tier's own colour (no white, which would wash it out),
+   screen-blended, dimming to 70% and back. */
+.fx-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--cx) var(--cy),
+    rgb(var(--rgb) / 0.9) 0,
+    rgb(var(--rgb) / 0.6) calc(var(--badge-h) * 0.2),
+    rgb(var(--rgb) / 0.22) calc(var(--badge-h) * 0.37),
+    transparent calc(var(--badge-h) * 0.54)
+  );
+  mix-blend-mode: screen;
+  opacity: var(--glow);
+  animation: fx-pulse 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--fx-phase) * -3.2s);
+}
+
+@keyframes fx-pulse {
+  50% {
+    opacity: calc(var(--glow) * 0.7);
+  }
+}
+
+/* Shine: a soft band crossing the badge (clipped to its shape) in the first ~0.7 s of each cycle. */
+.fx-glint {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mask: var(--badge-mask) center / contain no-repeat;
+}
+
+.fx-glint::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 60%;
+  background: linear-gradient(
+    105deg,
+    transparent 10%,
+    rgb(255 255 255 / calc(var(--shine) * 0.7)) 42%,
+    rgb(255 255 255 / var(--shine)) 50%,
+    rgb(255 255 255 / calc(var(--shine) * 0.7)) 58%,
+    transparent 90%
+  );
+  mix-blend-mode: plus-lighter;
+  content: "";
+  animation: fx-glint var(--every) cubic-bezier(0.3, 0, 0.2, 1) infinite;
+  animation-delay: calc(var(--fx-phase) * -1 * var(--every));
+}
+
+@keyframes fx-glint {
+  0% {
+    transform: translateX(0);
+  }
+  22%,
+  100% {
+    transform: translateX(270%);
+  }
+}
+
+/* Sparkles: four-pointed stars that pop in, turn a little and fade, each on its own beat. Each is
+   one pre-drawn image per tier (gradient and glow baked in): no mask or filter on a moving layer,
+   which made scrolling past them stutter. The image is twice the star (room for its glow). */
+.fx-sparkle {
+  position: absolute;
+  width: calc(var(--badge-h) * var(--size) * 2);
+  height: calc(var(--badge-h) * var(--size) * 2);
+  translate: -50% -50%;
+  background: var(--sparkle) center / contain no-repeat;
+  opacity: 0;
+  scale: 0;
+  animation: fx-twinkle 2.8s ease-in-out infinite;
+  animation-delay: calc(var(--delay) + var(--fx-phase) * -2.8s);
+}
+
+@keyframes fx-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    scale: 0;
+    rotate: 0deg;
+  }
+  18% {
+    opacity: 0.8;
+    scale: 0.9;
+  }
+  40% {
+    opacity: 0;
+    scale: 0.2;
+    rotate: 90deg;
+  }
+}
+
+/* While the list scrolls (AccountList data-scrolling), only the glow stays. */
+.list-scroller[data-scrolling] :is(.fx-glint, .fx-sparkle) {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-glow {
+    animation: none;
+  }
+
+  .fx-glint,
+  .fx-sparkle {
+    display: none;
+  }
+}
+
+/* A changed rank: the new badge eases in over the old one fading out, and a shine sweeps across
+   it, clipped to the badge's own shape. */
+.badge .badge-in {
+  animation: badge-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.badge img.badge-out {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.35));
+  animation: badge-out 200ms ease-out both;
+  pointer-events: none;
+}
+
+.badge img.badge-out[data-state="unranked"] {
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.35)) opacity(0.5);
+}
+
+.badge-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgb(255 255 255 / 0.35) 48%,
+      rgb(255 255 255 / 0.5) 50%,
+      rgb(255 255 255 / 0.35) 52%,
+      transparent 70%
+    )
+    no-repeat;
+  background-size: 260% 100%;
+  mix-blend-mode: plus-lighter;
+  mask: var(--badge-mask) center / contain no-repeat;
+  pointer-events: none;
+  animation: badge-shine 560ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+@keyframes badge-in {
+  from {
+    opacity: 0;
+    scale: 0.88;
+  }
+}
+
+@keyframes badge-out {
+  to {
+    opacity: 0;
+    scale: 1.06;
+  }
+}
+
+@keyframes badge-shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0% 0;
+  }
+}
+
+.badge[data-static] {
+  cursor: default;
+}
+
+.badge img {
+  display: block;
+  /* Follows the hexagon's shape; on the image so the badge's hover filter stays separate. */
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.35));
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.badge[data-state="predicted"] {
+  opacity: 0.35;
+}
+
+/* Dimmed in the image's own filter chain, not with opacity on the badge: one paint effect instead
+   of two, the same pixels (an unranked badge is only its image). */
+.badge[data-state="unranked"] img {
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.35)) opacity(0.5);
+}
+
+.badge-number {
+  position: absolute;
+  left: 76.5%;
+  top: calc(45% + 1px);
+  transform: translate(-50%, calc(-50% + 1.5px));
+  color: #111827;
+  font-family: "RankBadgeNumber", sans-serif;
+  font-size: var(--badge-number-size);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* ---------- Groups and banned ---------- */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  margin: 0 -10px;
+  padding: 0 10px 10px;
+}
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 6px;
+}
+
+.group-toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 9px;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.group-toggle svg {
+  transition: transform 200ms;
+}
+
+.group-toggle[data-collapsed] svg {
+  transform: rotate(-90deg);
+}
+
+.group-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.group-count {
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.group-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--row-gap);
+}
+
+/* Two rounded brackets enclose a group's accounts: a line whose ends curve toward the rows, the
+   short sides fading out. */
+.group-rule {
+  flex: none;
+  height: 12px;
+  margin: 0 4px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+}
+
+.group-rule-top {
+  margin-bottom: 4px;
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  mask-image: linear-gradient(to bottom, #000 1px, transparent);
+}
+
+.group-rule-bottom {
+  margin-top: 4px;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  mask-image: linear-gradient(to top, #000 1px, transparent);
+}
+
+.group-empty + .group-rule-bottom {
+  margin-top: 4px;
+}
+
+/* The SMS and banned sections' dividers: a line, a pill, a line, in the section's colour. */
+.section-divider {
+  --section-line: #4a2630;
+  --section-fill: #221018;
+  --section-text: rgb(254 205 211 / 0.9);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  margin-top: 24px;
+}
+
+.section-divider[data-status="sms"] {
+  --section-line: #4f3a1c;
+  --section-fill: #24190b;
+  --section-text: rgb(253 214 160 / 0.92);
+}
+
+.section-line {
+  flex: 1;
+  height: 1px;
+  background: var(--section-line);
+}
+
+.section-pill {
+  padding: 4px 12px;
+  border: 1px solid var(--section-line);
+  border-radius: 999px;
+  background: var(--section-fill);
+  color: var(--section-text);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}

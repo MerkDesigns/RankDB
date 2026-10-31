@@ -1,0 +1,936 @@
+/* Dialogs follow TaskMap's settings patterns (src/ui/patterns/settings in TaskMap-Refactor):
+   a Major glass shell, Minor glass islands, TaskMap tokens, RankDB's cyan as the accent. */
+
+:root {
+  --tm-text: rgb(255 255 255 / 0.88);
+  --tm-muted: rgb(255 255 255 / 0.45);
+  --tm-space-1: 4px;
+  --tm-space-2: 8px;
+  --tm-space-3: 12px;
+  --tm-space-4: 16px;
+  --tm-modal-padding: 20px;
+  --tm-disabled-opacity: 0.42;
+  --tm-control-height: 32px;
+  --accent: #22d3ee;
+  --accent-rgb: 34 211 238;
+}
+
+.dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+/* Fades with the dialog's presence (SettingsDialog writes its opacity). */
+.dialog-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.35);
+}
+
+/* Centres the glass shell; the shell itself must not carry the transform, so it stays a plain
+   glass surface. */
+.dialog-anchor {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  outline: none;
+}
+
+/* ---------- Shell (Major glass) ---------- */
+
+.dialog.settings {
+  /* Only the third track scrolls. Title, tabs and footer never participate in its layout. */
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  height: 540px;
+  max-height: calc(100vh - 32px);
+  padding: var(--tm-modal-padding);
+  color: var(--tm-text);
+}
+
+/* The Major surface's invisible filter overscan must not enlarge the dialog's outer bounds. */
+.settings > .g-body {
+  overflow: clip;
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--tm-space-3);
+}
+
+.dialog-head h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.dialog-close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--tm-muted);
+}
+
+.dialog-close:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--tm-text);
+}
+
+/* Tabs across the top, under the title. */
+.settings-tabs {
+  flex: none;
+}
+
+/* ---------- Body ---------- */
+
+.settings-scroll-frame {
+  position: relative;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* TaskMap SettingsIslandList: one stationary Minor batch behind the native scroller. */
+.settings-island-plane {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+}
+
+.settings-island-plane > span {
+  position: absolute;
+  inset: calc(-1 * var(--minor-os));
+  background: rgb(0 0 0 / 0.001);
+  mask-image: var(--island-mask, linear-gradient(transparent, transparent));
+  mask-position: var(--island-mask-position, 0 0);
+  mask-size: var(--island-mask-size, 100% 100%);
+  mask-repeat: no-repeat;
+  mask-composite: add;
+  --blur-presence: clamp(0, calc((var(--presence) - 0.2) / 0.8), 1);
+}
+
+.settings-plane-pre {
+  backdrop-filter: blur(calc(var(--minor-pre) * var(--blur-presence)));
+}
+
+.settings-plane-blur {
+  backdrop-filter: blur(calc(var(--minor-blur) * var(--blur-presence)))
+    saturate(calc(1 + (var(--minor-sat) - 1) * var(--presence)))
+    brightness(calc(1 + (var(--minor-bright) - 1) * var(--presence)));
+}
+
+:root[data-strategy="off"] .settings-island-plane,
+:root[data-minor-pre="off"] .settings-plane-pre {
+  display: none;
+}
+
+.settings-body {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 calc(-1 * var(--tm-space-1));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* The edge morph changes decorative bounds. Do not let browser anchoring follow them. */
+  overflow-anchor: none;
+  scrollbar-width: none;
+}
+
+/* The content stays pinned while the body scrolls natively over its spacer; scrollEdgeMorph moves
+   it (--stage-scroll) in the same frame as the island slices, so their edges never trail. */
+.settings-stage {
+  position: sticky;
+  top: 0;
+  box-sizing: border-box;
+  height: 100%;
+  padding: var(--tm-space-4) var(--tm-space-1) var(--tm-space-2);
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  translate: 0 var(--stage-scroll, 0);
+}
+
+.settings-stack {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: var(--tm-space-3);
+}
+
+.settings-spacer {
+  flex: 1;
+}
+
+/* ---------- Island (Minor glass) ---------- */
+
+/* Padding lives on the content so a scroll-edge slice clips the whole island. */
+.settings-island {
+  flex: none;
+  color: var(--tm-text);
+}
+
+/* Filter overscan samples beyond the material, but must not enlarge the scrollable content.
+   Clip its output here; shadows and rims are siblings and keep their effects gutters. Unlike
+   a mask/clip-path, overflow clipping does not make a backdrop root above the filters. */
+.settings-island > .g-body {
+  overflow: clip;
+}
+
+.settings-island-content {
+  padding: var(--tm-space-3);
+}
+
+.settings-island-head {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-space-2);
+  margin-bottom: var(--tm-space-3);
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.settings-island-icon {
+  display: grid;
+  place-items: center;
+}
+
+.settings-island-head .settings-soon {
+  margin-left: auto;
+}
+
+.settings-island-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tm-space-3);
+}
+
+/* ---------- Row (TaskMap SettingsRow) ---------- */
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-space-3);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.settings-toggle-row {
+  cursor: pointer;
+}
+
+.settings-row[data-disabled] {
+  opacity: var(--tm-disabled-opacity);
+}
+
+.settings-row-leading {
+  display: grid;
+  flex: none;
+  width: 22px;
+  place-items: center;
+  color: var(--tm-muted);
+}
+
+.settings-row-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.settings-row-img-coins {
+  width: 26px;
+  height: 26px;
+}
+
+.settings-row-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.settings-row-label {
+  color: var(--tm-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-row-description {
+  margin-top: 2px;
+  color: var(--tm-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.settings-row-control {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+/* ---------- Stepper, chips, buttons ---------- */
+
+.settings-stepper {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 10px;
+  background: rgb(3 4 6 / 0.3);
+}
+
+.settings-step {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tm-text);
+}
+
+.settings-step:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.08);
+}
+
+.settings-step:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.settings-step-value {
+  min-width: 54px;
+  padding: 0 4px;
+  border-right: 1px solid rgb(255 255 255 / 0.08);
+  border-left: 1px solid rgb(255 255 255 / 0.08);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 30px;
+  text-align: center;
+}
+
+/* UI scale: its steps as chips under the row (the current one in the accent). */
+.settings-chips {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.settings-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 10px;
+  background: rgb(3 4 6 / 0.3);
+  color: var(--tm-text);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.settings-chip:hover:not([aria-pressed="true"]) {
+  background: rgb(255 255 255 / 0.07);
+}
+
+.settings-chip[aria-pressed="true"] {
+  border-color: rgb(var(--accent-rgb) / 0.6);
+  background: rgb(var(--accent-rgb) / 0.16);
+  color: #fff;
+}
+
+.settings-chip-note {
+  color: var(--tm-muted);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--tm-space-2);
+}
+
+.settings-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tm-space-2);
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--tm-space-3);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 12px;
+  background: rgb(3 4 6 / 0.3);
+  color: var(--tm-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.07);
+}
+
+.settings-button:disabled {
+  cursor: default;
+  opacity: var(--tm-disabled-opacity);
+}
+
+.settings-soon {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.1);
+  color: var(--tm-muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ---------- Accent colour ---------- */
+
+.settings-color {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-space-2);
+}
+
+.settings-color input {
+  width: 34px;
+  height: 26px;
+  padding: 0 2px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 8px;
+  background: rgb(3 4 6 / 0.3);
+  cursor: pointer;
+}
+
+.settings-color-value {
+  min-width: 60px;
+  color: var(--tm-muted);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+}
+
+.settings-color-reset {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--tm-muted);
+}
+
+.settings-color-reset:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--tm-text);
+}
+
+.settings-color-reset[data-hidden] {
+  visibility: hidden;
+}
+
+.settings-footer {
+  flex: none;
+  margin-top: var(--tm-space-3);
+  color: rgb(255 255 255 / 0.28);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ---------- Rank picker ----------
+   Old app layout and behaviour, built like TaskMap's Shift+E quick extensions menu: a Major glass
+   panel floating over the app (no scrim), rim-only glass selectors, liquid tabs for divisions.
+   Every size is a --picker-* variable from the lab (glass/engine.ts applyPicker). */
+
+/* Overrides .g's position: relative; left/top are set beside the clicked badge. Presence
+   (ui/primitives/motion/presence.ts) writes the transform, its origin (the badge) and --presence. */
+/* Growing out of the badge, it passes under the pointer: it lets the pointer through until it is
+   in place, so the row under it keeps its hover. */
+.picker[data-presence-phase="showing"] {
+  pointer-events: none;
+}
+
+/* Kept mounted while closed (RankPicker): nothing to render. */
+.picker[data-parked] {
+  display: none;
+}
+
+.picker {
+  position: fixed;
+  z-index: 30;
+  width: max-content;
+  padding: calc(var(--picker-pad) + 4px) var(--picker-pad) var(--picker-pad);
+}
+
+/* Its own blur (lab: Rank picker → Blur), not the Major recipe's; overscan grows with it. */
+.picker.g[data-role="major"] {
+  --g-blur: var(--picker-blur);
+  --g-os: var(--picker-os);
+}
+
+/* Columns: tiers (2 × 5) · divisions · separator · Predicted above the placement bar. */
+.picker-body {
+  display: flex;
+  align-items: stretch;
+  gap: calc(var(--picker-gap) + 4px);
+}
+
+/* Columns keep their size while the panel eases wider or narrower around them. */
+.picker-body > * {
+  flex-shrink: 0;
+}
+
+/* Only while the width animates: the placements column is clipped by the moving edge. */
+.picker[data-resizing] .picker-body {
+  overflow: hidden;
+}
+
+.picker-tiers {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(5, var(--picker-cell));
+  grid-template-columns: repeat(2, var(--picker-cell));
+  gap: var(--picker-gap);
+}
+
+/* The one rim of the tier grid, gliding to the selected rank with a plain ease-in-out (no
+   deformation), with TaskMap's bright-selection lift. Under the emblems. */
+.cell-indicator.g {
+  --g-radius: var(--picker-radius);
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.cell-indicator.g[data-instant] {
+  transition: none;
+}
+
+.cell-indicator.g > .g-shadow {
+  display: none;
+}
+
+.cell-indicator.g::before {
+  position: absolute;
+  border-radius: inherit;
+  background: rgb(255 255 255 / 0.075);
+  content: "";
+  inset: 0;
+  opacity: var(--presence);
+  pointer-events: none;
+}
+
+/* ---------- Selectors (picker buttons; Predicted and Confirm on rim-only glass) ----------
+   Layers, bottom to top: fill (::before) → glass (tint + rim) → content → selection (::after).
+   Nothing here may use opacity on an element holding glass; the pseudo-elements fade with the
+   panel's presence themselves. */
+
+.picker-selector {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--selector-radius, var(--picker-radius));
+  background: none;
+  color: #f1f5f9;
+  /* No opacity transition: a tier button's opacity is the panel's presence, which an eased
+     transition would drag behind the opening (the icons kept fading in after it ended). */
+  transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.picker-selector > .picker-selector-glass.g {
+  --g-radius: var(--selector-radius, var(--picker-radius));
+  position: absolute;
+  inset: 0;
+}
+
+.picker-selector::before,
+.picker-selector::after {
+  position: absolute;
+  border-radius: inherit;
+  content: "";
+  inset: 0;
+  opacity: var(--presence);
+  pointer-events: none;
+}
+
+.picker-selector::before {
+  background: var(--picker-fill);
+  transition: background-color 120ms;
+}
+
+/* TaskMap's bright selection: a faint white lift, plus the lab's outline. */
+.picker-selector::after {
+  z-index: 2;
+  border: var(--picker-selected-width) solid transparent;
+  transition:
+    border-color 120ms,
+    background-color 120ms;
+}
+
+.picker-selector > :not(.g) {
+  position: relative;
+  z-index: 1;
+}
+
+.picker-selector:hover:not(:disabled)::before {
+  background: var(--picker-fill-hover);
+}
+
+.picker-selector:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.picker-selector[data-selected]::after {
+  border-color: var(--picker-selected);
+  background: rgb(255 255 255 / 0.075);
+}
+
+/* The tier grid's lift comes from its gliding indicator. */
+.picker-tiers > .picker-selector[data-selected]::after {
+  background: none;
+}
+
+/* Predicted's glass fades in and out quickly as it toggles (rim-only, so opacity is safe). */
+.picker-predicted > .picker-selector-glass {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.picker-predicted[data-selected] > .picker-selector-glass {
+  opacity: 1;
+}
+
+.picker-selector:disabled {
+  cursor: default;
+}
+
+.picker-cell {
+  width: var(--picker-cell);
+  height: var(--picker-cell);
+}
+
+.picker-cell img {
+  width: var(--picker-emblem);
+  height: var(--picker-emblem);
+  object-fit: contain;
+}
+
+/* Emblem dimming fades through a registered factor, so the panel's presence still applies at once. */
+@property --emblem-dim {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+/* The panel's presence fades whichever element carries the mark: a tier button (then its emblem
+   must not fade with it again, or it would lag behind as presence squared), or the emblem itself
+   inside a glass selector (Predicted). */
+/* No fade of their own (by request): an emblem's dimming switches at once. */
+.picker-cell img {
+  opacity: var(--emblem-dim);
+}
+
+.picker-cell img[data-presence-content] {
+  opacity: calc(var(--emblem-dim) * var(--presence));
+}
+
+.picker-cell[data-dimmed] img {
+  --emblem-dim: 0.45;
+}
+
+.picker-cell:disabled img {
+  --emblem-dim: 0.25;
+}
+
+/* ---------- Divisions (TaskMap vertical liquid tabs) ---------- */
+
+/* As wide as a tier cell: Predicted on top, then "Div" over the (narrower) division tabs, which
+   fill the rest of the tier grid's height. */
+.picker-divisions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--picker-cell);
+}
+
+.picker-divisions > .picker-predicted {
+  margin-bottom: var(--picker-gap);
+}
+
+.picker-heading {
+  margin-bottom: 4px;
+  color: rgb(203 213 225 / 0.8);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: color 150ms;
+}
+
+.picker-heading[data-disabled] {
+  color: rgb(203 213 225 / 0.3);
+}
+
+.picker-divisions > .liquid-tabs {
+  flex: 1;
+  align-items: stretch;
+  width: 100%;
+  border-radius: var(--picker-radius);
+}
+
+/* Beats the vertical tabs' left-aligned label rule. */
+.picker .picker-divisions > .liquid-tabs .liquid-tab {
+  flex: 1;
+  justify-content: center;
+  height: auto;
+  min-width: 0;
+  padding: 0;
+  border-radius: calc(var(--picker-radius) * 0.7);
+  color: rgb(248 250 252 / 0.62);
+  font-family: "RankBadgeNumber", sans-serif;
+  font-size: var(--picker-division-size);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.picker .picker-divisions > .liquid-tabs .liquid-tab[aria-selected="true"] {
+  color: #f8fafc;
+}
+
+/* Unranked: the whole selector greys out, selected number included. */
+.picker .picker-divisions > .liquid-tabs[data-disabled] .liquid-tab {
+  color: rgb(248 250 252 / 0.22);
+}
+
+/* ---------- Predicted + placements ---------- */
+
+/* Only while Predicted is on. The count shares the Predicted row; the bar lines up with the
+   division tabs. It fades in as the panel widens for it. */
+@property --appear {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+@keyframes picker-appear {
+  from {
+    --appear: 0;
+  }
+}
+
+.picker-placements {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--picker-gap);
+  animation: picker-appear 200ms ease-in-out;
+}
+
+@keyframes picker-disappear {
+  to {
+    --appear: 0;
+  }
+}
+
+.picker-placements[data-leaving] {
+  animation: picker-disappear 160ms ease-in-out forwards;
+}
+
+/* Holds no glass, so it fades whole, with the panel's presence as well as its own appearance. */
+.picker .picker-placements {
+  opacity: calc(var(--presence) * var(--appear));
+}
+
+.picker-placement-count {
+  display: grid;
+  place-items: center;
+  height: var(--picker-cell);
+  /* Wide enough for "10 / 10", so the panel never resizes as the count changes. */
+  min-width: 7ch;
+  color: #f1f5f9;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Placement games 1–10 as a bar of unnumbered cells filling up from the bottom. */
+.picker-placement-bar {
+  display: flex;
+  flex: 1;
+  /* Nudged up 2px (visually lines up better with the division tabs). */
+  transform: translateY(-2px);
+  flex-direction: column;
+  gap: 3px;
+  width: calc(var(--picker-cell) * 0.6);
+  border-radius: calc(var(--picker-radius) * 0.5);
+  outline: none;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.picker-placement-bar:focus-visible {
+  box-shadow: 0 0 0 1.5px rgb(255 255 255 / 0.5);
+}
+
+.picker-placement-cell {
+  flex: 1;
+  border-radius: calc(var(--picker-radius) * 0.4);
+  background: rgb(255 255 255 / 0.06);
+  transition: background-color 120ms;
+}
+
+.picker-placement-cell[data-filled] {
+  background: rgb(226 232 240 / 0.62);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+/* ---------- Confirm (a plain glass button) ---------- */
+
+/* Greyed out until the draft differs from the saved rank. Rim-only glass, so opacity is safe. */
+.picker-confirm:disabled {
+  opacity: 0.4;
+}
+
+.picker-confirm {
+  --selector-radius: var(--picker-confirm-radius);
+  width: 100%;
+  height: var(--picker-confirm-h);
+  margin-top: calc(var(--picker-gap) + 4px);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+/* ---------- List scrollbar ---------- */
+
+/* In the 20px right margin (clear of the rail), from below the header to the bottom. Hidden until
+   the pointer is over the window. Thumb widths are divided by the UI scale to stay thin. */
+.list-scrollbar {
+  position: absolute;
+  top: calc(var(--top-gap) + var(--header-h) + 10px);
+  right: 2px;
+  bottom: 12px;
+  z-index: 4;
+  width: 10px;
+  opacity: 0;
+  transition: opacity 180ms;
+}
+
+.stage:hover .list-scrollbar,
+.list-scrollbar[data-dragging] {
+  opacity: 1;
+}
+
+.list-scrollbar[data-scrollable="false"] {
+  display: none;
+}
+
+.list-scrollbar-thumb {
+  position: absolute;
+  top: 0;
+  right: calc(2px / var(--ui-zoom, 1));
+  width: calc(4px / var(--ui-zoom, 1));
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.18);
+  transition: background-color 140ms;
+}
+
+/* Always this thin; hovering only brightens it. */
+.list-scrollbar:hover .list-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.3);
+}
+
+.list-scrollbar[data-dragging] .list-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.38);
+}
+
+.list-scrollbar-thumb {
+  animation: list-scrollbar-thumb linear both;
+  animation-timeline: --list-scroll;
+}
+
+@keyframes list-scrollbar-thumb {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--thumb-travel, 0px));
+  }
+}
+
+/* An active header/rail action (e.g. privacy mode on). */
+.icon-button[data-active] {
+  color: var(--accent);
+}
+
+/* A temporary mode is on (past ranks): the accent glows behind the icon. */
+.icon-button[data-glow] {
+  background: rgb(var(--accent-rgb) / 0.16);
+  box-shadow:
+    0 0 14px rgb(var(--accent-rgb) / 0.55),
+    inset 0 0 0 1px rgb(var(--accent-rgb) / 0.45);
+}
+
+.icon-button[data-glow] svg {
+  filter: drop-shadow(0 0 4px rgb(var(--accent-rgb) / 0.8));
+}
+.credential-security-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.credential-security-error {
+  color: var(--danger);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  margin: 0;
+}

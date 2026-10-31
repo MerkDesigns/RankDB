@@ -6,3 +6,4 @@ bench-results
 .idea
 Thumbs.db
 .DS_Store
+.sandbox

@@ -24,9 +24,8 @@ jobs:
           node-version: 24
           cache: npm
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
+      # rust-toolchain.toml picks the Rust version (rustup installs it on first use).
+      - run: rustup show active-toolchain || rustup toolchain install
 
       - uses: Swatinem/rust-cache@v2
         with:

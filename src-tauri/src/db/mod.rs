@@ -186,7 +186,7 @@ fn upgrade_copies(dir: &Path) -> Vec<(i64, PathBuf)> {
             Some((version, entry.path()))
         })
         .collect();
-    copies.sort_by(|a, b| b.0.cmp(&a.0));
+    copies.sort_by_key(|copy| std::cmp::Reverse(copy.0));
     copies
 }
 

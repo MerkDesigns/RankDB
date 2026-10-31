@@ -11,6 +11,8 @@
     "app:dev:mcp": "node scripts/dev-app.mjs --features mcp-development --config src-tauri/tauri.mcp.conf.json",
     "app:profile": "node scripts/dev-app.mjs --devtools-port 9333 --features mcp-development --config src-tauri/tauri.mcp.conf.json",
     "bundle:dev": "tauri build --config src-tauri/tauri.devapp.conf.json",
+    "sandbox:build": "node scripts/sandbox/build.mjs",
+    "sandbox:open": "node scripts/sandbox/build.mjs --open",
     "bench": "node scripts/bench.mjs",
     "check": "npm run check:strings && tsc --noEmit && vite build && cargo check --manifest-path src-tauri/Cargo.toml --features mcp-development",
     "check:strings": "node scripts/check-strings.mjs",

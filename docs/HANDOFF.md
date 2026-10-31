@@ -638,6 +638,6 @@ before changing data behavior; keep tests away from the user's live database.
   data/services features as unbuilt. `PLAN.md` contains old references to LabState app settings,
   `schema_version`, role-sort cycling and exclusively in-memory dev seeding. Read current source
   and CLAUDE.md alongside these until reconciled.
-- Git is on `master` with **no commits and no configured remote**. All project files were already
-  untracked on arrival. Nothing was staged or committed by this pass; `git diff` cannot show a
-  normal baseline comparison yet. Establish a reviewed initial commit when requested.
+- Git: branch `rewrite`, pushed to `origin` = https://github.com/MerkDesigns/RankDB (public; the
+  old app is `main` there, so the histories are unrelated). Commit and push on `rewrite`; when the
+  rewrite replaces the old app, merge or swap the default branch then.

@@ -6,9 +6,9 @@ entry whenever we decide not to copy something, so it isn't rebuilt by accident.
 ## Removed
 
 - **Export/import and local backups** are deferred by request (2026-10-30). Removed the export,
-  file/installed-old-app import and restore dialogs, backup island/history, automatic snapshots
-  and pre-update backups, along with their backend commands and Windows Credential Manager access.
-  Add them back only after a new request. Existing files are not automatically deleted.
+  file import and restore dialogs, backup island/history, automatic snapshots and pre-update
+  backups. Add them back only after a new request. Existing files are not automatically deleted.
+  The installed 0.3 app's data is still migrated once, into an empty database only.
 
 - **Browser support.** RankDB only runs as the installed Tauri app. All browser fallbacks are gone:
   localStorage settings, scroll-timeline fallbacks, the web-only lab and the Edge benchmark. Don't add
@@ -38,8 +38,7 @@ entry whenever we decide not to copy something, so it isn't rebuilt by accident.
 
 ## Changed
 
-- **UI scale** uses −/+ buttons and presets instead of a slider. The scale is now 50–150%, and
-  100% is the default.
+- **UI scale** uses five chips (80/90/100/110/120%) instead of a slider; 100% is the default.
 - **Rank badges** are 10% smaller, and the gap between the role ranks and the 6v6 rank is narrower.
 - **Rank picker** is a floating glass menu (no dimmed backdrop) with the same controls (tier grid,
   divisions as a liquid tab switcher, predicted, a plain glass Confirm),
@@ -49,10 +48,8 @@ entry whenever we decide not to copy something, so it isn't rebuilt by accident.
   Windows clipboard history and cloud sync, and only clears the clipboard if it still holds it.
 - **Credential encryption is optional**, off for fresh installations. Users can enable a master
   password in Settings for email/password fields only (AES-GCM, password-wrapped random data key).
-  No keyring or Windows account dependency after the mandatory one-time legacy → plain conversion.
-  Existing Windows-protected credentials must be decrypted before normal app use, then a master
-  password can be chosen separately. Missing keys stop migration without replacing data.
-  See `CREDENTIAL-ENCRYPTION.md` for the implemented design.
+  No keyring or Windows account dependency. Accounts migrated from 0.3 arrive unencrypted; a
+  master password can be set afterwards. See `CREDENTIAL-ENCRYPTION.md`.
 - **New accounts** open straight into name editing (the "New" pill stays until the name is saved).
   Names can also be edited by double-click, not only from the context menu.
 - **Toasts** sit in the bottom-right corner.
@@ -60,16 +57,14 @@ entry whenever we decide not to copy something, so it isn't rebuilt by accident.
   toward the rows) instead of a box.
 - **Groups** sit anywhere among the loose accounts as before, but are placed by one shared order
   instead of being anchored to an account. Collapsing is saved. New groups open into their name.
-- **Move to group** is a section in the account menu, not a separate submenu.
+- **Move to group** is the account menu's Move To submenu.
 - **Updates** use the same GitHub channel and signing key, restart after installation, and check
   silently on start. There is no recovery-file/backup feature. Development builds never check.
 - **Discord presence** reconnects by itself when Discord is started after RankDB.
-- **Backups** are whole-database snapshots (daily, before imports and restores) listed in Settings,
-  instead of one recovery file written before updates.
-- **Exports** include rank history; the old export format is still readable (Import).
 - **Rank history** is only the season resets, all of them in one Account info tab (role icons over
   badge columns, a row per reset), instead of a dropdown of snapshots. Rank changes aren't logged.
-  The toolbar shows past reset ranks. Notifications have no action/Undo buttons or clear-all control.
+  The toolbar shows past reset ranks; the newest reset can be undone there. Notifications have no
+  action buttons or clear-all control.
 - **Status** has three states (Clean, SMS, Banned) instead of a banned switch; SMS accounts get
   their own section above the banned one.
 - **Role sorting** covers 6v6 too, and is never saved (a restart shows your own order).

@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 
 /**
  * The app's settings (the Settings window), saved in the database's `settings` table
- * (src-tauri/src/db.rs) one key per setting, as JSON. Loaded before the first render; each change
+ * (src-tauri/src/db/settings.rs) one key per setting, as JSON. Loaded before the first render; each change
  * applies at once and is saved shortly after (a burst of changes is one write).
  */
 
@@ -111,23 +111,13 @@ function flush() {
     .catch((error: unknown) => console.error("Could not save settings", error));
 }
 
-/**
- * Loads the saved settings before the first render. `legacy` holds values from before settings
- * moved into the database (the lab settings file); they are saved once, when the database has no
- * settings yet, so nobody loses theirs.
- */
-export async function initSettings(legacy: Record<string, unknown>): Promise<void> {
+/** Loads the saved settings before the first render. */
+export async function initSettings(): Promise<void> {
   let saved: Record<string, unknown> = {};
   try {
     saved = await command<Record<string, unknown>>("load_settings");
   } catch (error) {
     console.error("Could not load settings", error);
-  }
-  if (Object.keys(saved).length === 0 && Object.keys(legacy).length > 0) {
-    state = normalizeSettings(legacy);
-    pending = { ...state };
-    flush();
-    return;
   }
   state = normalizeSettings(saved);
 }

@@ -17,7 +17,7 @@ import {
 } from "./accounts";
 
 /**
- * The accounts on screen. Rust owns the data (src-tauri/src/db.rs) and this store mirrors it:
+ * The accounts on screen. Rust owns the data (src-tauri/src/db/) and this store mirrors it:
  * it loads the whole roster once at startup, and each edit is applied here at once (optimistic),
  * sent to Rust as one command, then replaced by the record Rust returns. Edits replace only the
  * edited account, so only that row re-renders. If anything doesn't go as shown (a failure, or
@@ -422,6 +422,12 @@ export async function setCredentials(accountId: number, email: string, password:
   const answer = await saved<Account>("set_credentials", { accountId, email, password }, uiText("rosterStore.credentialsSaveFailed"));
   if (answer?.latest) replaceAccount(answer.result);
   return answer !== null;
+}
+
+/** Loads the roster from Rust again (after an import added accounts behind the store's back). */
+export async function reloadRoster(): Promise<void> {
+  const loaded = await command<Records>("load_roster");
+  if (source === "database") publish(loaded);
 }
 
 /** Development: replaces the database's accounts with the lab's dummy roster. */

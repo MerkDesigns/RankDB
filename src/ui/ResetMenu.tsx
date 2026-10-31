@@ -1,8 +1,9 @@
 import { uiText } from "../text/index";
 import { useSyncExternalStore } from "react";
-import { Check, History } from "lucide-react";
-import { listSeasonResets, useViewedReset, viewSeasonReset } from "../data/rosterStore";
+import { Check, History, Undo2 } from "lucide-react";
+import { getViewedReset, listSeasonResets, undoSeasonReset, useViewedReset, viewSeasonReset } from "../data/rosterStore";
 import { ContextMenu, MENU_DIVIDER, type MenuEntry } from "./primitives/ContextMenu";
+import { showToast } from "./toasts";
 
 /* ---------- The toolbar's past-ranks menu (UI state; the choice is never saved) ---------- */
 
@@ -30,6 +31,16 @@ function closeResetMenu() {
 
 const DATE = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
+/**
+ * Undoes the newest season reset: its ranks come back wherever a slot is still Unranked (ranks set
+ * since stay), and it leaves Past ranks.
+ */
+async function undoReset(resetAt: string) {
+  closeResetMenu();
+  if (getViewedReset() === resetAt) await viewSeasonReset(null);
+  if (await undoSeasonReset(resetAt)) showToast({ tone: "success", title: uiText("pastRanks.undone") });
+}
+
 /** Picks whose ranks the list shows: today's, or those a past season reset cleared. */
 export function ResetMenu() {
   const current = useSyncExternalStore(
@@ -53,12 +64,14 @@ export function ResetMenu() {
     { section: uiText("pastRanks.heading") },
     ...(current.resets.length === 0
       ? [{ note: uiText("pastRanks.empty"), value: "" }]
-      : current.resets.map((resetAt) => ({
+      : current.resets.map((resetAt, index) => ({
           key: resetAt,
           label: DATE.format(new Date(resetAt)),
           Icon: viewed === resetAt ? Check : History,
           disabled: viewed === resetAt,
           onSelect: () => void viewSeasonReset(resetAt),
+          // Only the newest: undoing an older one under a newer reset would mix two seasons.
+          ...(index === 0 ? { aside: { label: uiText("pastRanks.undo"), Icon: Undo2, onSelect: () => void undoReset(resetAt) } } : {}),
         }))),
   ];
   return (

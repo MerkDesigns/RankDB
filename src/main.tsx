@@ -7,8 +7,7 @@ import { initRoster } from "./data/rosterStore";
 import { invoke } from "@tauri-apps/api/core";
 import { initSettings } from "./data/settingsStore";
 import { startGlassEngine } from "./glass/engine";
-import { installLabAutomation } from "./lab/automation";
-import { initLabStore, takeLegacyAppSettings } from "./lab/store";
+import { initLabStore } from "./lab/store";
 import {
   fitWindowToContent,
   revealWindow,
@@ -19,7 +18,6 @@ import {
 import { startAppServices } from "./ui/AppUpdates";
 import "./styles/app.css";
 import "./styles/glass.css";
-import "./styles/lab.css";
 import "./styles/dialogs.css";
 import "./styles/primitives.css";
 import "./styles/controls.css";
@@ -33,13 +31,13 @@ void (async () => {
   // A database that couldn't be opened leaves the app showing only why (App's `problem`).
   const problem = await invoke<string | null>("database_problem");
   if (problem === null) {
-    // App settings come from the database; ones still in an old lab settings file move over once.
-    await initSettings(takeLegacyAppSettings());
+    await initSettings();
     await initRoster();
     startSaveOnClose();
   }
   startGlassEngine();
-  installLabAutomation();
+  // `window.__lab` for benchmarks and MCP checks; dev builds only, like the lab itself.
+  if (import.meta.env.DEV) void import("./lab/automation").then((module) => module.installLabAutomation());
   await startWindowChrome();
   // Committed synchronously: the window is still hidden, and hidden webviews never fire animation
   // frames, so nothing below may wait for one. The layout exists as soon as this returns.

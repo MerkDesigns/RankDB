@@ -2,22 +2,45 @@
 //!
 //! Secrets (email, password) are marked so Windows keeps them out of clipboard history (Win+V),
 //! cloud clipboard sync and clipboard monitors, and they are cleared after a delay, but only if the
-//! clipboard still holds them: anything copied since is left alone.
+//! clipboard still holds them: anything copied since is left alone. A secret whose delay hasn't
+//! run out yet is also cleared when the app exits (`clear_pending`), so closing the app never
+//! leaves a password behind.
 
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
+
+/// The clipboard sequence number of the secret still waiting to be cleared, if any. Only the
+/// latest can still be on the clipboard: anything copied since replaced it.
+static PENDING: Mutex<Option<u32>> = Mutex::new(None);
 
 /// Copies `text`. With `secret`, it stays out of clipboard history and is cleared after
 /// `clear_after` (if given) unless something else was copied in the meantime.
 pub fn copy(text: &str, secret: bool, clear_after: Option<Duration>) -> Result<(), String> {
     let sequence = platform::write(text, secret)?;
-    if let Some(delay) = clear_after {
+    let mut pending = PENDING.lock().map_err(|error| error.to_string())?;
+    *pending = None;
+    if let Some(delay) = clear_after.filter(|_| secret) {
+        *pending = Some(sequence);
         thread::spawn(move || {
             thread::sleep(delay);
             platform::clear_if_unchanged(sequence);
+            if let Ok(mut pending) = PENDING.lock() {
+                if *pending == Some(sequence) {
+                    *pending = None;
+                }
+            }
         });
     }
     Ok(())
+}
+
+/// Clears a secret whose delay is still running (app exit, before an update installs). A secret
+/// copied with "never clear" stays, as chosen.
+pub fn clear_pending() {
+    if let Some(sequence) = PENDING.lock().ok().and_then(|mut pending| pending.take()) {
+        platform::clear_if_unchanged(sequence);
+    }
 }
 
 #[cfg(windows)]

@@ -59,14 +59,6 @@ export function cubicBezier(x1: number, y1: number, x2: number, y2: number) {
 
 export const easeOutCubic = (progress: number) => 1 - (1 - progress) ** 3;
 const smoothstep = (progress: number) => progress * progress * (3 - 2 * progress);
-const EASE_STANDARD = cubicBezier(0.2, 0, 0, 1);
-const EASE_EMPHASIZED = cubicBezier(0.16, 1, 0.3, 1);
-
-/** Menus (TaskMap's Shift+E quick extensions menu). */
-export const MENU_PRESENCE = Object.freeze({
-  enter: { durationMs: 264, easing: EASE_EMPHASIZED } satisfies PresenceTiming,
-  exit: { durationMs: 192, easing: EASE_STANDARD } satisfies PresenceTiming,
-});
 
 /** Dialogs: ease-out enter (TaskMap's normal duration × 1.2), fast smoothstep exit. */
 export const MODAL_PRESENCE = Object.freeze({
@@ -83,10 +75,9 @@ export const OPEN_FROM_PRESENCE = Object.freeze({
   exit: { durationMs: 192, easing: cubicBezier(0.4, 0, 0.2, 1) } satisfies PresenceTiming,
 });
 
-/** TaskMap's presets: the Shift+E menu slides up into place, dialogs only fade their material. */
+/** TaskMap's presets: dialogs only fade their material. */
 export const PRESENCE_PRESETS = Object.freeze({
   materialFade: {} satisfies PresenceChannels,
-  materialFadeSlideUp: { slide: { y: 16 } } satisfies PresenceChannels,
 });
 
 export interface PresenceOptions {

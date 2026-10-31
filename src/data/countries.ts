@@ -78,7 +78,3 @@ export const COUNTRIES = [...LIST].sort((a, b) => a.label.localeCompare(b.label)
 export function flagOf(code: string): string | null {
   return code ? (FLAG_FILES[`/node_modules/flag-icons/flags/4x3/${code.toLowerCase()}.svg`] ?? null) : null;
 }
-
-export function countryName(code: string): string {
-  return LIST.find((country) => country.code === code)?.label ?? code;
-}

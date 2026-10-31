@@ -1,4 +1,5 @@
 import { uiText } from "../text/index";
+import "../styles/lab.css";
 import {
   useCallback,
   useEffect,

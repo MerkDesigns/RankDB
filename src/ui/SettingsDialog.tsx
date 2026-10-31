@@ -1,6 +1,6 @@
 import { uiText } from "../text/index";
 import { lockCredentials, openCredentialSecurity, useCredentialSecurity } from "../data/credentialSecurity";
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   ClipboardClock,
   Columns3,
@@ -16,6 +16,7 @@ import {
   Shield,
   Sparkles,
   ZoomIn,
+  Download,
 } from "lucide-react";
 import { ICONS } from "../data/assets";
 import { Glass, SharedMinorPlane } from "../glass/Glass";
@@ -32,7 +33,9 @@ import {
 } from "../data/settingsStore";
 import { dialogs, useOpenDialog } from "./appActions";
 import { checkForUpdates } from "./AppUpdates";
-import { showError } from "./toasts";
+import { showError, showToast } from "./toasts";
+import { command } from "../data/backend";
+import { reloadRoster } from "../data/rosterStore";
 import { LiquidTabs, type LiquidTab } from "./primitives/LiquidTabs";
 import { LiquidToggleSwitch } from "./primitives/LiquidToggleSwitch";
 import { Dialog } from "./primitives/Dialog";
@@ -217,6 +220,7 @@ function DataTab() {
         </div>}
       </Island>
       <Island>
+        <OldAppRow />
         <Row
           icon={<RotateCcw size={17} strokeWidth={2.2} />}
           label={uiText("settings.rankReset.label")}
@@ -229,6 +233,44 @@ function DataTab() {
         />
       </Island>
     </div>
+  );
+}
+
+/**
+ * Migrating RankDB 0.3's accounts, offered only while they're on this PC and the list is empty
+ * (an update migrates them on its own; this covers a manual download or a failed first try).
+ */
+function OldAppRow() {
+  const [available, setAvailable] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    void command<boolean>("old_app_status").then(setAvailable, () => setAvailable(false));
+  }, []);
+  if (!available) return null;
+  const run = async () => {
+    setBusy(true);
+    try {
+      const summary = await command<{ accounts: number }>("import_old_app");
+      await reloadRoster();
+      setAvailable(false);
+      showToast({ tone: "success", title: uiText("oldApp.imported.title"), message: uiText("oldApp.imported.description", { count: summary.accounts }) });
+    } catch (error) {
+      showError(uiText("oldApp.failed"), error);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Row
+      icon={<Download size={17} strokeWidth={2.2} />}
+      label={uiText("settings.oldApp.label")}
+      description={uiText("settings.oldApp.description")}
+      control={
+        <button type="button" className="settings-button" disabled={busy} onClick={() => void run()}>
+          {busy ? uiText("settings.oldApp.busy") : uiText("settings.oldApp.action")}
+        </button>
+      }
+    />
   );
 }
 

@@ -30,6 +30,21 @@ export function startAppServices() {
   settingsStore.subscribe(syncDiscord);
   void showWhatsNewAfterUpdate();
   void checkForUpdates(true);
+  void reportOldAppImport();
+}
+
+/* ---------- RankDB 0.3 ---------- */
+
+/** The first start brought over RankDB 0.3's accounts (Rust, before the list loaded): say so. */
+async function reportOldAppImport() {
+  try {
+    const summary = await command<{ accounts: number } | null>("take_old_app_import");
+    if (summary) {
+      showToast({ tone: "success", title: uiText("oldApp.imported.title"), message: uiText("oldApp.imported.description", { count: summary.accounts }) });
+    }
+  } catch (error) {
+    showError(uiText("oldApp.failed"), error);
+  }
 }
 
 /* ---------- Discord ---------- */
@@ -140,7 +155,7 @@ export function UpdateDialog() {
       // The installer ends the app at once: every pending save first, and the database file
       // complete on its own, so the new version opens exactly what this one saved.
       await settleSaves();
-      await command("flush_database");
+      await command("prepare_for_update");
       await pending.install();
       await relaunch();
     } catch (error) {

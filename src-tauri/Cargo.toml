@@ -44,6 +44,8 @@ webview2-com = "=0.39.1"
 windows-core = "=0.62.2"
 windows = { version = "=0.62.2", features = [
   "Win32_Foundation",
+  # RankDB 0.3's database key, read once to bring its data over (src/legacy.rs).
+  "Win32_Security_Credentials",
   # Clipboard writes kept out of clipboard history, cleared after a delay (src/clipboard.rs).
   "Win32_System_DataExchange",
   "Win32_System_Memory",

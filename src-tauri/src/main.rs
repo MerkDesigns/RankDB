@@ -5,6 +5,8 @@ mod clipboard;
 mod credential_security;
 mod db;
 mod discord;
+mod legacy;
+#[cfg(debug_assertions)]
 mod lab_settings;
 mod secrets;
 mod text;
@@ -75,7 +77,10 @@ fn main() {
         lab_settings::save_lab_settings,
         db::load_roster,
         db::database_problem,
-        db::flush_database,
+        db::prepare_for_update,
+        db::take_old_app_import,
+        db::old_app_status,
+        db::import_old_app,
         open_data_folder,
         db::credential_security_status,
         db::unlock_credentials,
@@ -115,11 +120,12 @@ fn main() {
     ]);
     #[cfg(not(debug_assertions))]
     let builder = tauri::Builder::default().invoke_handler(tauri::generate_handler![
-        lab_settings::load_lab_settings,
-        lab_settings::save_lab_settings,
         db::load_roster,
         db::database_problem,
-        db::flush_database,
+        db::prepare_for_update,
+        db::take_old_app_import,
+        db::old_app_status,
+        db::import_old_app,
         open_data_folder,
         db::credential_security_status,
         db::unlock_credentials,
@@ -216,6 +222,8 @@ fn main() {
                 if let Some(database) = app.try_state::<db::Database>() {
                     database.checkpoint();
                 }
+                // A secret copied with a clear delay doesn't outlive the app.
+                clipboard::clear_pending();
             }
         });
 }

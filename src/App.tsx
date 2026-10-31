@@ -1,4 +1,4 @@
-import { LabPanel } from "./lab/LabPanel";
+import { lazy, Suspense } from "react";
 import { CredentialSecurityDialog } from "./ui/CredentialSecurityDialog";
 import { StartupProblem } from "./ui/StartupProblem";
 import { useSettings } from "./data/settingsStore";
@@ -10,6 +10,9 @@ import { Header } from "./ui/Header";
 import { ListScrollbar } from "./ui/ListScrollbar";
 import { Rail } from "./ui/Rail";
 import { AccountInfoDialog, CredentialsDialog, DeleteAccountDialog } from "./ui/AccountDialogs";
+
+/** The Glass Lab exists only in dev builds; release builds don't contain it. */
+const LabPanel = import.meta.env.DEV ? lazy(() => import("./lab/LabPanel").then((module) => ({ default: module.LabPanel }))) : null;
 import { AccountMenu } from "./ui/AccountMenu";
 import { ResetMenu } from "./ui/ResetMenu";
 import { DeleteGroupDialog, GroupMenu } from "./ui/GroupMenu";
@@ -67,7 +70,11 @@ export function App({ problem }: { readonly problem: string | null }) {
         <ToastStack />
         </>}
       </div>
-      {!blocked && <LabPanel />}
+      {LabPanel && !blocked && (
+        <Suspense fallback={null}>
+          <LabPanel />
+        </Suspense>
+      )}
     </div>
   );
 }

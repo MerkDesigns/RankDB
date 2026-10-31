@@ -62,15 +62,15 @@ export interface ToastTuning {
 }
 
 export const DEFAULT_TOASTS: ToastTuning = {
-  material: null,
+  material: { blur: 37, preblur: 6, saturation: 0.78, brightness: 0.82, tintOpacity: 0.075, radius: 18, rimAlpha: 0.205 },
   shadowStrength: 1,
   iconSize: 18,
   iconStroke: 2,
   textOpacity: 0.88,
   detailOpacity: 0.45,
-  edgeX: 16,
-  edgeY: 16,
-  motionSpeed: 1,
+  edgeX: 20,
+  edgeY: 17,
+  motionSpeed: 1.25,
 };
 
 export interface LabState {
@@ -322,6 +322,9 @@ export function normalizeState(value: unknown): LabState {
 
 /* ---------- Persistence ---------- */
 
+// Release builds have no lab: they always use the defaults above and never read or write the
+// settings file (the Rust commands exist only in debug builds).
+
 /** Short enough to feel live, long enough to coalesce a slider drag into a few writes. */
 const SAVE_DELAY_MS = 120;
 
@@ -330,6 +333,7 @@ let saveChain: Promise<void> = Promise.resolve();
 
 /** Writes the settings file through the app (src-tauri/src/lab_settings.rs). */
 function persist() {
+  if (!import.meta.env.DEV) return;
   const snapshot = JSON.stringify(state);
   // Serialised so two writes never race on the temporary file.
   saveChain = saveChain
@@ -338,6 +342,7 @@ function persist() {
 }
 
 function schedulePersist() {
+  if (!import.meta.env.DEV) return;
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveTimer = null;
@@ -347,6 +352,7 @@ function schedulePersist() {
 
 /** Loads the saved settings file before first render; defaults when there is none. */
 export async function initLabStore(): Promise<void> {
+  if (!import.meta.env.DEV) return;
   let saved: unknown = null;
   try {
     const content = await invoke<string | null>("load_lab_settings");
@@ -355,26 +361,7 @@ export async function initLabStore(): Promise<void> {
     console.error(uiText("labOptions.errors.loadFailed"), error);
   }
   state = normalizeState(saved);
-  legacyAppSettings = pickLegacyAppSettings(saved);
 }
-
-/**
- * App settings used to live in this file. They are now in the database (src/data/settingsStore.ts);
- * these are the values from a file written before that, handed over once and then dropped from the
- * file on its next save.
- */
-let legacyAppSettings: Record<string, unknown> = {};
-
-function pickLegacyAppSettings(saved: unknown): Record<string, unknown> {
-  const raw = (saved && typeof saved === "object" ? saved : {}) as Record<string, unknown>;
-  const keys = ["accentColor", "showCredentialButtons", "showCurrency", "showSixV6", "privacyMode", "privacyChars"];
-  const legacy: Record<string, unknown> = {};
-  for (const key of keys) if (key in raw) legacy[key] = raw[key];
-  if ("zoom" in raw) legacy.uiScale = raw.zoom;
-  return legacy;
-}
-
-export const takeLegacyAppSettings = () => legacyAppSettings;
 
 /* ---------- Store ---------- */
 

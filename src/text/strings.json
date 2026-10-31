@@ -105,6 +105,12 @@
       "columns": "Columns",
       "credentialProtection": "Credential protection",
       "privacy": "Privacy"
+    },
+    "oldApp": {
+      "label": "RankDB 0.3 accounts",
+      "description": "Migrate the accounts from the previous version.",
+      "action": "Migrate",
+      "busy": "Migrating"
     }
   },
   "toolbar": {
@@ -274,7 +280,9 @@
     "currentRanks": "Current ranks",
     "heading": "Rank resets",
     "empty": "No rank resets yet",
-    "accessibleLabel": "Past ranks"
+    "accessibleLabel": "Past ranks",
+    "undo": "Undo this reset",
+    "undone": "Season reset undone"
   },
   "seasonReset": {
     "dummy": {
@@ -283,7 +291,7 @@
     },
     "success": {
       "title": "Ranks reset",
-      "description": "{cleared} {rankWord} moved to Past ranks."
+      "description": "{cleared} {rankWord} moved to Past ranks. Undo it from Past ranks."
     },
     "title": "Reset all ranks",
     "description": "Set every rank of every account (6v6 included) back to Unranked, as at the start of a new season. The current ranks are kept under Past ranks in each account's info.",
@@ -816,6 +824,24 @@
     },
     "labSettings": {
       "tooLarge": "Lab settings are unexpectedly large."
+    },
+    "oldApp": {
+      "openFailed": "Could not open RankDB 0.3's data: {error}",
+      "decryptFailed": "RankDB 0.3's data could not be decrypted with its key.",
+      "unreadable": "RankDB 0.3's data could not be read.",
+      "keyMissing": "RankDB 0.3's key wasn't found in Windows Credential Manager.",
+      "notFound": "No RankDB 0.3 data was found on this PC.",
+      "notEmpty": "RankDB 0.3's accounts can only be migrated into an empty list.",
+      "protected": "Turn off the master password before migrating RankDB 0.3's accounts. You can turn it on again afterwards."
     }
+  },
+  "oldApp": {
+    "groupName": "Group",
+    "accountName": "Account",
+    "imported": {
+      "title": "Migrated from RankDB 0.3",
+      "description": "Accounts migrated: {count}."
+    },
+    "failed": "Couldn't migrate your RankDB 0.3 accounts"
   }
 }

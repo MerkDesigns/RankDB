@@ -4,11 +4,15 @@
 use base64::Engine;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::sync::Mutex;
 use zeroize::Zeroizing;
 
 use crate::db::{binding_for, to_message, SecretField};
 use crate::secrets::Secrets;
+
+/// One stored credential row: account id, email, password (each sealed or plain).
+type CredentialRow = (i64, Option<Vec<u8>>, Option<Vec<u8>>);
 
 const ITERATIONS: u32 = 600_000;
 const KEY_BINDING: &str = "rankdb:credential-key:v1";
@@ -112,6 +116,7 @@ impl Vault {
     pub fn status(&self) -> Result<SecurityStatus, String> { Ok(self.lock_state()?.status()) }
     pub fn seal(&self, value: &str, binding: &str) -> Result<Vec<u8>, String> { self.lock_state()?.seal(value, binding) }
     pub fn open_sealed(&self, value: &[u8], binding: &str) -> Result<String, String> { self.lock_state()?.open(value, binding) }
+    pub fn is_plain(&self) -> Result<bool, String> { Ok(self.lock_state()?.mode == Mode::Plain) }
     pub fn require_unlocked(&self) -> Result<(), String> {
         let state = self.lock_state()?;
         if state.mode != Mode::Plain { state.cipher()?; }
@@ -130,7 +135,8 @@ impl Vault {
         if state.mode == Mode::Password { state.cipher = None; }
         Ok(state.status())
     }
-    pub fn configure(&self, connection: &mut Connection, enabled: bool, password: &str, current_password: &str) -> Result<SecurityStatus, String> {
+    /// `copies`: the copies taken before upgrades, converted along (see `convert_copies`).
+    pub fn configure(&self, connection: &mut Connection, copies: &[PathBuf], enabled: bool, password: &str, current_password: &str) -> Result<SecurityStatus, String> {
         let mut old = self.lock_state()?;
         if enabled && old.mode == Mode::Password { return Err(crate::text::text("errors.credentialSecurity.alreadyEnabled").into()); }
         // Turning protection off always verifies the password, even if this session is unlocked.
@@ -144,12 +150,13 @@ impl Vault {
             Protection { mode: Mode::Password, envelope: Some(Envelope::wrap(&key, password)?), cipher: Some(Secrets::from_key(key.as_ref())?) }
         } else { Protection { mode: Mode::Plain, envelope: None, cipher: None } };
         convert_credentials(connection, verified.as_ref().unwrap_or(&old), &next)?;
-        *old = next;
         // Remove obsolete plaintext/key-envelope pages from the current database/WAL.
         compact(connection)?;
+        convert_copies(copies, verified.as_ref(), &next);
+        *old = next;
         Ok(old.status())
     }
-    pub fn change_password(&self, connection: &mut Connection, current: &str, password: &str) -> Result<SecurityStatus, String> {
+    pub fn change_password(&self, connection: &mut Connection, copies: &[PathBuf], current: &str, password: &str) -> Result<SecurityStatus, String> {
         let mut state = self.lock_state()?;
         let key = state.envelope.as_ref().ok_or(crate::text::text("errors.credentialSecurity.notEnabled"))?.unwrap(current)?;
         let envelope = Envelope::wrap(&key, password)?;
@@ -157,15 +164,17 @@ impl Vault {
         let transaction = connection.transaction().map_err(to_message)?;
         next.persist(&transaction)?;
         transaction.commit().map_err(to_message)?;
-        *state = next;
         compact(connection)?;
+        // Same key, new envelope: the copies' envelopes must stop opening with the old password.
+        convert_copies(copies, Some(&next), &next);
+        *state = next;
         Ok(state.status())
     }
 }
 
 fn convert_credentials(connection: &mut Connection, source: &Protection, next: &Protection) -> Result<(), String> {
     let transaction = connection.transaction().map_err(to_message)?;
-    let rows: Vec<(i64, Option<Vec<u8>>, Option<Vec<u8>>)> = transaction.prepare("SELECT account_id, email, password FROM credentials")
+    let rows: Vec<CredentialRow> = transaction.prepare("SELECT account_id, email, password FROM credentials")
         .and_then(|mut statement| statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?.collect()).map_err(to_message)?;
     for (id, email, password) in rows {
         let convert = |value: Option<Vec<u8>>, field| -> Result<Option<Vec<u8>>, String> {
@@ -180,6 +189,34 @@ fn convert_credentials(connection: &mut Connection, source: &Protection, next: &
     }
     next.persist(&transaction)?;
     transaction.commit().map_err(to_message)
+}
+
+/// Copies taken before upgrades get the same protection as the database, so turning on a master
+/// password never leaves plain-text credentials in one, and changing it never leaves one that
+/// opens with the old password. `password_source` opens password-protected copies (the key before
+/// the change). A copy that can't be converted is deleted: protecting the credentials matters more
+/// than keeping a spare copy.
+fn convert_copies(copies: &[PathBuf], password_source: Option<&Protection>, next: &Protection) {
+    let plain = Protection { mode: Mode::Plain, envelope: None, cipher: None };
+    for path in copies {
+        let converted = (|| -> Result<(), String> {
+            let mut connection = Connection::open(path).map_err(to_message)?;
+            connection.execute_batch("PRAGMA secure_delete = ON;").map_err(to_message)?;
+            let mode: String = connection
+                .query_row("SELECT mode FROM credential_security WHERE id = 1", [], |row| row.get(0))
+                .map_err(to_message)?;
+            let source = match mode.as_str() {
+                "plain" => &plain,
+                "password" => password_source.ok_or_else(|| crate::text::text("errors.credentialSecurity.unlockRequired").to_string())?,
+                _ => return Err(crate::text::text("errors.credentialSecurity.unknownMode").into()),
+            };
+            convert_credentials(&mut connection, source, next)?;
+            compact(&connection)
+        })();
+        if converted.is_err() {
+            let _ = std::fs::remove_file(path);
+        }
+    }
 }
 
 fn compact(connection: &Connection) -> Result<(), String> {
@@ -219,7 +256,7 @@ mod tests {
     fn enable_restart_unlock_and_field_binding() {
         let mut connection = database();
         let vault = Vault::load(&connection).unwrap();
-        vault.configure(&mut connection, true, PASSWORD, "").unwrap();
+        vault.configure(&mut connection, &[], true, PASSWORD, "").unwrap();
         let encrypted = bytes(&connection);
         assert_ne!(encrypted, b"fixture-password");
         assert_eq!(vault.open_sealed(&encrypted, "rankdb:1:password").unwrap(), "fixture-password");
@@ -240,12 +277,12 @@ mod tests {
     fn disable_verifies_password_even_while_unlocked_and_survives_restart() {
         let mut connection = database();
         let vault = Vault::load(&connection).unwrap();
-        vault.configure(&mut connection, true, PASSWORD, "").unwrap();
+        vault.configure(&mut connection, &[], true, PASSWORD, "").unwrap();
         let encrypted = bytes(&connection);
-        assert!(vault.configure(&mut connection, false, "", "wrong").is_err());
+        assert!(vault.configure(&mut connection, &[], false, "", "wrong").is_err());
         assert_eq!(bytes(&connection), encrypted);
         assert!(matches!(vault.status().unwrap().mode, Mode::Password));
-        vault.configure(&mut connection, false, "", PASSWORD).unwrap();
+        vault.configure(&mut connection, &[], false, "", PASSWORD).unwrap();
         assert_eq!(bytes(&connection), b"fixture-password");
         let restarted = Vault::load(&connection).unwrap();
         assert!(matches!(restarted.status().unwrap().mode, Mode::Plain));
@@ -255,10 +292,10 @@ mod tests {
     fn password_change_rewraps_key_without_rewriting_credentials() {
         let mut connection = database();
         let vault = Vault::load(&connection).unwrap();
-        vault.configure(&mut connection, true, PASSWORD, "").unwrap();
+        vault.configure(&mut connection, &[], true, PASSWORD, "").unwrap();
         let encrypted = bytes(&connection);
-        assert!(vault.change_password(&mut connection, "wrong", "new password").is_err());
-        vault.change_password(&mut connection, PASSWORD, "new password").unwrap();
+        assert!(vault.change_password(&mut connection, &[], "wrong", "new password").is_err());
+        vault.change_password(&mut connection, &[], PASSWORD, "new password").unwrap();
         assert_eq!(bytes(&connection), encrypted);
         vault.lock().unwrap();
         assert!(vault.unlock(PASSWORD).is_err());
@@ -272,7 +309,7 @@ mod tests {
         connection.execute("INSERT INTO accounts (id, name, sort_key) VALUES (2, 'Bad field', 1)", []).unwrap();
         connection.execute("INSERT INTO credentials (account_id, password) VALUES (2, ?1)", [vec![255u8]]).unwrap();
         let vault = Vault::load(&connection).unwrap();
-        assert!(vault.configure(&mut connection, true, PASSWORD, "").is_err());
+        assert!(vault.configure(&mut connection, &[], true, PASSWORD, "").is_err());
         assert_eq!(bytes(&connection), b"fixture-password");
         assert!(matches!(vault.status().unwrap().mode, Mode::Plain));
         assert_eq!(connection.query_row("SELECT mode FROM credential_security", [], |r| r.get::<_, String>(0)).unwrap(), "plain");
@@ -282,11 +319,49 @@ mod tests {
     fn short_password_and_damaged_envelope_are_rejected() {
         let mut connection = database();
         let vault = Vault::load(&connection).unwrap();
-        assert!(vault.configure(&mut connection, true, "short", "").is_err());
+        assert!(vault.configure(&mut connection, &[], true, "short", "").is_err());
         assert_eq!(bytes(&connection), b"fixture-password");
         for json in ["{}", r#"{"version":1,"iterations":1,"salt":"","sealedKey":""}"#] {
             assert!(Envelope::parse(json).is_err());
         }
+    }
+
+    #[test]
+    fn upgrade_copies_follow_every_protection_change() {
+        let folder = std::env::temp_dir().join(format!("rankdb-copies-test-{}", std::process::id()));
+        std::fs::create_dir_all(&folder).unwrap();
+        let copy = folder.join("rankdb-schema-v4.sqlite3");
+        let mut connection = database();
+        connection.execute("VACUUM INTO ?1", [copy.to_string_lossy()]).unwrap();
+        let copy_password = || -> Vec<u8> {
+            Connection::open(&copy).unwrap().query_row("SELECT password FROM credentials WHERE account_id = 1", [], |row| row.get(0)).unwrap()
+        };
+        let copy_mode = || -> String {
+            Connection::open(&copy).unwrap().query_row("SELECT mode FROM credential_security", [], |row| row.get(0)).unwrap()
+        };
+        let copies = [copy.clone()];
+        let vault = Vault::load(&connection).unwrap();
+        // On: the copy's plain text is gone, and it opens with the same password.
+        vault.configure(&mut connection, &copies, true, PASSWORD, "").unwrap();
+        assert_ne!(copy_password(), b"fixture-password");
+        assert_eq!(copy_mode(), "password");
+        let from_copy = Vault::load(&Connection::open(&copy).unwrap()).unwrap();
+        from_copy.unlock(PASSWORD).unwrap();
+        assert_eq!(from_copy.open_sealed(&copy_password(), "rankdb:1:password").unwrap(), "fixture-password");
+        // Changed: the copy no longer opens with the old password.
+        vault.change_password(&mut connection, &copies, PASSWORD, "new password").unwrap();
+        let from_copy = Vault::load(&Connection::open(&copy).unwrap()).unwrap();
+        assert!(from_copy.unlock(PASSWORD).is_err());
+        from_copy.unlock("new password").unwrap();
+        // Off: plain again, like the database.
+        vault.configure(&mut connection, &copies, false, "", "new password").unwrap();
+        assert_eq!(copy_password(), b"fixture-password");
+        assert_eq!(copy_mode(), "plain");
+        // A copy that can't be converted is deleted rather than left unprotected.
+        std::fs::write(&copy, b"not a database").unwrap();
+        vault.configure(&mut connection, &copies, true, PASSWORD, "").unwrap();
+        assert!(!copy.exists());
+        std::fs::remove_dir_all(folder).unwrap();
     }
 
     #[test]

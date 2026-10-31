@@ -63,7 +63,6 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /* ---------- Display refresh estimate ---------- */
 
 let refreshInterval = 1000 / 60;
-export const getRefreshInterval = () => refreshInterval;
 
 export async function calibrateRefresh(): Promise<number> {
   const deltas: number[] = [];

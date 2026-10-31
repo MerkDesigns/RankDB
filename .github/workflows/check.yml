@@ -1,0 +1,45 @@
+# Typecheck, build, lint and test on every push and pull request. Windows only, like the app.
+name: Check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # Strings, typecheck, production build and cargo check (debug, with the MCP feature).
+      - run: npm run check
+
+      # A release build leaves the lab and dev-only commands out; make sure it still compiles.
+      - run: cargo check --manifest-path src-tauri/Cargo.toml --locked --release
+
+      - run: npm run lint:rust
+
+      - run: npm test

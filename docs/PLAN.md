@@ -14,7 +14,7 @@ Check `docs/NOT-CARRIED-OVER.md` before porting anything.
 |---|---|---|
 | Account rows: name, 3 role ranks, 6v6, currencies | UI done, loaded from SQLite | 1 |
 | Rank picker (tier, division, predicted) | Done, plus placements; saved (phase 1) | 1 |
-| Privacy mode, UI scale, column toggles | Done (values in `LabState`) | 1 (move to app settings) |
+| Privacy mode, UI scale, column toggles | Done (app settings) | 1 |
 | Add account | Done | 2 |
 | Inline edit of name / Battletag | Done | 2 |
 | Copy Battletag, email, password | Done | 2 |
@@ -30,11 +30,11 @@ Check `docs/NOT-CARRIED-OVER.md` before porting anything.
 | Banned section (mark/unmark banned) | Done | 3 |
 | Sort by role rank (click role icon, desc/asc, ignores groups), now 6v6 too; temporary, not saved | Done | 3 |
 | Rank history: past season resets in account info; past ranks in the list (toolbar) | Done | 4 |
-| Season rank reset (archive all ranks, reset to unranked) | Done; saved snapshots | 4 |
+| Season rank reset (archive all ranks, reset to unranked) | Done; undo from Past ranks | 4 |
 | Games-dodged counter (record, reset, penalty info) | Done | 4 |
 | Encrypted export / import (password, PBKDF2 + AES-GCM) | Removed/deferred by request (2026-10-30) | — |
 | Legacy import: old `.rankdb-export` files | Removed/deferred by request (2026-10-30) | — |
-| Import from the installed old RankDB 0.3.0 | Removed/deferred by request (2026-10-30) | — |
+| Migration from the installed old RankDB 0.3 | Done: one way, into an empty database only (2026-10-31) | 7 |
 | Automatic local backups (old: before updates) | Removed/deferred by request (2026-10-30) | — |
 | Toast notifications | Done | 2 |
 | Check for updates + What's New | Done | 6 |
@@ -53,23 +53,23 @@ saved one encrypted JSON blob. The rewrite stores real records and sends small c
   - `accounts` (id, name, sort key, group id, status, country, notes, games dodged, last rank change)
   - `ranks` (account id, slot: tank/damage/support/6v6, tier, division, predicted, placements)
   - `currencies` (account id, kind, value)
-  - `groups` (id, name, sort key, collapsed, section)
+  - `groups` (id, name, sort key, collapsed)
   - `rank_history` (account id, slot, rank, changed at, reason: season reset)
   - `credentials` (account id, email, password), plain by default; optionally encrypted per field
-  - `credential_security` (one row: plain / legacy / password, password-wrapped data key)
+  - credential protection metadata (plain / password, password-wrapped data key; `legacy` is refused)
   - `settings` (key, JSON value), the app's real settings (UI scale, columns, privacy, accent,
     clipboard timer, …)
-  - SQLite `user_version`, with numbered migrations in Rust (currently schema 4)
+  - SQLite `user_version`, with numbered migrations in Rust (currently schema 5)
 - **Optional secrets at rest protection.** Fresh databases are unencrypted, with no keyring or
   DPAPI dependency. Settings → Data can protect only email/password fields using a master password;
   a random AES-256-GCM field key is wrapped using PBKDF2-SHA256 (600k) + AES-GCM and stored in the
   database. Restarts lock credentials, while names, ranks, notes and settings remain usable.
-  Existing DPAPI fields require a one-time legacy → plain conversion before normal app use; a
-  master password can only be enabled afterwards. See `CREDENTIAL-ENCRYPTION.md` for the design.
+  The old DPAPI storage of early dev builds is no longer supported. See `CREDENTIAL-ENCRYPTION.md`.
 - **Commands, not blobs.** Each user action is one typed Tauri command (`set_rank`,
   `rename_account`, `move_account`, …). Commands validate input, write in a transaction, and return
-  the changed records. The frontend store applies them optimistically and rolls back on error.
-- **Frontend store** (`src/data/`) replaces the dummy `rosterStore`:
+  the changed records. The frontend store applies them optimistically, sends them in order through
+  one queue, and reloads from Rust after a failure.
+- **Frontend store** (`src/data/`):
   - it loads one snapshot at startup, before the window is shown (same rule as today: nothing may
     wait on `requestAnimationFrame` while hidden);
   - it keeps per-account immutability, so editing an account re-renders only its row;
@@ -77,8 +77,8 @@ saved one encrypted JSON blob. The rewrite stores real records and sends small c
 - **Credentials never sit in the frontend.** The UI asks Rust to copy a secret to the clipboard
   (`copy_secret(account, field)`), and Rust starts the auto-clear timer. Only the edit dialog reads a
   secret, on demand.
-- **Dummy data stays for development.** The Glass Lab's account count and seed fill an in-memory
-  database in dev builds only, so benchmarks keep working without touching real data.
+- **Dummy data stays for development.** The lab's "Dummy (unsaved)" source shows generated
+  accounts without saving them, and a fresh dev database is seeded; release builds never seed.
 
 ## Settings and the Glass Lab
 
@@ -134,10 +134,9 @@ Phase 4 is done.
 
 ### Phase 5: Credential protection
 - [x] Optional master-password encryption for email/password; fresh installations are plain.
-- [x] Mandatory one-time legacy Windows decryption before app use; no direct legacy → password path.
 - [x] Unlock/lock/change password/disable in Settings, with transactional conversion and cleanup.
-- Export/import, installed-old-app import and all backup features were removed/deferred by user
-  request on 2026-10-30. They may be designed again later; do not treat them as pending release work.
+- Export/import and all backup features were removed/deferred by user request on 2026-10-30.
+  They may be designed again later; do not treat them as pending release work.
 
 Phase 5 is done for the current scope.
 
@@ -150,13 +149,17 @@ Phase 6 is done. For the first release (phase 7): set the app version, build wit
 `createUpdaterArtifacts` and `TAURI_SIGNING_PRIVATE_KEY`, and publish `latest.json` with it.
 
 ### Phase 7: Polish and release
-- Rank badge animations, accessibility pass, performance pass at 360 Hz.
-- Lab off in release.
-- Installer and update channel.
+- [x] Rank badge effects.
+- [x] Database handover across updates (upgrade copies, startup checks, save on close) and the
+  one-way RankDB 0.3 migration.
+- [ ] Accessibility pass (dialog focus trap and restoration).
+- [x] Lab off in release (chosen values as constants, 2026-10-31).
+- [ ] Installer and update channel; verify the installer replaces 0.3 in place.
 
 ## Decisions
 
 - **Themes:** dropped. The accent colour is the only colour setting.
 - **Rank refresh (owapi.eu):** dropped, with its refresh action.
 - **Role sorting:** temporary, never saved; covers 6v6 as well as the three roles.
-- **Export/import/backups:** removed and deferred by request; only existing-database decryption remains.
+- **Export/import/backups:** removed and deferred by request.
+- **RankDB 0.3:** migrated once into an empty database; never appended to existing accounts.

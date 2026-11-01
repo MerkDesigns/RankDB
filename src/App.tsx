@@ -19,7 +19,7 @@ import { ResetMenu } from "./ui/ResetMenu";
 import { DeleteGroupDialog, GroupMenu } from "./ui/GroupMenu";
 import { RankPicker } from "./ui/RankPicker";
 import { UpdateDialog, WhatsNewDialog } from "./ui/AppUpdates";
-import { SeasonResetDialog } from "./ui/SeasonResetDialog";
+import { SeasonResetDialog, UndoSeasonResetDialog } from "./ui/SeasonResetDialog";
 import { SettingsDialog } from "./ui/SettingsDialog";
 import { ToastStack } from "./ui/ToastStack";
 import { WindowControls } from "./ui/WindowControls";
@@ -66,6 +66,7 @@ export function App({ problem }: { readonly problem: string | null }) {
         <DeleteAccountDialog />
         <DeleteGroupDialog />
         <SeasonResetDialog />
+        <UndoSeasonResetDialog />
         <DataTransferDialog />
         <UpdateDialog />
         <WhatsNewDialog />

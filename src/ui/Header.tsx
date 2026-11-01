@@ -4,11 +4,20 @@ import { Glass } from "../glass/Glass";
 import { useLab } from "../lab/store";
 import { dragRegion } from "../platform/window";
 import { ChevronDown } from "lucide-react";
-import { cycleRoleSort, useRoleSort, type RankSlot } from "../data/rosterStore";
+import { cycleColumnSort, useColumnSort, type CurrencyColumn, type SortColumn } from "../data/rosterStore";
 import { captureRowPositions } from "./sortMotion";
 import { useAppActions } from "./appActions";
 
 const ROLE_LABELS = [uiText("header.tank"), uiText("header.damage"), uiText("header.support")];
+const VALUE_A_COLUMNS: readonly CurrencyColumn[] = ["prisms", "coins", "credits"];
+const VALUE_B_COLUMNS: readonly CurrencyColumn[] = ["competitive", "legacy"];
+const CURRENCY_LABELS: Readonly<Record<CurrencyColumn, string>> = {
+  prisms: uiText("header.currencies.prisms"),
+  coins: uiText("header.currencies.coins"),
+  credits: uiText("header.currencies.credits"),
+  competitive: uiText("header.currencies.competitive"),
+  legacy: uiText("header.currencies.legacy"),
+};
 
 export function Header() {
   const chrome = useLab((state) => state.chrome);
@@ -39,40 +48,53 @@ export function Header() {
                 data-glow={glow || undefined}
                 onClick={onClick}
               >
-                <Icon size={19} strokeWidth={2.2} />
+                <span className="button-icon">
+                  <Icon size={19} strokeWidth={2.2} />
+                </span>
               </button>
             ))}
           </>
         )}
+        <GlassLight />
       </Glass>
       <Glass role="major" className="island island-roles">
         {ROLE_ICONS.map((icon, index) => (
-          <SortButton key={index} slot={index as 0 | 1 | 2} label={ROLE_LABELS[index]!} icon={icon} />
+          <SortButton key={index} column={index as 0 | 1 | 2} label={ROLE_LABELS[index]!} icon={icon} />
         ))}
+        <GlassLight />
       </Glass>
       <Glass role="major" className="island island-flex">
-        <SortButton slot="sixV6" label={uiText("header.sixVersusSix")} icon={ICONS.flex} />
+        <SortButton column="sixV6" label={uiText("header.sixVersusSix")} icon={ICONS.flex} />
+        <GlassLight />
       </Glass>
       <Glass role="major" className="island island-values-a">
         {VALUE_A_ICONS.map((icon, index) => (
-          <img key={index} className="header-icon" src={icon} alt="" draggable={false} />
+          <SortButton key={index} column={VALUE_A_COLUMNS[index]!} label={CURRENCY_LABELS[VALUE_A_COLUMNS[index]!]} icon={icon} />
         ))}
+        <GlassLight />
       </Glass>
       <Glass role="major" className="island island-values-b">
         {VALUE_B_ICONS.map((icon, index) => (
-          <img key={index} className="header-icon" src={icon} alt="" draggable={false} />
+          <SortButton key={index} column={VALUE_B_COLUMNS[index]!} label={CURRENCY_LABELS[VALUE_B_COLUMNS[index]!]} icon={icon} />
         ))}
+        <GlassLight />
       </Glass>
     </header>
   );
 }
 
+/** The light following the pointer over a glass bar (app.css `.glass-light`, ui/pointerGlow.ts). */
+export function GlassLight() {
+  return <span className="glass-light" aria-hidden="true" />;
+}
+
 /**
- * A rank column's icon: a click sorts every account by that rank, best first (groups set aside);
- * a second click goes back to your order. Sorting is temporary and never saved.
+ * A rank or currency column's icon: a click sorts every account by that rank (best first) or
+ * currency (most first), groups set aside; a second click goes back to your order. Sorting is
+ * temporary and never saved.
  */
-function SortButton({ slot, label, icon }: { readonly slot: RankSlot; readonly label: string; readonly icon: string }) {
-  const active = useRoleSort()?.slot === slot;
+function SortButton({ column, label, icon }: { readonly column: SortColumn; readonly label: string; readonly icon: string }) {
+  const active = useColumnSort()?.column === column;
   return (
     <button
       type="button"
@@ -81,13 +103,15 @@ function SortButton({ slot, label, icon }: { readonly slot: RankSlot; readonly l
       data-active={active || undefined}
       onClick={() => {
         captureRowPositions();
-        cycleRoleSort(slot);
+        cycleColumnSort(column);
       }}
     >
-      {/* Sorted by this role: a chevron on each side of its icon, as in the old app. */}
-      {active && <ChevronDown className="role-sort-arrow" data-side="left" size={14} strokeWidth={2.35} aria-hidden="true" />}
-      <img src={icon} alt={label} draggable={false} />
-      {active && <ChevronDown className="role-sort-arrow" data-side="right" size={14} strokeWidth={2.35} aria-hidden="true" />}
+      {/* Sorted by this column: a chevron on each side of its icon, as in the old app. */}
+      <span className="role-sort-icon">
+        {active && <ChevronDown className="role-sort-arrow" data-side="left" size={14} strokeWidth={2.35} aria-hidden="true" />}
+        <img src={icon} alt={label} draggable={false} />
+        {active && <ChevronDown className="role-sort-arrow" data-side="right" size={14} strokeWidth={2.35} aria-hidden="true" />}
+      </span>
     </button>
   );
 }

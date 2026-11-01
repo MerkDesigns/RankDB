@@ -306,7 +306,12 @@
     "empty": "No rank resets yet",
     "accessibleLabel": "Past ranks",
     "undo": "Undo this reset",
-    "undone": "Season reset undone"
+    "undone": "Season reset undone",
+    "undoDialog": {
+      "title": "Undo rank reset",
+      "description": "Only undo a rank reset if the rank reset you made was a mistake.",
+      "confirm": "Undo reset"
+    }
   },
   "seasonReset": {
     "dummy": {
@@ -330,7 +335,14 @@
     "damage": "Damage",
     "support": "Support",
     "accounts": " accounts",
-    "sixVersusSix": "6v6"
+    "sixVersusSix": "6v6",
+    "currencies": {
+      "prisms": "Mythic prisms",
+      "coins": "Overwatch coins",
+      "credits": "Overwatch credits",
+      "competitive": "Competitive points",
+      "legacy": "Legacy points"
+    }
   },
   "windowControls": {
     "minimize": "Minimize"
@@ -548,6 +560,7 @@
       "drift": "Drift",
       "updates": "Updates per second",
       "grain": "Grain",
+      "parallax": "Parallax",
       "shuffle": "Shuffle layout"
     },
     "draggedRow": {

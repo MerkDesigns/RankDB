@@ -92,6 +92,8 @@ export interface AmbientTuning {
   grain: number;
   /** Picks the lights' places and paths. */
   seed: number;
+  /** How far the lights' depth layers slide as the list scrolls; 0 = off (one flat layer). */
+  parallax: number;
 }
 
 export const DEFAULT_AMBIENT: AmbientTuning = {
@@ -104,6 +106,7 @@ export const DEFAULT_AMBIENT: AmbientTuning = {
   updates: 30,
   grain: 4,
   seed: 1,
+  parallax: 0,
 };
 
 /** The "smoke" backdrop: ASCII glyphs over rising smoke (glass/smokeField.ts). */
@@ -351,6 +354,7 @@ export function normalizeState(value: unknown): LabState {
       updates: Math.round(number(ambient.updates, a.updates, 6, 120)),
       grain: number(ambient.grain, a.grain, 0, 4),
       seed: Math.round(number(ambient.seed, a.seed, 0, 1_000_000)),
+      parallax: number(ambient.parallax, a.parallax, 0, 3),
     },
     toasts: {
       material: toasts.material && typeof toasts.material === "object" ? normalizeRole(toasts.material, defaults.tuning.major) : null,

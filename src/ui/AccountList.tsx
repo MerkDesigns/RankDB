@@ -3,12 +3,13 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, EllipsisVertical } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
 import type { Account, Group } from "../data/accounts";
-import { renameGroup, setGroupCollapsed, useRoleSort, useRoster } from "../data/rosterStore";
+import { renameGroup, setGroupCollapsed, useRoster } from "../data/rosterStore";
 import { Glass, InList } from "../glass/Glass";
 import { ListPlane } from "../glass/ListPlane";
 import { registerScroller } from "../lab/perf";
 import { AccountRow } from "./AccountRow";
 import { useListDrag } from "./listDrag";
+import { refreshPointerGlow } from "./pointerGlow";
 import { useSortMotion } from "./sortMotion";
 import { stopEditing, useIsEditingGroup, startEditing } from "./editing";
 import { openGroupMenu } from "./GroupMenu";
@@ -25,7 +26,7 @@ export function AccountList() {
   }, []);
   useListDrag(contentRef, scrollerRef);
   useScrollingFlag(scrollerRef);
-  useSortMotion(contentRef, useRoleSort()?.slot ?? null);
+  useSortMotion(contentRef, roster);
 
   // The shared glass plane re-measures when the list's shape changes.
   const layoutKey = [
@@ -70,7 +71,7 @@ const SCROLL_SETTLE_MS = 200;
 /**
  * Marks the list `data-scrolling` while it scrolls. Sparkles and shines (rank effects) stop
  * meanwhile (rankEffects.ts): their animated layers made every row scrolling into view
- * re-layerize the list.
+ * re-layerize the list. The row hover glow waits too, then starts under the pointer.
  */
 function useScrollingFlag(scrollerRef: RefObject<HTMLDivElement | null>) {
   useLayoutEffect(() => {
@@ -83,6 +84,7 @@ function useScrollingFlag(scrollerRef: RefObject<HTMLDivElement | null>) {
       timer = window.setTimeout(() => {
         timer = 0;
         delete scroller.dataset.scrolling;
+        refreshPointerGlow();
       }, SCROLL_SETTLE_MS);
     };
     scroller.addEventListener("scroll", onScroll, { passive: true });

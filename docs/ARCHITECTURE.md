@@ -141,8 +141,23 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   settings and Reset use it; existing saved tuning is preserved. Panel position defaults to auto.
 - **Credential buttons hidden**: account row plates use 13px corners; showing them restores the
   lab's configured radius. This is a CSS override, not a change to the saved tuning.
-- **Toolbar highlights**: action buttons have circular hover/focus fills; role-sort buttons have
-  pill fills. The same treatment applies to rail actions.
+- **Pointer light** (`src/ui/pointerGlow.ts`, by request instead of hover fills): header and rail
+  buttons have no hover highlight of their own. Over a glass bar (header island, rail) a light
+  follows the pointer (`GlassLight`, `.glass-light`): one soft radial glow (by request, no
+  separate core), and the rim lit near the pointer (a ring-masked `::after`, no filter inside). No blend mode: a
+  blended child makes the island a backdrop root and its blur samples nothing. Pressing a button
+  brightens it; keyboard focus gets an outline. Icons (`.button-icon`, `.role-sort-icon`, and each row's credential and Battletag buttons) dip to
+  0.9 while pressed and spring back on release (`scale` only; no hover growth, by request).
+  An account row's plate has its own much larger, fainter hover glow. One delegated
+  `pointermove`/`pointerover` listener writes the pointer's position in the bar or row
+  (`--pointer-x`/`-y`, registered as not inherited, so a move restyles only that element).
+  - Header buttons cover their island edge to edge (square where they meet, the island's corners
+    at its ends), so the whole bar is clickable. Icons keep their places: the role island's outer
+    buttons take the slack and pad their icon over its badge column; the last toolbar action
+    reaches the rounded end. The past-ranks accent circle is drawn behind the icon (`::after`).
+  - A row's glow stops at the header's bottom edge (`--glow-clip`, sizing the gradient layer), so
+    a row under the overlay header never lights its glass. It is off while the list scrolls (no
+    JS runs then) and restarts under the pointer when scrolling settles (`refreshPointerGlow`).
 - **Status/tab scroll bounds**: liquid selection pills clip their decorative `.g-body` with
   `overflow: clip` so masked filter overscan never enlarges an ancestor scroll range. Account info
   Details allows vertical scrolling only (`overflow-x: hidden`). Preserve the springs and backdrop
@@ -305,7 +320,8 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     resets. `season_reset` moves every non-Unranked rank (6v6 too) into history as `season-reset`
     (one shared `changed_at` per reset) and sets them to Unranked; `undo_season_reset(resetAt)`
     restores only slots still Unranked and removes that reset's entries. Undo lives in Past ranks
-    (an Undo icon on the newest reset only); the reset toast points there.
+    (an Undo icon on the newest reset only) and asks first, warning it is only for a reset made
+    by mistake (`UndoSeasonResetDialog`); the reset toast points there.
     Account info → Rank history: role icons over four badge columns, one row per reset, its date
     on the left. `gamesDodged` (0–10) is on the account record; the menu shows the old app's
     next-penalty ladder (15 min, 2 h, 8 h, 20 h, season ban).
@@ -321,10 +337,16 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     grid rows 0fr↔1fr plus a fade, 240 ms; rows are mounted only while open or closing, and clipped
     only while animating. Brackets (`.group-rule-top/-bottom`) enclose the rows.
   - **List** (`buildRoster`): top level (groups with their accounts; empty groups shown), then
-    the SMS and banned sections. A role sort (`cycleRoleSort`: tank/damage/support/6v6, best first, again
-    for off; old app's rank score) is temporary, never saved, and flattens the list (no groups).
-    The active role shows a chevron either side of its icon (old app); toggling it slides every
-    row to its new place (`src/ui/sortMotion.ts`: positions taken before, 160 ms translate after).
+    the SMS and banned sections. A column sort (`cycleColumnSort`, clicking a header icon: tank,
+    damage, support and 6v6 best first by the old app's rank score; each currency most first; again
+    for off) is temporary, never saved, and flattens the list (no groups). The active column shows
+    a chevron either side of its icon (old app); toggling it slides every row to its new place
+    (`src/ui/sortMotion.ts`: positions taken before, 160 ms translate after).
+  - **Deleting** an account or group (`removeWithMotion`, by request): the row, or the group's
+    head, glass and brackets (its accounts stay), fades and shrinks to 0.96 over 180 ms; then the
+    roster drops it and the same slide closes the gap. Not shown (inside a collapsed group): removed
+    at once. Like the sort's fade-in, it fades with opacity, so with glass in the rows (not the
+    shell strategy) their blur drops out for that moment.
   - **Drag to reorder** (`src/ui/listDrag.ts`): TaskMap's canvas browser behaviour
     (`CanvasBrowserRuntime.ts`), extended to groups. Past 6 px (vertical) the row, or a group by
     its head, lifts to 1.06× and follows the pointer (a group collapses as it lifts, the list
@@ -434,8 +456,8 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   The row badge has no placement indicator yet; that design is still open.
 - **Row background** (lab → Scene → Row background: off / every row / every other row, strength,
   radius, height, width per side, outline colour and opacity; `--row-plate-*`/`--row-outline-*`,
-  engine `applyRowPlates`): a rounded plate on `.row::before`, the same element as the hover plate (registered
-  `--row-hover` adds to `--row-plate`). Alternation restarts in each block (a run of loose rows, a
+  engine `applyRowPlates`): a rounded plate on `.row::before`, the same element as the hover glow (registered
+  `--row-hover` fades it in over `--row-plate`). Alternation restarts in each block (a run of loose rows, a
   group, a section) through `AccountRow`'s `stripe` prop.
   In the shared strategy the plates are glass too: `ListPlane` adds each shown plate's
   `.row::before` box (with its own radius) to the plane's mask, beside the `data-plane-shape`
@@ -471,6 +493,17 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   with an effect step (82 → ~73 frames/s at 357 Hz; waking early to always share cost more page
   frames than it saved). Measured 2026-10-31 with the window in the background: ~1% GPU, ~2% CPU
   (smoke: ~6% / ~8%).
+  - **Parallax** (lab only, by request off in releases: `ambient.parallax` default 0, and release
+    builds draw one canvas, `AMBIENT_LAYERS` in `Backdrop.tsx`; 0 = one flat layer): the
+    lights sit on three canvases (back to front 0.06, 0.14, 0.26 of the scroll at strength 1); the
+    upper two are black plus their lights, added with `plus-lighter`, so at the top of the list it
+    looks the same as one layer. Each slides by a scroll-driven `translate` on `--list-scroll`
+    (`timeline-scope` on `.app`), so scrolling runs no JS and redraws nothing. A layer is taller
+    than the window by its travel (heights in 256px steps, so opening a group rarely resizes a
+    canvas); the four-light layout repeats down it per window height. The list's scroll range
+    reaches the field through a ResizeObserver (`Backdrop.tsx`), never on scroll. Off in the baked
+    strategy (its still copy can't follow). Measured 2026-11-01 (dev, 357 Hz, scripted scroll):
+    p99 2.9 ms on and off, no late frames.
 - Remaining one-off frames (production frontend, 2026-11-01, 357 Hz): restarting the rank
   effects after a dialog closes or the list stops scrolling (~10 ms, layerize; nothing else is
   moving then) and switching Settings tabs (each tab mounts afresh; ≤ 8 ms of script). Scroll,

@@ -3,7 +3,7 @@ import type { AccountStatus } from "../data/accounts";
 import {
   containerItems,
   findAccount,
-  getRoleSort,
+  getColumnSort,
   moveItem,
   setGroupCollapsed,
   type Destination,
@@ -84,7 +84,7 @@ export function useListDrag(contentRef: RefObject<HTMLElement | null>, scrollerR
     let active = false;
 
     const onPointerDown = (down: PointerEvent) => {
-      if (active || down.button !== 0 || getRoleSort()) return;
+      if (active || down.button !== 0 || getColumnSort()) return;
       const target = down.target as HTMLElement;
       if (target.closest(INTERACTIVE)) return;
       const head = target.closest<HTMLElement>(".group-head");

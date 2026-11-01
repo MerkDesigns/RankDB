@@ -79,6 +79,9 @@ button {
 }
 
 .app {
+  /* The list's scroll timeline reaches its siblings: the overlay scrollbar and the backdrop's
+     parallax layers. */
+  timeline-scope: --list-scroll;
   position: relative;
   flex: 1;
   min-width: 0;
@@ -99,6 +102,30 @@ button {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Ambient depth layers (glass/ambientField.ts): each is taller than the window by its travel and
+   slides up by it over the list's whole scroll, on the compositor (no JS while scrolling). The
+   upper ones are black with their lights, added onto the back one. */
+.backdrop-layer {
+  inset: 0 0 auto;
+  animation: backdrop-parallax linear both;
+  animation-timeline: --list-scroll;
+}
+
+.backdrop-layer + .backdrop-layer {
+  mix-blend-mode: plus-lighter;
+}
+
+@keyframes backdrop-parallax {
+  to {
+    translate: 0 calc(-1 * var(--layer-travel, 0px));
+  }
+}
+
+/* The baked strategy holds a still copy of the backdrop, which can't follow the layers. */
+:root[data-strategy="baked"] .backdrop-layer {
+  animation: none;
 }
 
 .backdrop-blob {
@@ -176,8 +203,6 @@ button {
 }
 
 .frame-main {
-  /* Lets the overlay scrollbar (a sibling of the list) follow the list's scroll timeline. */
-  timeline-scope: --list-scroll;
   position: relative;
   display: flex;
   flex: none;
@@ -386,40 +411,81 @@ button {
   border-radius: 999px;
   background: none;
   color: rgb(241 245 249 / 0.86);
-  transition: background-color 140ms, color 140ms;
 }
 
-:is(.island-actions, .rail) .icon-button:is(:hover, :focus-visible),
-.role-sort:is(:hover, :focus-visible) {
-  background-color: rgb(255 255 255 / 0.09);
+/* Toolbar actions fill the island's height and touch each other, so the hover covers the glass
+   with no gaps; the last one reaches the island's rounded end. Icons stay 38px apart. */
+.island-actions .icon-button {
+  position: relative;
+  isolation: isolate;
+  align-self: stretch;
+  width: 38px;
+  height: auto;
+  margin-inline: -2px;
+  padding: 0;
+  border-radius: 0;
 }
 
-:is(.island-actions, .rail) .icon-button:active,
-.role-sort:active {
-  background-color: rgb(255 255 255 / 0.14);
+.island-actions .icon-button:last-of-type {
+  width: 48px;
+  margin-right: -12px;
+  padding-right: 10px;
+  border-start-end-radius: inherit;
+  border-end-end-radius: inherit;
 }
 
 :root[data-show-credentials="false"] .row::before {
   border-radius: 13px;
 }
 
+/* The three role buttons split the island between them (the outer ones take the slack at the
+   ends), and each icon stays centred over its badge column (--badge-w, 10px apart). */
 .island-roles {
   grid-column: ranks-start / ranks-end;
   display: grid;
-  grid-template-columns: repeat(3, var(--badge-w));
-  column-gap: 10px;
-  justify-content: center;
+  grid-template-columns: 1fr calc(var(--badge-w) + 10px) 1fr;
 }
 
+.island-roles .role-sort:first-of-type {
+  justify-content: end;
+  padding-right: calc(5px + (var(--badge-w) - 24px) / 2);
+}
+
+.island-roles .role-sort:last-of-type {
+  justify-content: start;
+  padding-left: calc(5px + (var(--badge-w) - 24px) / 2);
+}
+
+/* Sort buttons cover their island edge to edge: square where they meet, the island's own corners
+   at its ends (both for 6v6, a single pill). */
 .role-sort {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  justify-self: stretch;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.role-sort:first-of-type {
+  border-start-start-radius: inherit;
+  border-end-start-radius: inherit;
+}
+
+.role-sort:last-of-type {
+  border-start-end-radius: inherit;
+  border-end-end-radius: inherit;
+}
+
+/* The icon and its chevrons. */
+.role-sort-icon {
   position: relative;
   display: grid;
   place-items: center;
-  height: 34px;
-  border: 0;
-  border-radius: 999px;
-  background: none;
-  transition: background-color 140ms;
 }
 
 .role-sort img {
@@ -427,7 +493,103 @@ button {
   height: 24px;
 }
 
-/* The active sort (old app): a small chevron 7px either side of the role icon. */
+/* The pointer's position in the hovered glass bar or account row (ui/pointerGlow.ts). Not
+   inherited, so a pointer move restyles only that element. */
+@property --pointer-x {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 50%;
+}
+
+@property --pointer-y {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 50%;
+}
+
+@property --glass-light {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+/* Light on the glass (header islands and the rail; the buttons have no hover fills of their own):
+   where the pointer is over a bar, one soft glow, and the rim catching
+   it nearby. Pressing a button brightens it. No blend mode: a blended child turns the island into
+   a backdrop root and its blur samples nothing. */
+.glass-light,
+.glass-light::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  --pointer-x: inherit;
+  --pointer-y: inherit;
+  --glass-light: inherit;
+  pointer-events: none;
+}
+
+.glass-light {
+  z-index: 2;
+  /* One gradient, its stops easing the falloff so no inner edge shows. */
+  background: radial-gradient(
+    circle 90px at var(--pointer-x) var(--pointer-y),
+    rgb(255 255 255 / calc(0.09 * var(--glass-light))),
+    rgb(255 255 255 / calc(0.065 * var(--glass-light))) 20%,
+    rgb(255 255 255 / calc(0.035 * var(--glass-light))) 45%,
+    rgb(255 255 255 / calc(0.012 * var(--glass-light))) 72%,
+    rgb(255 255 255 / 0)
+  );
+  transition: --glass-light 260ms;
+}
+
+/* The rim (1.5px on screen at every UI scale), lit only near the pointer. */
+.glass-light::after {
+  padding: calc(1.5px / var(--ui-zoom));
+  background: radial-gradient(
+    circle 70px at var(--pointer-x) var(--pointer-y),
+    rgb(255 255 255 / calc(0.27 * var(--glass-light))),
+    rgb(255 255 255 / 0)
+  );
+  content: "";
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+:is(.island, .rail):hover > .glass-light {
+  --glass-light: 1;
+  transition-duration: 120ms;
+}
+
+:is(.island, .rail):has(:active) > .glass-light {
+  --glass-light: 1.6;
+}
+
+/* Clickable icons (header, rail, and each row's credential and Battletag buttons) dip while
+   pressed and spring back on release. */
+.button-icon {
+  display: grid;
+  place-items: center;
+}
+
+:is(.button-icon, .role-sort-icon, .lead-button svg, .bnet-button img) {
+  transition: scale 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:is(.icon-button, .role-sort):active :is(.button-icon, .role-sort-icon),
+:is(.lead-button, .bnet-button):active > :is(svg, img) {
+  scale: 0.9;
+  transition-duration: 80ms;
+  transition-timing-function: ease-out;
+}
+
+/* Keyboard focus, now that buttons have no fills. */
+:is(.icon-button, .role-sort):focus-visible {
+  outline: 1.5px solid rgb(255 255 255 / 0.4);
+  outline-offset: -4px;
+}
+
+/* The active sort (old app): a small chevron 7px either side of the icon. */
 .role-sort-arrow {
   position: absolute;
   top: 50%;
@@ -437,11 +599,11 @@ button {
 }
 
 .role-sort-arrow[data-side="left"] {
-  right: calc(50% + 12px + 7px);
+  right: calc(100% + 7px);
 }
 
 .role-sort-arrow[data-side="right"] {
-  left: calc(50% + 12px + 7px);
+  left: calc(100% + 7px);
 }
 
 .island-flex {
@@ -472,10 +634,30 @@ button {
   display: none;
 }
 
-.header-icon {
-  width: 26px;
-  height: 26px;
+/* Currency icons (by request 15% larger, the two points icons 18%), the chevrons smaller and right
+   beside them to fit the 62px columns. */
+:is(.island-values-a, .island-values-b) .role-sort img {
+  width: 30px;
+  height: 30px;
   object-fit: contain;
+}
+
+.island-values-b .role-sort img {
+  width: 31px;
+  height: 31px;
+}
+
+:is(.island-values-a, .island-values-b) .role-sort-arrow {
+  width: 10px;
+  height: 10px;
+}
+
+:is(.island-values-a, .island-values-b) .role-sort-arrow[data-side="left"] {
+  right: 100%;
+}
+
+:is(.island-values-a, .island-values-b) .role-sort-arrow[data-side="right"] {
+  left: 100%;
 }
 
 /* ---------- List ---------- */
@@ -525,19 +707,42 @@ button {
 }
 
 /* One rounded plate behind the whole row (under its islands, reaching halfway into the row gap):
-   the lab's row background (--row-plate-a on every row or every other row), plus the hover,
-   fading in quickly and out a little slower. */
+   the lab's row background (--row-plate-a on every row or every other row), plus the hover, a
+   large soft glow around the pointer (ui/pointerGlow.ts) fading in quickly and out a little
+   slower. */
 @property --row-hover {
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
 }
 
+@property --glow-clip {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 .row::before {
   position: absolute;
   inset: calc((var(--row-h) - var(--row-plate-h)) / 2) calc(-1 * var(--row-plate-x));
   border-radius: var(--row-plate-radius);
-  background: rgb(255 255 255 / calc(var(--row-plate, 0) + 0.035 * var(--row-hover)));
+  /* The row's pointer position, moved into the plate's box. The glow starts below the header
+     (--glow-clip), so a row partly under it never lights the header's glass. */
+  --pointer-x: inherit;
+  --pointer-y: inherit;
+  --glow-clip: inherit;
+  --plate-top: calc((var(--row-h) - var(--row-plate-h)) / 2);
+  --glow-top: max(0px, var(--glow-clip) - var(--plate-top));
+  background-color: rgb(255 255 255 / var(--row-plate, 0));
+  background-image: radial-gradient(
+    circle 280px at calc(var(--pointer-x) + var(--row-plate-x))
+      calc(var(--pointer-y) - var(--plate-top) - var(--glow-top)),
+    rgb(255 255 255 / calc(0.045 * var(--row-hover))),
+    rgb(255 255 255 / 0)
+  );
+  background-position: 0 var(--glow-top);
+  background-size: 100% max(0px, 100% - var(--glow-top));
+  background-repeat: no-repeat;
   /* The plate's outline (kept 1px on screen at every UI scale), then the hover's. */
   box-shadow:
     inset 0 0 0 calc(1px / var(--ui-zoom)) rgb(var(--row-outline-rgb) / var(--row-outline, 0)),
@@ -556,6 +761,11 @@ button {
 .row:hover::before {
   --row-hover: 1;
   transition-duration: 90ms;
+}
+
+/* No glow while the list scrolls: it would stay where the row was entered (no JS runs then). */
+[data-scrolling] .row:hover::before {
+  --row-hover: 0;
 }
 
 .lead {
@@ -586,6 +796,7 @@ button {
   border: 0;
   background: none;
   color: rgb(241 245 249 / 0.8);
+  transition: background-color 220ms;
 }
 
 .lead-button:first-child {
@@ -597,7 +808,8 @@ button {
 }
 
 .lead-button:hover {
-  background: rgb(255 255 255 / 0.07);
+  background-color: rgb(255 255 255 / 0.07);
+  transition-duration: 90ms;
 }
 
 .lead-divider {
@@ -998,7 +1210,7 @@ button {
 
 .group-count {
   color: var(--text-muted);
-  font-size: 10.5px;
+  font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;

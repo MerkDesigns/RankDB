@@ -515,6 +515,7 @@ function AmbientControls() {
       <Slider label={uiText("lab.ambient.drift")} min={0} max={0.5} step={0.01} value={ambient.drift} defaultValue={d.drift} format={fixed(2)} onChange={(drift) => set({ drift })} />
       <Slider label={uiText("lab.ambient.updates")} min={6} max={120} step={6} value={ambient.updates} defaultValue={d.updates} format={fixed(0)} onChange={(updates) => set({ updates })} />
       <Slider label={uiText("lab.ambient.grain")} min={0} max={4} step={0.1} value={ambient.grain} defaultValue={d.grain} format={fixed(1)} onChange={(grain) => set({ grain })} />
+      <Slider label={uiText("lab.ambient.parallax")} min={0} max={3} step={0.05} value={ambient.parallax} defaultValue={d.parallax} format={fixed(2)} onChange={(parallax) => set({ parallax })} />
       <div className="lab-check-row">
         <button type="button" className="lab-button" onClick={() => set({ seed: ambient.seed + 1 })}>
           {uiText("lab.ambient.shuffle")}

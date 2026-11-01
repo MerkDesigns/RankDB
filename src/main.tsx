@@ -18,6 +18,7 @@ import {
   startWindowFit,
 } from "./platform/window";
 import { startAppServices } from "./ui/AppUpdates";
+import { startPointerGlow } from "./ui/pointerGlow";
 import { startAnimationWarmup } from "./ui/warmup";
 import "./styles/app.css";
 import "./styles/glass.css";
@@ -57,6 +58,7 @@ void (async () => {
   await fitWindowToContent();
   startWindowFit();
   startFocusTracking();
+  startPointerGlow();
   await revealWindow();
   // Discord, What's New and the update check: after the window is up, never in the way of it.
   if (problem === null) startAppServices();

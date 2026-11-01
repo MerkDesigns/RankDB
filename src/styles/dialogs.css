@@ -986,9 +986,27 @@
   color: var(--accent);
 }
 
-/* A temporary mode is on (past ranks): the accent glows behind the icon. */
-.icon-button[data-glow] {
+/* A temporary mode is on (past ranks): the accent glows behind the icon. Toolbar buttons fill the
+   island, so there the circle is drawn behind the icon, centred 19px in. */
+.island-actions .icon-button[data-glow]::after {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
   background: rgb(var(--accent-rgb) / 0.16);
+  box-shadow:
+    0 0 14px rgb(var(--accent-rgb) / 0.55),
+    inset 0 0 0 1px rgb(var(--accent-rgb) / 0.45);
+  content: "";
+  translate: 0 -50%;
+  pointer-events: none;
+}
+
+.rail .icon-button[data-glow] {
+  background-color: rgb(var(--accent-rgb) / 0.16);
   box-shadow:
     0 0 14px rgb(var(--accent-rgb) / 0.55),
     inset 0 0 0 1px rgb(var(--accent-rgb) / 0.45);

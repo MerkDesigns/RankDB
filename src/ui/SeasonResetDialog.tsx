@@ -1,5 +1,5 @@
 import { uiText } from "../text/index";
-import { isSavedData, seasonReset } from "../data/rosterStore";
+import { getViewedReset, isSavedData, seasonReset, undoSeasonReset, viewSeasonReset } from "../data/rosterStore";
 import { dialogs, useOpenDialog } from "./appActions";
 import { Button } from "./primitives/Button";
 import { Dialog } from "./primitives/Dialog";
@@ -31,6 +31,31 @@ export function SeasonResetDialog() {
       <div className="dialog-actions">
         <Button data-autofocus="" onClick={dialogs.close}>{uiText("common.cancel")}</Button>
         <Button variant="danger" onClick={() => void reset()}>{uiText("seasonReset.confirm")}</Button>
+      </div>
+    </Dialog>
+  );
+}
+
+/**
+ * Undoing the newest season reset (Past ranks menu) asks first: its ranks come back wherever a slot
+ * is still Unranked (ranks set since stay), and it leaves Past ranks.
+ */
+export function UndoSeasonResetDialog() {
+  const dialog = useOpenDialog();
+  const open = dialog?.kind === "undo-season-reset";
+  const resetAt = open ? dialog.resetAt : null;
+  const undo = async () => {
+    dialogs.close();
+    if (!resetAt) return;
+    if (getViewedReset() === resetAt) await viewSeasonReset(null);
+    if (await undoSeasonReset(resetAt)) showToast({ tone: "success", title: uiText("pastRanks.undone") });
+  };
+  return (
+    <Dialog open={open} onClose={dialogs.close} title={uiText("pastRanks.undoDialog.title")} className="account-dialog">
+      <p className="dialog-text">{uiText("pastRanks.undoDialog.description")}</p>
+      <div className="dialog-actions">
+        <Button data-autofocus="" onClick={dialogs.close}>{uiText("common.cancel")}</Button>
+        <Button variant="danger" onClick={() => void undo()}>{uiText("pastRanks.undoDialog.confirm")}</Button>
       </div>
     </Dialog>
   );

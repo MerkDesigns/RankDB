@@ -15,6 +15,7 @@ export type Dialog =
   | { readonly kind: "delete-group"; readonly groupId: string }
   | { readonly kind: "credential-security"; readonly action: "enable" | "disable" | "unlock" | "change" }
   | { readonly kind: "data-transfer"; readonly action: "export" | "import" | "legacy"; readonly path: string }
+  | { readonly kind: "undo-season-reset"; readonly resetAt: string }
   | null;
 
 let openDialog: Dialog = null;

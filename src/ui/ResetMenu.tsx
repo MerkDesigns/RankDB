@@ -1,9 +1,9 @@
 import { uiText } from "../text/index";
 import { useSyncExternalStore } from "react";
 import { Check, History, Undo2 } from "lucide-react";
-import { getViewedReset, listSeasonResets, undoSeasonReset, useViewedReset, viewSeasonReset } from "../data/rosterStore";
+import { listSeasonResets, useViewedReset, viewSeasonReset } from "../data/rosterStore";
+import { dialogs } from "./appActions";
 import { ContextMenu, MENU_DIVIDER, type MenuEntry } from "./primitives/ContextMenu";
-import { showToast } from "./toasts";
 
 /* ---------- The toolbar's past-ranks menu (UI state; the choice is never saved) ---------- */
 
@@ -31,14 +31,10 @@ function closeResetMenu() {
 
 const DATE = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 
-/**
- * Undoes the newest season reset: its ranks come back wherever a slot is still Unranked (ranks set
- * since stay), and it leaves Past ranks.
- */
-async function undoReset(resetAt: string) {
+/** Undoing the newest season reset asks first (SeasonResetDialog.tsx). */
+function undoReset(resetAt: string) {
   closeResetMenu();
-  if (getViewedReset() === resetAt) await viewSeasonReset(null);
-  if (await undoSeasonReset(resetAt)) showToast({ tone: "success", title: uiText("pastRanks.undone") });
+  dialogs.open({ kind: "undo-season-reset", resetAt });
 }
 
 /** Picks whose ranks the list shows: today's, or those a past season reset cleared. */
@@ -71,7 +67,7 @@ export function ResetMenu() {
           disabled: viewed === resetAt,
           onSelect: () => void viewSeasonReset(resetAt),
           // Only the newest: undoing an older one under a newer reset would mix two seasons.
-          ...(index === 0 ? { aside: { label: uiText("pastRanks.undo"), Icon: Undo2, onSelect: () => void undoReset(resetAt) } } : {}),
+          ...(index === 0 ? { aside: { label: uiText("pastRanks.undo"), Icon: Undo2, onSelect: () => undoReset(resetAt) } } : {}),
         }))),
   ];
   return (

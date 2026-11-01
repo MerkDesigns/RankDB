@@ -1,5 +1,6 @@
 import { Glass } from "../glass/Glass";
 import { useAppActions } from "./appActions";
+import { GlassLight } from "./Header";
 import { WindowControls } from "./WindowControls";
 
 /**
@@ -23,10 +24,13 @@ export function Rail() {
           data-glow={glow || undefined}
           onClick={onClick}
         >
-          <Icon size={19} strokeWidth={2.2} />
+          <span className="button-icon">
+            <Icon size={19} strokeWidth={2.2} />
+          </span>
         </button>
       ))}
       <span className="rail-spacer" data-drag-region />
+      <GlassLight />
     </Glass>
   );
 }

@@ -588,7 +588,7 @@
 
 /* The rank column the list is sorted by. */
 .island-flex .role-sort {
-  width: 64px;
+  flex: 1;
 }
 
 .island-flex .role-sort img {

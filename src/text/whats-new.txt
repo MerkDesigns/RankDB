@@ -17,3 +17,6 @@ Set placement match progress on predicted ranks.
 
 Drag Accounts into Groups
 previously it was only possible to put accounts into groups through the context menu.
+
+"SMS verification needed" Section
+Now besides the banned section you can also tag accounts as SMS locked in the Account info Tab.

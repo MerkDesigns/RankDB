@@ -7,6 +7,7 @@ import { startEditing } from "./editing";
 import { Button } from "./primitives/Button";
 import { ContextMenu, MENU_DIVIDER, type MenuEntry } from "./primitives/ContextMenu";
 import { Dialog } from "./primitives/Dialog";
+import { removeWithMotion } from "./sortMotion";
 import { showToast } from "./toasts";
 
 /* ---------- Which group the menu is open for (UI state) ---------- */
@@ -82,7 +83,8 @@ export function DeleteGroupDialog() {
         <Button
           variant="danger"
           onClick={() => {
-            if (groupId.current) deleteGroup(groupId.current);
+            const id = groupId.current;
+            if (id) removeWithMotion({ groupId: id }, () => deleteGroup(id));
             showToast({ tone: "success", title: uiText("groupMenu.delete.success"), message: name });
             dialogs.close();
           }}

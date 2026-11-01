@@ -33,14 +33,27 @@ export type RankSlot = 0 | 1 | 2 | "sixV6";
 /** Slot names in the database. */
 const SLOT_NAMES = { 0: "tank", 1: "damage", 2: "support", sixV6: "sixv6" } as const;
 
-/** A temporary role sort (never saved): best ranks first, then worst first, then off. */
-export interface RoleSort {
-  readonly slot: RankSlot;
+/** The currency columns, in header order: the lane of `Account` values and the index in it. */
+export const CURRENCY_COLUMNS = {
+  prisms: ["valuesA", 0],
+  coins: ["valuesA", 1],
+  credits: ["valuesA", 2],
+  competitive: ["valuesB", 0],
+  legacy: ["valuesB", 1],
+} as const;
+export type CurrencyColumn = keyof typeof CURRENCY_COLUMNS;
+
+/** A column the list can be sorted by: a rank slot or a currency. */
+export type SortColumn = RankSlot | CurrencyColumn;
+
+/** A temporary column sort (never saved): best ranks or most currency first, then off. */
+export interface ColumnSort {
+  readonly column: SortColumn;
   readonly direction: "desc" | "asc";
 }
 
 let records: Records = { accounts: [], groups: [] };
-let sort: RoleSort | null = null;
+let sort: ColumnSort | null = null;
 // Empty until the first load (buildRoster's helpers are defined further down).
 let roster: Roster = { entries: [], sms: [], banned: [], total: 0, sorted: false };
 let source: "database" | "dummy" = "database";
@@ -159,23 +172,29 @@ function rankScore(rank: Rank): number {
   return TIER_SCORE[rank.tier] + (6 - rank.division) / 10 + (rank.predicted ? 0.01 : 0);
 }
 
+/** What a column sort compares: the rank's score, or the currency amount. */
+function sortValue(account: Account, column: SortColumn): number {
+  if (typeof column === "number" || column === "sixV6") return rankScore(rankAt(account, column));
+  const [lane, index] = CURRENCY_COLUMNS[column];
+  return account[lane][index]!;
+}
+
 /**
  * The list as shown. Normally: loose accounts and groups in their shared order (each group with
- * its accounts), then the SMS and banned sections. With a role sort: every clean account in one
- * flat list by that rank (groups set aside, ties in their saved order), and each section sorted
- * the same way.
+ * its accounts), then the SMS and banned sections. With a column sort: every clean account in one
+ * flat list by that rank or currency (groups set aside, ties in their saved order), and each
+ * section sorted the same way.
  */
-function buildRoster({ accounts, groups }: Records, roleSort: RoleSort | null): Roster {
+function buildRoster({ accounts, groups }: Records, columnSort: ColumnSort | null): Roster {
   const sms = accounts.filter((account) => account.status === "sms").sort(bySortKey);
   const banned = accounts.filter((account) => account.status === "banned").sort(bySortKey);
   const active = accounts.filter((account) => account.status === "clean");
-  if (roleSort) {
+  if (columnSort) {
     const savedOrder = new Map(flattenOrder(active, groups).map((account, index) => [account.id, index]));
-    const sign = roleSort.direction === "desc" ? -1 : 1;
+    const sign = columnSort.direction === "desc" ? -1 : 1;
+    const { column } = columnSort;
     const sorted = (list: readonly Account[], order: (account: Account) => number) =>
-      [...list].sort(
-        (a, b) => sign * (rankScore(rankAt(a, roleSort.slot)) - rankScore(rankAt(b, roleSort.slot))) || order(a) - order(b),
-      );
+      [...list].sort((a, b) => sign * (sortValue(a, column) - sortValue(b, column)) || order(a) - order(b));
     return {
       entries: sorted(active, (account) => savedOrder.get(account.id) ?? 0).map((account) => ({ kind: "account", account })),
       sms: sorted(sms, (account) => account.sortKey),
@@ -437,13 +456,13 @@ export async function fillDatabaseWithDummy(): Promise<void> {
   if (source === "database") publish(filled);
 }
 
-/* ---------- Role sort (temporary) ---------- */
+/* ---------- Column sort (temporary) ---------- */
 
-export function getRoleSort(): RoleSort | null {
+export function getColumnSort(): ColumnSort | null {
   return sort;
 }
 
-export function useRoleSort(): RoleSort | null {
+export function useColumnSort(): ColumnSort | null {
   return useSyncExternalStore(
     (listener) => {
       listeners.add(listener);
@@ -453,9 +472,9 @@ export function useRoleSort(): RoleSort | null {
   );
 }
 
-/** Old app: a click sorts best first; another click on the same role turns sorting off. */
-export function cycleRoleSort(slot: RankSlot) {
-  sort = sort?.slot === slot ? null : { slot, direction: "desc" };
+/** Old app: a click sorts best first; another click on the same column turns sorting off. */
+export function cycleColumnSort(column: SortColumn) {
+  sort = sort?.column === column ? null : { column, direction: "desc" };
   roster = buildRoster(shown(records), sort);
   emit();
 }

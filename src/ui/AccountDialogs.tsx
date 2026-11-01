@@ -15,6 +15,7 @@ import { Button } from "./primitives/Button";
 import { Dialog } from "./primitives/Dialog";
 import { Field, Select, TextArea, TextInput } from "./primitives/Field";
 import { LiquidTabs, type LiquidTab } from "./primitives/LiquidTabs";
+import { removeWithMotion } from "./sortMotion";
 import { showError, showToast } from "./toasts";
 
 type AccountDialogKind = "credentials" | "delete-account" | "account-info";
@@ -174,7 +175,7 @@ export function DeleteAccountDialog() {
         <Button
           variant="danger"
           onClick={() => {
-            if (accountId !== null) deleteAccount(accountId);
+            if (accountId !== null) removeWithMotion({ accountId }, () => deleteAccount(accountId));
             showToast({ tone: "success", title: uiText("accountDialogs.delete.success"), message: name });
             dialogs.close();
           }}

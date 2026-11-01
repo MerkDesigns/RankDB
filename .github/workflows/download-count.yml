@@ -1,0 +1,37 @@
+# The README's download count: RankDB_installer.exe's downloads summed over every release, written
+# to downloads.json on the `badges` branch for a shields.io endpoint badge ("downloads" and the
+# number). Update checks (latest.json) and in-app updates (the x64 setup) don't count. The branch
+# holds only that file, replaced on every run.
+name: Download count
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: download-count
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Count and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq '[.[] | .assets[] | select(.name == "RankDB_installer.exe") | .download_count] | add // 0' \
+            | awk '{ sum += $1 } END { print sum + 0 }')
+          mkdir badges && cd badges
+          git init -q -b badges
+          printf '{"schemaVersion":1,"label":"downloads","message":"%s","color":"2ea44f"}\n' "$count" > downloads.json
+          git add downloads.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Download count: $count"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges

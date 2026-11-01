@@ -54,6 +54,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           nsis="src-tauri/target/release/bundle/nsis/RankDB_${VERSION}_x64-setup.exe"
+          # The setup goes out under one name in every release, so the README's download button
+          # (releases/latest/download/RankDB_installer.exe) and its download count (that file only,
+          # not the update checks that fetch latest.json) follow each release.
+          cp "release/RankDB_${VERSION}_installer.exe" release/RankDB_installer.exe
           gh release create "$GITHUB_REF_NAME" --draft --title "RankDB $GITHUB_REF_NAME" \
-            --notes "Download RankDB_${VERSION}_installer.exe to install RankDB." \
-            "release/RankDB_${VERSION}_installer.exe" "$nsis" "$nsis.sig" release/latest.json
+            --notes "Download RankDB_installer.exe to install RankDB." \
+            release/RankDB_installer.exe "$nsis" "$nsis.sig" release/latest.json

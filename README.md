@@ -9,7 +9,7 @@ login details and status, all in one list.
 - **Currencies** per account, edited inline.
 - **Groups**, drag-and-drop ordering, and separate sections for accounts that need SMS
   verification or are banned.
-- **Sorting** by any role's rank.
+- **Sorting** by any rank or currency column.
 - **Season resets** that archive every rank, with past ranks viewable later (and undoable).
 - **Login details** copied straight to the clipboard, kept out of clipboard history and cleared
   after a few seconds. Credentials can optionally be protected with a master password.

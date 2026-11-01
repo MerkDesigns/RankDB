@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { blobCss, dotsCss, resolveBackdrop } from "../glass/backdrops";
 import { localViewport } from "../glass/engine";
 import { useSettings } from "../data/settingsStore";
-import { useLab } from "../lab/store";
+import { labStore, useLab } from "../lab/store";
+import { startAmbientField } from "../glass/ambientField";
+import { startSmokeField } from "../glass/smokeField";
 import { dragRegion } from "../platform/window";
 
 /** The scene glass sits on. Rendered with plain CSS so it costs nothing until glass samples it. */
@@ -21,6 +23,39 @@ export function Backdrop() {
     return () => window.removeEventListener("resize", update);
   }, [zoom]);
 
+  // WebGL fields (smoke, ambient) draw themselves; tuning reaches them from the store without
+  // re-rendering React.
+  const field = useRef<HTMLCanvasElement>(null);
+  const fieldKind = spec.field;
+  useEffect(() => {
+    const canvas = field.current;
+    if (!fieldKind || !canvas) return;
+    const base = () => resolveBackdrop(labStore.get().backdrop, labStore.get().backdropColor).base;
+    let update: () => void;
+    let destroy: () => void;
+    if (fieldKind === "smoke") {
+      const smoke = startSmokeField(canvas, labStore.get().smoke, base());
+      update = () => smoke.set(labStore.get().smoke, base());
+      destroy = smoke.destroy;
+    } else {
+      const ambient = startAmbientField(canvas, labStore.get().ambient, base());
+      update = () => ambient.set(labStore.get().ambient, base());
+      destroy = ambient.destroy;
+    }
+    // Only changes the field cares about reach it (the store also changes for panel moves etc.).
+    let last = labStore.get();
+    const unsubscribe = labStore.subscribe(() => {
+      const next = labStore.get();
+      if (next.smoke === last.smoke && next.ambient === last.ambient && next.backdropColor === last.backdropColor) return;
+      last = next;
+      update();
+    });
+    return () => {
+      unsubscribe();
+      destroy();
+    };
+  }, [fieldKind]);
+
   const longSide = Math.max(viewport.width, viewport.height);
   return (
     <div
@@ -34,6 +69,7 @@ export function Backdrop() {
       aria-hidden="true"
       {...dragRegion(chrome)}
     >
+      {fieldKind && <canvas key={fieldKind} ref={field} className="backdrop-field" />}
       {spec.blobs.map((blob, index) => {
         const radius = blob.r * longSide;
         return (

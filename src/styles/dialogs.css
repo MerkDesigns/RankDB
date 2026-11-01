@@ -1,5 +1,5 @@
 /* Dialogs follow TaskMap's settings patterns (src/ui/patterns/settings in TaskMap-Refactor):
-   a Major glass shell, Minor glass islands, TaskMap tokens, RankDB's cyan as the accent. */
+   a Major glass shell, Minor glass islands, TaskMap tokens, RankDB's purple as the accent. */
 
 :root {
   --tm-text: rgb(255 255 255 / 0.88);
@@ -11,8 +11,8 @@
   --tm-modal-padding: 20px;
   --tm-disabled-opacity: 0.42;
   --tm-control-height: 32px;
-  --accent: #22d3ee;
-  --accent-rgb: 34 211 238;
+  --accent: #9e7aff;
+  --accent-rgb: 158 122 255;
 }
 
 .dialog-layer {
@@ -379,6 +379,56 @@
   text-transform: uppercase;
 }
 
+.settings-designs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--tm-space-2);
+}
+
+.settings-design {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tm-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-design-label {
+  align-self: center;
+}
+
+.settings-design-preview {
+  position: relative;
+  display: block;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  border-radius: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.settings-design-preview img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.settings-design:hover:not([aria-checked="true"]) .settings-design-preview {
+  border-color: rgb(255 255 255 / 0.22);
+}
+
+.settings-design[aria-checked="true"] .settings-design-preview {
+  border-color: rgb(var(--accent-rgb) / 0.8);
+  box-shadow: 0 0 0 1px rgb(var(--accent-rgb) / 0.8);
+}
+
 .settings-pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -494,6 +544,22 @@
 /* Kept mounted while closed (RankPicker): nothing to render. */
 .picker[data-parked] {
   display: none;
+}
+
+/* Warm-up (ui/warmup.ts): for a few frames after startup the parked surfaces render at full
+   presence but 0.2% opacity, so their first real opening finds the content rasterised and the
+   blur set up instead of paying for it mid-animation. The opacity flattens their glass for those
+   frames, which nobody can see. */
+:root[data-warming] .dialog-layer[hidden],
+:root[data-warming] .picker[data-parked] {
+  display: block;
+  opacity: 0.002;
+  pointer-events: none;
+}
+
+:root[data-warming] .dialog-layer[hidden] .dialog,
+:root[data-warming] .picker[data-parked] {
+  --presence: 1 !important;
 }
 
 .picker {
@@ -872,22 +938,32 @@
   display: none;
 }
 
+/* The thumb is the hitbox, 3x as wide as the bar it draws (::before), centred on it. */
 .list-scrollbar-thumb {
   position: absolute;
   top: 0;
-  right: calc(2px / var(--ui-zoom, 1));
+  right: calc(-2px / var(--ui-zoom, 1));
+  width: calc(12px / var(--ui-zoom, 1));
+}
+
+.list-scrollbar-thumb::before {
+  position: absolute;
+  top: 0;
+  right: calc(4px / var(--ui-zoom, 1));
+  bottom: 0;
   width: calc(4px / var(--ui-zoom, 1));
   border-radius: 999px;
   background: rgb(255 255 255 / 0.18);
+  content: "";
   transition: background-color 140ms;
 }
 
 /* Always this thin; hovering only brightens it. */
-.list-scrollbar:hover .list-scrollbar-thumb {
+.list-scrollbar:hover .list-scrollbar-thumb::before {
   background: rgb(255 255 255 / 0.3);
 }
 
-.list-scrollbar[data-dragging] .list-scrollbar-thumb {
+.list-scrollbar[data-dragging] .list-scrollbar-thumb::before {
   background: rgb(255 255 255 / 0.38);
 }
 

@@ -7,8 +7,13 @@ import { useSyncExternalStore } from "react";
  * applies at once and is saved shortly after (a burst of changes is one write).
  */
 
+/** The scene behind the app (Settings → Visuals → Designs): Flat is the base colour, Haze the ambient lights. */
+export type Design = "flat" | "haze";
+export const DESIGNS: readonly Design[] = ["flat", "haze"];
+
 export interface AppSettings {
-  /** App accent (toggles, selections); null = RankDB cyan. */
+  design: Design;
+  /** App accent (toggles, selections); null = RankDB purple. */
   accentColor: string | null;
   /** Copy-email / copy-password buttons at the start of each row. */
   showCredentialButtons: boolean;
@@ -30,7 +35,7 @@ export interface AppSettings {
   lastSeenVersion: string | null;
 }
 
-export const DEFAULT_ACCENT = "#22d3ee";
+export const DEFAULT_ACCENT = "#9e7aff";
 /** The UI scale's steps (a segmented control in Settings); anything else snaps to the nearest. */
 export const UI_SCALE_STEPS = [0.8, 0.9, 1, 1.1, 1.2] as const;
 
@@ -42,6 +47,7 @@ export const PRIVACY_CHARS = { min: 0, max: 7 } as const;
 export const CLIPBOARD_CLEAR = { min: 5, max: 30, step: 5 } as const;
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  design: "haze",
   accentColor: null,
   showCredentialButtons: true,
   showCurrency: true,
@@ -68,6 +74,7 @@ const color = (value: unknown): string | null =>
 function normalizeSettings(raw: Record<string, unknown>): AppSettings {
   const d = DEFAULT_SETTINGS;
   return {
+    design: DESIGNS.includes(raw.design as Design) ? (raw.design as Design) : d.design,
     accentColor: color(raw.accentColor),
     showCredentialButtons: bool(raw.showCredentialButtons, d.showCredentialButtons),
     showCurrency: bool(raw.showCurrency, d.showCurrency),
@@ -94,9 +101,19 @@ let pending: Partial<AppSettings> = {};
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let saveChain: Promise<void> = Promise.resolve();
 
-/** Sends any change still waiting for its delay (closing, updating). */
-export function flushSettings() {
+/** Sends any change still waiting for its delay (closing, updating, a backup); resolves once saved. */
+export function flushSettings(): Promise<void> {
   flush();
+  return saveChain;
+}
+
+/** Loads the saved settings again after an import replaced them; changes not yet sent are dropped. */
+export async function reloadSettings(): Promise<void> {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+  pending = {};
+  state = normalizeSettings(await command<Record<string, unknown>>("load_settings"));
+  listeners.forEach((listener) => listener());
 }
 
 function flush() {

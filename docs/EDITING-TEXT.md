@@ -2,8 +2,30 @@
 
 Open **[`src/text/strings.json`](../src/text/strings.json)**. This is the single source for RankDB's
 authored interface wording: settings, option descriptions, buttons, tooltips, menus, dialogs,
-notifications, country and rank labels, What's New, Discord presence, the Glass Lab and app-written
-backend errors. You do not need to find the React component or Rust command that displays it.
+notifications, country and rank labels, Discord presence, the Glass Lab and app-written backend
+errors. You do not need to find the React component or Rust command that displays it.
+
+**What's New** is the one exception: it is plain text in
+**[`src/text/whats-new.txt`](../src/text/whats-new.txt)**, edited all at once:
+
+```text
+1.0.1
+
+A title
+Its description. A new line here stays a new line.
+
+Another title
+Another description.
+
+1.0.0
+...
+```
+
+- A line that is only a version number (`1.0.1`, or `v1.0.1`) starts that version's notes. Newest
+  version first. It shows after updating to that version, so add the new version's notes before
+  building it.
+- A blank line starts the next note. The first line of a note is its title; the lines under it
+  are the description, line breaks kept.
 
 The file is grouped by area. Start with `settings` for Settings, `toolbar` for toolbar tooltips,
 `accountMenu` for account actions, `notifications` / `clipboard` for notifications, and `lab` /
@@ -45,8 +67,7 @@ checks for missing or accidentally renamed placeholders. A few entries are fragm
 text or account names; preserve any leading/trailing spaces that separate those fragments.
 
 Save while `npm run app:dev:mcp` or `npm run app:dev` is running to see your changes. Because Rust
-errors use the same file, saving it also triggers the desktop app's rebuild/restart. For an installed
-build, rebuild and reinstall with `npm run bundle:dev` to include the new wording.
+errors use the same file, saving it also triggers the desktop app's rebuild/restart.
 
 To check your edits:
 

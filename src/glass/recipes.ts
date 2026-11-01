@@ -79,11 +79,14 @@ export const TASKMAP_TUNING: Tuning = {
   shellBody: 0.28,
 };
 
-/** RankDB's chosen Glass Lab material (2026-10-30); TaskMap presets stay available separately. */
+/**
+ * RankDB's chosen Glass Lab material (2026-10-30; minor pre-blur off 2026-11-01); TaskMap presets
+ * stay available separately.
+ */
 export const DEFAULT_TUNING: Tuning = {
   ...TASKMAP_TUNING,
   major: { ...TASKMAP_TUNING.major, blur: 37 },
-  minor: { ...TASKMAP_TUNING.minor, rimAlpha: 0.195 },
+  minor: { ...TASKMAP_TUNING.minor, preblur: 0, rimAlpha: 0.195 },
   shadowStrength: 0,
   shellBody: 0,
 };

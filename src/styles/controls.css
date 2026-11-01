@@ -622,11 +622,11 @@
     opacity 190ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-/* The held row looks exactly as it did under the pointer (its plate and hover stay as they were);
-   it only gains a plain blur of whatever it passes over. The blur exists only while dragging, so
-   resting rows cost nothing. */
+/* The held row keeps its plate and gains a plain blur of whatever it passes over: no hover tint and
+   no saturation or brightness change, which read as a grey cast (by request). The blur exists only
+   while dragging, so resting rows cost nothing. */
 .row[data-held]::before {
-  --row-hover: 1;
+  --row-hover: 0;
   backdrop-filter: blur(var(--held-blur));
   transition: none;
 }
@@ -1051,6 +1051,8 @@
 
 .whats-new-list li span {
   color: var(--tm-muted);
+  /* Line breaks from whats-new.txt. */
+  white-space: pre-line;
 }
 
 .update-notes {

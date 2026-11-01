@@ -1,0 +1,59 @@
+# Push a tag like v1.0.0: GitHub builds RankDB Setup and the app's NSIS installer, signs the update
+# with the repository's key (secrets, as for 0.3) and makes a draft release with the setup, the
+# NSIS installer, its .sig and latest.json. Nobody sees a draft; publishing it makes it the latest
+# release, which every installed RankDB (0.3 included) then updates to.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      # rust-toolchain.toml picks the Rust version (rustup installs it on first use).
+      - run: rustup show active-toolchain || rustup toolchain install
+
+      - run: npm ci
+
+      # The tag must match the version the app is built as (package.json).
+      - name: Check the tag
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "Tag $GITHUB_REF_NAME doesn't match the app version $version" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Build and sign
+        run: npm run installer:build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - run: node scripts/write-update-feed.mjs ${{ env.VERSION }}
+
+      - name: Draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          nsis="src-tauri/target/release/bundle/nsis/RankDB_${VERSION}_x64-setup.exe"
+          gh release create "$GITHUB_REF_NAME" --draft --title "RankDB $GITHUB_REF_NAME" \
+            --notes "Download RankDB_${VERSION}_installer.exe to install RankDB." \
+            "release/RankDB_${VERSION}_installer.exe" "$nsis" "$nsis.sig" release/latest.json

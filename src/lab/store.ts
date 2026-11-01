@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { DEFAULT_TUNING, type RoleTuning, type Tuning } from "../glass/recipes";
 
 export type Strategy = "off" | "native" | "shared" | "shell" | "baked";
-export type BackdropId = "flat" | "dots" | "aurora" | "aurora-live";
+export type BackdropId = "flat" | "dots" | "aurora" | "aurora-live" | "smoke" | "ambient";
 export type RimMode = "exact" | "css" | "flat" | "off";
 /** native: Windows title bar · caption: buttons float in the top margin · rail: right-hand rail. */
 export type WindowChrome = "native" | "caption" | "rail";
@@ -73,9 +73,75 @@ export const DEFAULT_TOASTS: ToastTuning = {
   motionSpeed: 1.25,
 };
 
+/** The "ambient" backdrop: four soft coloured lights drifting over the base (glass/ambientField.ts). */
+export interface AmbientTuning {
+  /** One colour per light. */
+  colors: readonly [string, string, string, string];
+  /** How strongly the lights add to the base colour, 0..1. */
+  intensity: number;
+  /** Light radius, as a share of the window's long side. */
+  size: number;
+  /** 0 = a tighter glow, 1 = a wide wash with no visible edge. */
+  softness: number;
+  speed: number;
+  /** How far each light wanders, as a share of the window's long side. */
+  drift: number;
+  /** Redraws per second. Every redraw makes the glass above it re-blur. */
+  updates: number;
+  /** Static noise against banding, in 1/255 steps. */
+  grain: number;
+  /** Picks the lights' places and paths. */
+  seed: number;
+}
+
+export const DEFAULT_AMBIENT: AmbientTuning = {
+  colors: ["#2f2154", "#2f1439", "#391650", "#2e365c"],
+  intensity: 0.2,
+  size: 0.21,
+  softness: 1,
+  speed: 3,
+  drift: 0.09,
+  updates: 30,
+  grain: 4,
+  seed: 1,
+};
+
+/** The "smoke" backdrop: ASCII glyphs over rising smoke (glass/smokeField.ts). */
+export interface SmokeTuning {
+  /** Cell height in CSS pixels; cells are 0.6 as wide, like monospace text. */
+  cellHeight: number;
+  speed: number;
+  /** Redraws per second. Every redraw makes the glass above it re-blur. */
+  updates: number;
+  /** How much of each redraw stays on the next one (phosphor afterglow), 0..0.95. */
+  trail: number;
+  contrast: number;
+  brightness: number;
+  opacity: number;
+  ink: string;
+  accent: string;
+  /** Glyphs from empty to full; the first is always a space (empty cells). */
+  charset: string;
+}
+
+export const DEFAULT_SMOKE: SmokeTuning = {
+  cellHeight: 19,
+  speed: 1.1,
+  updates: 120,
+  trail: 0.48,
+  contrast: 1,
+  brightness: -0.05,
+  opacity: 0.55,
+  ink: "#3c2f4c",
+  charset: " .:-=+*#%@",
+  accent: "#a97aff",
+};
+
 export interface LabState {
   picker: PickerTuning;
   toasts: ToastTuning;
+  smoke: SmokeTuning;
+  ambient: AmbientTuning;
 
   chrome: WindowChrome;
   strategy: Strategy;
@@ -104,7 +170,7 @@ export interface LabState {
   /** The plates' 1px outline; null colour = white. */
   rowPlateOutlineColor: string | null;
   rowPlateOutlineOpacity: number;
-  /** Blur behind a row while it is dragged (it turns to glass); 0 = no glass. */
+  /** Blur behind a row while it is dragged; 0 = none. */
   heldBlur: number;
   /** Development: the saved accounts, or an unsaved dummy roster (account count and seed). */
   dataSource: "database" | "dummy";
@@ -152,6 +218,8 @@ export const BACKDROPS: readonly { id: BackdropId; label: string }[] = [
   { id: "dots", label: uiText("labOptions.backdrops.dots") },
   { id: "aurora", label: uiText("labOptions.backdrops.aurora") },
   { id: "aurora-live", label: uiText("labOptions.backdrops.auroraAnimated") },
+  { id: "smoke", label: uiText("labOptions.backdrops.smoke") },
+  { id: "ambient", label: uiText("labOptions.backdrops.ambient") },
 ];
 
 export const WINDOW_CHROMES: readonly { id: WindowChrome; label: string; note: string }[] = [
@@ -181,15 +249,14 @@ export const RIM_MODES: readonly { id: RimMode; label: string }[] = [
   { id: "off", label: uiText("common.none") },
 ];
 
-/** RankDB's default accent (the old app's cyan). */
-
-
 export const DEFAULT_STATE: LabState = {
   picker: DEFAULT_PICKER,
   toasts: DEFAULT_TOASTS,
+  smoke: DEFAULT_SMOKE,
+  ambient: DEFAULT_AMBIENT,
   chrome: "caption",
   strategy: "shell",
-  backdrop: "flat",
+  backdrop: "ambient",
   backdropColor: "#07090f",
   majorRim: "exact",
   minorRim: "off",
@@ -223,6 +290,10 @@ const oneOf = <T extends string>(value: unknown, allowed: readonly { id: T }[], 
 const number = (value: unknown, fallback: number, min: number, max: number) =>
   typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
 
+/** 2 to 32 glyphs, starting with the space that empty cells show. */
+const smokeCharset = (value: unknown): string | null =>
+  typeof value === "string" && value.startsWith(" ") && [...value].length >= 2 && [...value].length <= 32 ? value : null;
+
 const bool = (value: unknown, fallback: boolean) => (typeof value === "boolean" ? value : fallback);
 
 const color = (value: unknown): string | null =>
@@ -252,7 +323,35 @@ export function normalizeState(value: unknown): LabState {
   const p = DEFAULT_PICKER;
   const toasts = (raw.toasts && typeof raw.toasts === "object" ? raw.toasts : {}) as Record<string, unknown>;
   const t = DEFAULT_TOASTS;
+  const smoke = (raw.smoke && typeof raw.smoke === "object" ? raw.smoke : {}) as Record<string, unknown>;
+  const ambient = (raw.ambient && typeof raw.ambient === "object" ? raw.ambient : {}) as Record<string, unknown>;
+  const a = DEFAULT_AMBIENT;
+  const ambientColors = Array.isArray(ambient.colors) ? ambient.colors : [];
+  const k = DEFAULT_SMOKE;
   return {
+    smoke: {
+      cellHeight: number(smoke.cellHeight, k.cellHeight, 8, 32),
+      speed: number(smoke.speed, k.speed, 0, 3),
+      updates: Math.round(number(smoke.updates, k.updates, 6, 240)),
+      trail: number(smoke.trail, k.trail, 0, 0.95),
+      contrast: number(smoke.contrast, k.contrast, 0.3, 2.5),
+      brightness: number(smoke.brightness, k.brightness, -0.5, 0.5),
+      opacity: number(smoke.opacity, k.opacity, 0, 1),
+      ink: color(smoke.ink) ?? k.ink,
+      accent: color(smoke.accent) ?? k.accent,
+      charset: smokeCharset(smoke.charset) ?? k.charset,
+    },
+    ambient: {
+      colors: [0, 1, 2, 3].map((index) => color(ambientColors[index]) ?? a.colors[index]!) as unknown as AmbientTuning["colors"],
+      intensity: number(ambient.intensity, a.intensity, 0, 1),
+      size: number(ambient.size, a.size, 0.1, 1.2),
+      softness: number(ambient.softness, a.softness, 0, 1),
+      speed: number(ambient.speed, a.speed, 0, 3),
+      drift: number(ambient.drift, a.drift, 0, 0.5),
+      updates: Math.round(number(ambient.updates, a.updates, 6, 120)),
+      grain: number(ambient.grain, a.grain, 0, 4),
+      seed: Math.round(number(ambient.seed, a.seed, 0, 1_000_000)),
+    },
     toasts: {
       material: toasts.material && typeof toasts.material === "object" ? normalizeRole(toasts.material, defaults.tuning.major) : null,
       shadowStrength: number(toasts.shadowStrength, t.shadowStrength, 0, 2),

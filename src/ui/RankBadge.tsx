@@ -1,28 +1,17 @@
 import { uiText, rankName } from "../text/index";
 import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
-import { sameRank, type Rank, type RankTier } from "../data/accounts";
+import { sameRank, type Rank } from "../data/accounts";
 import { RANK_IMAGES } from "../data/assets";
-
-/**
- * Effects that reward high ranks, weaker the lower the rank (styles: `.badge-fx`, per tier): a glow
- * on the emblem (Emerald up), a shine now and then (Diamond up) and sparkles (Grandmaster, more
- * on Champion). Here only the sparkle counts; colours, strengths and timing live in the CSS.
- */
-const SPARKLES: Partial<Record<RankTier, number>> = { Champion: 7, Grandmaster: 3 };
-const EFFECT_TIERS: ReadonlySet<RankTier> = new Set(["Champion", "Grandmaster", "Master", "Diamond", "Emerald"]);
-/** Sparkle spots around the badge (left %, top %, size as a share of the badge height, delay s). */
-const SPOTS = [
-  [8, 6, 0.22, 0],
-  [40, 92, 0.17, 1.1],
-  [95, 10, 0.2, 2],
-  [24, -6, 0.15, 0.6],
-  [66, 98, 0.15, 1.6],
-  [2, 70, 0.17, 2.5],
-  [58, -8, 0.17, 0.3],
-] as const;
+import { EFFECT_TIERS, SPARKLES, SPOTS, useRankEffects } from "./rankEffects";
 
 const stateOf = (rank: Rank) => (rank.tier === "Unranked" ? "unranked" : rank.predicted ? "predicted" : "ranked");
 
+/**
+ * A rank's badge. Real ranks from Emerald up carry effects, weaker the lower the rank: a glow on
+ * the emblem (Emerald up), a shine now and then (Diamond up) and sparkles (Grandmaster, more on
+ * Champion). Which tier gets what, and the motion, are in rankEffects.ts; colours and strengths in
+ * app.css (`.badge-fx`).
+ */
 export const RankBadge = memo(function RankBadge({
   rank,
   onPick,
@@ -52,8 +41,7 @@ export const RankBadge = memo(function RankBadge({
   useEffect(() => {
     wasEditing.current = editing;
   });
-  // Each badge starts its loops at its own point, so a list of them never pulses in step.
-  const [phase] = useState(() => Math.random());
+  const effects = useRankEffects(rank.tier, editing);
 
   const state = stateOf(rank);
   const label =
@@ -83,18 +71,19 @@ export const RankBadge = memo(function RankBadge({
       )}
       {state === "ranked" && EFFECT_TIERS.has(rank.tier) && (
         <span
+          ref={effects}
           className="badge-fx"
           data-tier={rank.tier}
-          style={{ "--badge-mask": `url("${RANK_IMAGES[rank.tier]}")`, "--fx-phase": phase } as CSSProperties}
+          style={{ "--badge-mask": `url("${RANK_IMAGES[rank.tier]}")` } as CSSProperties}
           aria-hidden="true"
         >
           <span className="fx-glow" />
           {rank.tier !== "Emerald" && <span className="fx-glint" />}
-          {SPOTS.slice(0, SPARKLES[rank.tier] ?? 0).map(([left, top, size, delay], index) => (
+          {SPOTS.slice(0, SPARKLES[rank.tier] ?? 0).map(([left, top, size], index) => (
             <span
               key={index}
               className="fx-sparkle"
-              style={{ left: `${left}%`, top: `${top}%`, "--size": size, "--delay": `${delay}s` } as CSSProperties}
+              style={{ left: `${left}%`, top: `${top}%`, "--size": size } as CSSProperties}
             />
           ))}
         </span>

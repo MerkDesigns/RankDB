@@ -21,11 +21,12 @@ use tauri::Manager;
 /// it. If the frontend never gets that far, show the window anyway rather than run invisibly.
 const SHOW_FALLBACK: Duration = Duration::from_secs(3);
 
-/// The identifier of the published app (the dev and RankDB Dev builds have their own).
+/// The identifier of the published app (dev builds have their own).
 const RELEASE_IDENTIFIER: &str = "com.merkdesigns.rankdb.next";
 
-/// Update checks only in the published app from 1.0 on. Dev builds and RankDB Dev are 0.0.0, and
-/// the release channel still carries the old RankDB 0.3: they would be offered that as an "update".
+/// Update checks only in the published app (release build, its own identifier) from 1.0 on. Dev
+/// builds never check: the release channel may carry a version they'd take for an "update" (it
+/// still carries the old RankDB 0.3).
 #[tauri::command]
 fn updates_enabled(app: tauri::AppHandle) -> bool {
     let version = app.package_info().version.clone();
@@ -81,6 +82,10 @@ fn main() {
         db::take_old_app_import,
         db::old_app_status,
         db::import_old_app,
+        db::choose_transfer_file,
+        db::export_backup,
+        db::import_backup,
+        db::import_legacy_export,
         open_data_folder,
         db::credential_security_status,
         db::unlock_credentials,
@@ -126,6 +131,10 @@ fn main() {
         db::take_old_app_import,
         db::old_app_status,
         db::import_old_app,
+        db::choose_transfer_file,
+        db::export_backup,
+        db::import_backup,
+        db::import_legacy_export,
         open_data_folder,
         db::credential_security_status,
         db::unlock_credentials,
@@ -174,7 +183,7 @@ fn main() {
             }
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(discord::Discord::start())
         .setup(|app| {
             // A database that can't be opened (damaged, from a newer version) doesn't stop the app:

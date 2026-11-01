@@ -24,6 +24,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const work = join(root, ".sandbox");
 const share = join(work, "share");
 const keys = join(work, "keys");
+const logs = join(work, "logs");
 const scripts = join(root, "scripts", "sandbox");
 const bundle = join(root, "src-tauri", "target", "release", "bundle", "nsis");
 
@@ -38,6 +39,7 @@ const run = (command, args, options = {}) =>
 
 mkdirSync(share, { recursive: true });
 mkdirSync(keys, { recursive: true });
+mkdirSync(logs, { recursive: true });
 
 /* ---------- RankDB 0.3 ---------- */
 
@@ -45,6 +47,17 @@ const oldInstaller = `RankDB_${OLD_VERSION}_x64-setup.exe`;
 if (!existsSync(join(share, oldInstaller))) {
   console.log(`Downloading ${oldInstaller} from the v${OLD_VERSION} release…`);
   run("gh", ["release", "download", `v${OLD_VERSION}`, "--repo", "MerkDesigns/RankDB", "--pattern", oldInstaller, "--dir", share]);
+}
+
+/* ---------- WebView2 (Windows Sandbox doesn't include it; real Windows 10/11 does) ---------- */
+
+const webView2 = "MicrosoftEdgeWebView2RuntimeInstallerX64.exe";
+if (!existsSync(join(share, webView2))) {
+  console.log("Downloading the WebView2 runtime (offline installer) from Microsoft…");
+  // Microsoft's Evergreen Standalone Installer, x64.
+  const response = await fetch("https://go.microsoft.com/fwlink/?linkid=2124701");
+  if (!response.ok) throw new Error(`WebView2 download failed: ${response.status}`);
+  writeFileSync(join(share, webView2), Buffer.from(await response.arrayBuffer()));
 }
 
 /* ---------- Test signing key (never the real one) ---------- */
@@ -129,6 +142,11 @@ writeFileSync(
       <HostFolder>${share}</HostFolder>
       <SandboxFolder>${inside}\\RankDB test</SandboxFolder>
       <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+    <MappedFolder>
+      <HostFolder>${logs}</HostFolder>
+      <SandboxFolder>${inside}\\RankDB logs</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
     </MappedFolder>
     <MappedFolder>
       <HostFolder>${scripts}</HostFolder>

@@ -15,6 +15,8 @@ export interface BackdropSpec {
   readonly dots: { readonly spacing: number; readonly radius: number; readonly alpha: number } | null;
   readonly blobs: readonly Blob[];
   readonly animated: boolean;
+  /** Drawn by a WebGL field over the base colour (glass/smokeField.ts); bakes show only the base. */
+  readonly field: "smoke" | "ambient" | null;
 }
 
 /** Rank colours, so the glass picks up the same hues as the badges. */
@@ -33,25 +35,30 @@ const AURORA_BLOBS: readonly Blob[] = [
 ];
 
 export const BACKDROP_SPECS: Record<BackdropId, BackdropSpec> = {
-  flat: { base: "#090c11", dots: null, blobs: [], animated: false },
+  flat: { base: "#090c11", dots: null, blobs: [], animated: false, field: null },
   dots: {
     base: "#050609",
     dots: { spacing: 26, radius: 1.15, alpha: 0.16 },
     blobs: [],
     animated: false,
+    field: null,
   },
   aurora: {
     base: "#06070b",
     dots: { spacing: 26, radius: 1.1, alpha: 0.09 },
     blobs: AURORA_BLOBS,
     animated: false,
+    field: null,
   },
   "aurora-live": {
     base: "#06070b",
     dots: { spacing: 26, radius: 1.1, alpha: 0.09 },
     blobs: AURORA_BLOBS,
     animated: true,
+    field: null,
   },
+  smoke: { base: "#06070b", dots: null, blobs: [], animated: true, field: "smoke" },
+  ambient: { base: "#06070b", dots: null, blobs: [], animated: true, field: "ambient" },
 };
 
 /** The backdrop as drawn: its spec with the user's base colour, when one is set. */

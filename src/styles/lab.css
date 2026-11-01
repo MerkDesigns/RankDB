@@ -433,3 +433,32 @@
 .results td[data-bad] {
   color: #fca5a5;
 }
+
+/* Section tabs: one category at a time, kept in view while its settings scroll. */
+.lab-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 16px;
+  border-bottom: 1px solid #161a24;
+  background: #0b0d12;
+}
+
+.lab-tabs button {
+  padding: 5px 7px;
+}
+
+.lab-text {
+  width: 100%;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid #232838;
+  border-radius: 6px;
+  background: #11141b;
+  color: #e2e8f0;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  white-space: pre;
+}

@@ -67,6 +67,9 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     track, labels and pill; inert). Its selection pill is Minor glass with two edge springs
     (snappy leading, soft trailing), and its radius grows with stretch. Click, keyboard and
     press-drag all select.
+    A tab list that measures 0 (a closed dialog kept mounted) places the pill without animating:
+    its minimum size can't reach 0, so the spring never settled and ran every frame (fixed
+    2026-10-31).
   - `LiquidToggleSwitch`: TaskMap's track and a Minor glass knob that stretches and thins with
     speed. On an island the knob is a shell, as in TaskMap.
   - Motion: `primitives/motion/spring.ts` (TaskMap's exact spring solver and tokens) and
@@ -84,7 +87,7 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     Account Info, Games Dodged ›, Move To ›, Delete Account. Toasts: `showToast`/`showError`
     (`src/ui/toasts.ts`, rendered by `ToastStack`, Major glass, bottom right). Styles in
     `styles/controls.css`. Open dialogs through `dialogs.open({ kind, accountId })`.
-- **Accent colour** (`LabState.accentColor`, null = RankDB cyan `#22d3ee`) is set in Settings →
+- **Accent colour** (`LabState.accentColor`, null = RankDB purple `#9e7aff`) is set in Settings →
   Visuals. The engine writes `--accent` and `--accent-rgb`; use those, never a
   hard-coded colour.
 - **Masks go on filter outputs, never on an ancestor of a filter.** A masked, filtered or
@@ -156,8 +159,8 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   for animation geometry (the opening rectangle is a fallback for warm mounting/removed elements).
   Placement-only changes update the draft and accessible label without replaying badge-change FX.
 
-- **`docs/NOT-CARRIED-OVER.md`** lists what we deliberately don't copy from the old app. Check it
-  before porting a feature, and add to it when we drop or change one.
+- **`docs/PLAN.md` → Not carried over** lists what we deliberately don't copy from the old app.
+  Check it before porting a feature, and add to it when we drop or change one.
 - **The UI scale only zooms `.app`** (header, rows, scrollbar; the window width follows). Settings
   and the rank picker live in `.overlays`, a `display: contents` sibling outside the zoom, so they
   always render at 100%. Overlays work in plain viewport pixels; never divide by the UI scale there.
@@ -256,17 +259,42 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     (manual download, failed first try). Dev builds never auto-migrate; never test it on the user's real 0.3 data. The new installer has
     the same product name and `rankdb.exe` as 0.3, so it is expected to install over it in place
     (to verify with the first real release build).
-  - **Export/import and backup features are removed/deferred** (user decision 2026-10-30).
-    No transfer dialogs, backup island/history, automatic snapshots or pre-update backups. Their Rust modules/commands, dialog plugin and Credential Manager access
-    were removed. Do not rebuild them without a new request. Existing recovery files on disk are
-    preserved; this decision removes the feature, not the user's old files.
+  - **Designs** (Settings → Visuals, by request 2026-11-01; `src/glass/designs.ts`): the app setting
+    `design` picks the backdrop, Flat (`flat`, the base colour) or Haze (`ambient`, the default).
+    The backdrop stays lab state, which the engine and `Backdrop` read; `startDesigns` sets it from
+    the setting at startup and on every change. In dev builds a lab-only backdrop (dots, smoke, …)
+    survives startup until a design is picked. Previews: Flat is its colour, Haze a still image of
+    the ambient field at the window's shape (`ambientSnapshot`: drawn once on a context of its own,
+    released at once, the last image kept). A live WebGL context per preview cost ~6 ms of
+    waiting on the GPU every time the Visuals tab opened.
+  - **Backups and 0.3 exports** (Settings → Data, by request 2026-11-01; `src-tauri/src/db/backup.rs`,
+    `src/ui/DataTransferDialog.tsx`). Rust opens the file pickers itself (`tauri-plugin-dialog`,
+    no page permission); the dialog then asks for the file's password.
+    - *Export all data*: a `VACUUM INTO` copy of the whole database, sealed with AES-256-GCM under
+      a PBKDF2-SHA256 (600 000 rounds) key from a backup password, in a JSON `.rankdb-backup`
+      (`format`, `version`, `schema`, `exportedAt`, `salt`, `iterations`, `data`). Pending settings
+      are flushed first.
+    - *Import backup* replaces **everything** (accounts, groups, past ranks, settings, credential
+      protection): the file is decrypted to a staging file, checked, migrated to this schema (a
+      newer one is refused), then copied over the live database with SQLite's backup API, and the
+      vault reloads its protection (locked if it has a master password).
+    - *Import RankDB 0.3 export* (`.rankdb-export`, `legacy::replace_from_export`) replaces only
+      the accounts and groups (with their past ranks); settings, the install day and credential
+      protection stay. Credentials are sealed under the current protection, so a locked master
+      password is unlocked first.
+    - Before either import the database is copied to `upgrade-copies/rankdb-before-import.sqlite3`
+      (only the latest), which credential protection changes convert like the upgrade copies.
+    - Automatic or pre-update backups stay removed (user decision 2026-10-30).
   - **App services** (`src/ui/AppUpdates.tsx`, started after the window is shown):
     - Updates: `tauri-plugin-updater` on the old app's channel (GitHub releases `latest.json`, its
       minisign pubkey in tauri.conf.json). `updates_enabled` (Rust) allows checks only in the
       published app: release build, identifier `com.merkdesigns.rankdb.next`, version ≥ 1.0. Dev
-      builds and RankDB Dev are 0.0.0 and would otherwise be offered the old 0.3 as an "update".
-      Silent check on start; Install downloads the update and restarts (no backup feature).
-    - What's New (`src/data/whatsNew.ts`): the old app's rule, never on a first start, once after
+      builds never check. The version is `package.json`'s everywhere
+      (`tauri.conf.json` names it; `scripts/check-version.mjs`, in `npm run check`, holds the Cargo
+      manifests and locks to it); releases: tag `v<version>`, `.github/workflows/release.yml`.
+      Silent check on start; Install downloads the update and restarts (no automatic backup).
+    - What's New (`src/data/whatsNew.ts`, text in `src/text/whats-new.txt`, by request so it can be
+      edited in one place; format in docs/EDITING-TEXT.md): the old app's rule, never on a first start, once after
       the version changes (`lastSeenVersion` setting); also from Settings → Misc.
     - Discord (`src-tauri/src/discord.rs`): a worker thread owns the connection, follows the
       `discordPresence` setting (on by default, as before), retries every 30 s while Discord
@@ -306,11 +334,15 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     easeOutQuart), with TaskMap's held spread around the enlarged item; TaskMap's smoothstep
     auto-scroll at the edges. Rows pass through groups (past a head the gap opens inside, past the
     last row back out); a collapsed group takes a row after it hovers the head for 350 ms (head
-    lights up). A held row looks exactly as it did hovered (same plate, outline, hover; by request no
-    extra outline or tint); it only gains a plain backdrop blur on its `::before` plate, and only
-    while held, for performance (lab → Scene → Dragged row, `--held-blur`, 0 = off). Held groups get
+    lights up). A held row keeps its plate and outline but not its hover tint (by request: no grey cast,
+    no extra outline or tint); it only gains a plain backdrop blur on its
+    `::before` plate (no saturation or brightness change: that read as grey), only while held, for
+    performance (lab → Rows → Dragged row, `--held-blur`, 0 = off). Held groups get
     no blur (by request) and no shadow. Nothing
     above it may become a backdrop root (filter, opacity < 1, mask) or the blur samples nothing.
+    The same goes for blend modes inside the row: the rank effects' `mix-blend-mode` made the row
+    the blend group (its own render surface), so rows with Emerald+ badges didn't blur. `.badge`
+    has `isolation: isolate` so they blend inside the badge.
     Groups move among the top level, SMS and banned rows within their own section. Drop glides
     into the gap, then `moveItem` saves; Escape/cancel glides home. All motion is `translate`/
     `scale` on the existing elements; React re-renders once, after the drop. Off while sorted.
@@ -320,7 +352,10 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
 - **Kept mounted while hidden**: Settings (`Dialog keepMounted`) and the rank picker mount once the
   app is idle (`useWarmMount`) and then stay, `display: none` while closed, so opening never
   re-renders them. The picker resets its draft and placement when another badge opens it, and
-  remounts only its gliding selectors (`generation` key).
+  remounts only its gliding selectors (`generation` key). Once both are mounted and the window
+  is visible, `ui/warmup.ts` renders them for 3 frames at full presence and 0.2% opacity
+  (`data-warming`), so the first opening doesn't rasterise and set up blurs mid-animation (by
+  request: Settings' first open had a 61 ms frame, now 20 ms like later ones).
 - **Rank picker** (`src/ui/RankPicker.tsx`): a Major glass panel with no scrim (a press outside
   closes it) and TaskMap's menu shadow. Its blur is its own (`LabState.picker.blur`, default 24px,
   as `--picker-blur`/`--picker-os`); the rest of the recipe is Major's. It opens like an iOS app from its icon
@@ -357,17 +392,44 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   - Every size comes from `LabState.picker` as `--picker-*` variables (engine `applyPicker`).
   - It opens beside the badge if either side fits, otherwise below or above it. Escape cancels,
     Enter confirms.
-  - Presses inside the lab pop-up don't close the picker, so it can be tuned while open.- **Rank effects** (`RankBadge` `.badge-fx`, styles in app.css; Settings → Visuals → Rank
-  effects, `badgeEffects`, the old app's `badgeAnimationsEnabled`): real (not predicted) ranks from
+  - Presses inside the lab pop-up don't close the picker, so it can be tuned while open.
+- **Rank effects** (`RankBadge` `.badge-fx`; which tier gets what and the motion in
+  `ui/rankEffects.ts`, colours and strengths in app.css; Settings → Visuals → Rank effects,
+  `badgeEffects`, the old app's `badgeAnimationsEnabled`): real (not predicted) ranks from
   Emerald up. Glow on the emblem (radial gradient in the tier's colour, screen blend, no white;
   pulses), shine every few seconds, sparkles (pre-drawn SVG per tier). Champion all, Grandmaster
   fewer, Master glow + slight shine, Diamond slight shine + little glow, Emerald faint glow.
-  Preview: `docs/previews/rank-effects.html`. Performance rules (measured, 25 effect badges):
-  - only compositor animations (opacity, scale, rotate, transform); custom-property or
-    background animations restyle the whole row every frame (~10-20 ms);
-  - sparkles and shines are hidden while the list scrolls (`data-scrolling`, `useScrollingFlag`):
-    their animated layers made each row scrolling into view re-layerize (10 ms frames);
-  - no mask or filter on an animated element (sparkles are plain images).
+  Only the Rank effects setting turns them off; Windows' "Animation effects" (reduced motion) is
+  deliberately ignored, by request (2026-10-31). Performance rules (measured):
+  - **Web Animations, not CSS animations** (`element.animate`, the shine on `::before`). React
+    listens for animation events at its root, so Chromium woke the page for ~14 frames before
+    every CSS animation cycle ended: with a list's worth of effects (64 loops) ~200 page frames/s
+    and ~160 ms/s of main thread at rest (357 Hz). No start delays either: a delayed start wakes
+    the page every frame until it begins, so sparkle delays are folded into the start time.
+  - **60 updates a second on one clock**: stepped timing (`steps(duration × 60)`), every loop
+    started a whole number of 1/60 s steps from the timeline's zero, phases rounded to steps. A
+    smooth compositor animation redraws the window at the display's full rate, and loops out of
+    step would each add their own redraws. Idle over Haze, 2026-11-01 (357 Hz, 11 badges with
+    effects in view): page 200 → 30 frames/s; main thread 162 → 29 ms/s, GPU 257 → 43, viz
+    270 → 58, compositor 136 → 47 (effects off: 11 / 13 / 19 / 14). The ambient backdrop's
+    redraws fall on the same clock (`ambientField.ts`), so most share a frame with a step.
+  - only compositor properties (opacity, scale, rotate, transform); custom-property or
+    background animations restyle the whole row every frame (~10-20 ms). The glow's strength is
+    in its gradient so the pulse animates opacity from 1;
+  - no mask or filter on an animated element (sparkles are plain images);
+  - **each running loop is a layer of its own** (113 layers vs 26 with them stopped), and with
+    those layers every frame that changes the page's layering (an overlay's fading blur, rows
+    scrolling into view) re-layerizes for ~5.5 ms instead of ~0.5. So they stop (cancelled, not
+    paused: a paused animation keeps its layer) while their badge is off screen (one
+    IntersectionObserver), another window has focus (`data-window-inactive`,
+    `startFocusTracking` in window.ts), a dialog is open (`data-dialog-open`, `Dialog.tsx`) or the
+    rank picker is open (`data-picker-open`, all but the edited badge, which keeps its own until
+    the picker has closed). The shine and sparkles also stop while the list scrolls
+    (`data-scrolling`, `useScrollingFlag`). At rest the glow stays lit; shine and sparkles are out
+    of sight. Restarting them costs one ~10 ms frame (layerize), when nothing else moves. The rank
+    picker went from 5.2% to 0.9% late frames (p99 8.4 → 3 ms);
+  - **Nothing may request animation frames it doesn't draw on**: one stray `requestAnimationFrame`
+    loop makes every badge effect cost main-thread time at the display's full refresh rate.
 - **Placements** live on each `Rank`: `predicted` plus `placements` (1–10, 0 when not predicted).
   The row badge has no placement indicator yet; that design is still open.
 - **Row background** (lab → Scene → Row background: off / every row / every other row, strength,
@@ -375,9 +437,14 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   engine `applyRowPlates`): a rounded plate on `.row::before`, the same element as the hover plate (registered
   `--row-hover` adds to `--row-plate`). Alternation restarts in each block (a run of loose rows, a
   group, a section) through `AccountRow`'s `stripe` prop.
+  In the shared strategy the plates are glass too: `ListPlane` adds each shown plate's
+  `.row::before` box (with its own radius) to the plane's mask, beside the `data-plane-shape`
+  surfaces. Measured 2026-10-31 over the smoke backdrop: 1.9 MPx blurred, 0% late scroll frames,
+  ~6% GPU idle in the background.
 - **List scrollbar** (`src/ui/ListScrollbar.tsx`): a thin (4px, never wider) overlay at the
   window's right edge, clear of the rows, visible while the pointer is over the window. The thumb follows `--list-scroll` through a scroll-driven
-  animation (`.frame-main` sets `timeline-scope`). JS only sizes it and handles dragging.
+  animation (`.frame-main` sets `timeline-scope`). JS only sizes it and handles dragging. The
+  thumb's hitbox is 12px, 3x the bar it draws (`::before`), by request.
 
 ## Performance (measured at 370 Hz, 1x DPI; traces via `app:profile`)
 
@@ -393,7 +460,24 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
 - **Fewer paint effects per row**: an unranked badge's dimming is in its image's filter chain
   (`drop-shadow(…) opacity(.5)`), not `opacity` on the badge. Every filter, opacity < 1, clip and
   z-indexed layer splits paint into chunks that are re-layerized each frame.
-- Remaining one-off frames: mounting the rank picker or Settings (React render in one frame).
+- **Smoke backdrop** (lab → Scene → Background → Smoke, `glass/smokeField.ts`, WebGL2, after
+  motes by Lucas Marques, MIT): redraws at most `updates` times a second (default 120) because each
+  redraw re-blurs the glass above. Between draws it sleeps on a timer rather than polling
+  `requestAnimationFrame`, so it costs one page frame per draw, not one per refresh.
+- **Ambient backdrop** (lab → Background → Ambient, `glass/ambientField.ts`, WebGL2): four soft
+  coloured lights (additive Gaussian falloff, a faint static grain against banding) drifting over
+  the base colour, drawn at half resolution, 30 updates/s by default and none while nothing moves.
+  Draws fall on whole periods of the page clock, the rank effects' clock, so most share a frame
+  with an effect step (82 → ~73 frames/s at 357 Hz; waking early to always share cost more page
+  frames than it saved). Measured 2026-10-31 with the window in the background: ~1% GPU, ~2% CPU
+  (smoke: ~6% / ~8%).
+- Remaining one-off frames (production frontend, 2026-11-01, 357 Hz): restarting the rank
+  effects after a dialog closes or the list stops scrolling (~10 ms, layerize; nothing else is
+  moving then) and switching Settings tabs (each tab mounts afresh; ≤ 8 ms of script). Scroll,
+  hover and menus: p99 at refresh. Mounting the rank picker or Settings happens at idle.
+- Measure frontend costs on the production build: dev React inflates script time. `vite build`,
+  `vite preview --port 5180`, then the debug `rankdb.exe` with
+  `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9333 --remote-allow-origins=*"`.
 - Tracing recipe: CDP `Tracing.start` (devtools.timeline, blink, cc, viz) around a scenario, then
   total `X` events per thread; `UpdateLayoutTree.args.elementCount` shows restyle size. Long frames
   with `FunctionCall` > `FireAnimationFrame` around `UpdateLayoutTree` mean forced style in rAF.

@@ -121,7 +121,7 @@ export function startWindowFit() {
  * double-click to maximise, which RankDB doesn't have. Like Tauri's, a region only reacts to
  * presses on the element itself, never on its children. Double-clicks do nothing.
  */
-function installDragHandling() {
+export function installDragHandling() {
   document.addEventListener("mousedown", (event) => {
     if (event.button !== 0) return;
     const target = event.target as HTMLElement | null;
@@ -151,6 +151,22 @@ export function settleSaves(): Promise<void> {
  */
 export function startSaveOnClose() {
   void appWindow().onCloseRequested(() => settleSaves());
+}
+
+/* ---------- Focus ---------- */
+
+/**
+ * Marks the root `data-window-inactive` while another window has focus, which stops the rank
+ * effects (rankEffects.ts): RankDB mostly sits behind a game, where nobody watches them.
+ */
+export function startFocusTracking() {
+  const root = document.documentElement;
+  const apply = (focused: boolean) => {
+    if (focused) delete root.dataset.windowInactive;
+    else root.dataset.windowInactive = "";
+  };
+  void appWindow().isFocused().then(apply, () => undefined);
+  void appWindow().onFocusChanged(({ payload }) => apply(payload));
 }
 
 export const windowActions = {

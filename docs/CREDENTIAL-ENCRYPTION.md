@@ -1,8 +1,8 @@
 # Credential storage and optional encryption
 
 Current user decisions: start with plain storage, then allow an optional master password for
-**email and password fields only** (2026-10-30). Export/import and all backup features have been
-removed/deferred. The old Windows-key (DPAPI) storage was dropped entirely on 2026-10-31, after the
+**email and password fields only** (2026-10-30). Backups came back by request on 2026-11-01 (see
+below). The old Windows-key (DPAPI) storage was dropped entirely on 2026-10-31, after the
 user's data had been converted.
 
 ## Old Windows protection (dropped)
@@ -58,19 +58,26 @@ Copies taken before schema upgrades (`upgrade-copies/`) keep the credentials in 
 had then. Historical files, filesystem snapshots
 and storage remanence are outside this cleanup.
 
-## Removed/deferred features
+## Backups and 0.3 exports
 
-There are no export/import/restore dialogs, installed RankDB 0.3 import, backup island/history,
-automatic daily snapshots or pre-update backups. Associated Rust modules and command registrations,
-Windows Credential Manager access and the file-dialog plugin/permissions were removed. Existing
-files on disk are not deleted. These features may be designed again after a future user request.
+A backup (`src-tauri/src/db/backup.rs`) is the whole database, so it holds every credential. The
+file is always encrypted with a backup password (PBKDF2-SHA256, 600 000 rounds, AES-256-GCM), and
+inside it the credentials keep their own protection: plain ones are only as safe as the backup
+password, and with a master password they need that master password again after an import. The
+unencrypted copy taken for the export lives only briefly in the app's data folder.
+
+A RankDB 0.3 export (`.rankdb-export`, password-encrypted by 0.3) carries plain credentials; they
+are sealed under the current protection as they are imported, so a master password stays on.
+
+Before an import the current database is copied to `upgrade-copies/rankdb-before-import.sqlite3`,
+which every protection change converts like the upgrade copies (or deletes, if it can't be opened
+with the current key). Automatic daily snapshots and pre-update backups remain removed.
 
 ## Validation
 
 Isolated Rust tests cover fresh plain mode, master-password operations and wrong passwords,
 field binding, corrupt-row rollback and refusing a `legacy` database untouched. Frontend tests
-cover prompt, cancel/resume and stale-status protection. Live UI checks and current user data
-state are recorded in HANDOFF.md.
+cover prompt, cancel/resume and stale-status protection.
 
 References: [RustCrypto AES-GCM](https://docs.rs/aes-gcm/0.11.1/aes_gcm/),
 [zeroize](https://docs.rs/zeroize/1.9.1/zeroize/),

@@ -24,6 +24,7 @@ mod settings;
 mod credentials;
 mod groups;
 mod history;
+mod backup;
 #[cfg(test)]
 mod upgrade_tests;
 
@@ -33,6 +34,7 @@ pub use settings::*;
 pub use credentials::*;
 pub use groups::*;
 pub use history::*;
+pub use backup::*;
 use migrations::MIGRATIONS;
 
 const FILE_NAME: &str = "rankdb.sqlite3";
@@ -70,12 +72,15 @@ impl Database {
         self.connection.lock().map_err(|error| error.to_string())
     }
 
-    /// Moves everything from the write-ahead log into the database file (app exit, before an
-    /// update installs), so the file on its own is complete.
+    /// The copies kept beside the database (upgrades, the latest import), converted along when
+    /// credential protection changes.
     fn upgrade_copies(&self) -> Vec<PathBuf> {
-        upgrade_copies(&self.dir).into_iter().map(|(_, path)| path).collect()
+        let before_import = self.dir.join(UPGRADE_COPIES).join(backup::BEFORE_IMPORT);
+        upgrade_copies(&self.dir).into_iter().map(|(_, path)| path).chain(before_import.exists().then_some(before_import)).collect()
     }
 
+    /// Moves everything from the write-ahead log into the database file (app exit, before an
+    /// update installs), so the file on its own is complete.
     pub fn checkpoint(&self) {
         if let Ok(connection) = self.lock() {
             let _ = connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");

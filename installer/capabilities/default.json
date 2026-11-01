@@ -1,0 +1,17 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The setup window: its own commands and window controls only",
+  "windows": ["main"],
+  "permissions": [
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-show",
+    "core:window:allow-start-dragging",
+    "allow-installer-details",
+    "allow-installer-choose-location",
+    "allow-installer-app-running",
+    "allow-installer-run",
+    "allow-installer-launch"
+  ]
+}

@@ -1,0 +1,49 @@
+[package]
+name = "rankdb-installer"
+version = "1.0.0"
+description = "RankDB Setup: a custom setup window around the embedded NSIS installer"
+authors = ["Merk"]
+edition = "2021"
+rust-version = "1.85"
+
+[features]
+default = []
+# Debug-only automation bridge for the `tauri` MCP server, as in the app.
+mcp-development = ["dep:tauri-plugin-mcp-bridge"]
+
+[build-dependencies]
+serde_json = "=1.0.154"
+tauri-build = { version = "=2.7.3", features = [] }
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+tauri = { version = "=2.12.4", features = [] }
+# The "Change folder" picker.
+tauri-plugin-dialog = "=2.8.3"
+tauri-plugin-mcp-bridge = { version = "=0.13.1", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.62.2", features = [
+  "Win32_Foundation",
+  # Shortcuts (IShellLinkW) and their AppUserModelID, like the NSIS installer's.
+  "Win32_Storage_EnhancedStorage",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_Variant",
+  "Win32_UI_Shell",
+  "Win32_UI_Shell_PropertiesSystem",
+  # The existing installation's uninstall entry.
+  "Win32_System_Registry",
+  # Whether RankDB is running, so it can be closed before its files are replaced.
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_System_Threading",
+] }
+
+[profile.release]
+# A small download matters more than build time.
+opt-level = "s"
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true

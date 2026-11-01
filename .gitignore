@@ -1,9 +1,24 @@
+# Dependencies and build output
 node_modules
 dist
+dist-installer
+release
+src-tauri/target
+src-tauri/gen/schemas
+installer/target
+installer/gen/schemas
+
+# Local tools and test runs
 bench-results
+.sandbox
 *.log
+
+# Local only: Merk's release checklist and HTML/image mock-ups
+RELEASE-CHECKLIST.md
+docs/previews
+
+# Editors and OS
 .vscode
 .idea
 Thumbs.db
 .DS_Store
-.sandbox

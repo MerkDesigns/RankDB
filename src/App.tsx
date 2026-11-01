@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { CredentialSecurityDialog } from "./ui/CredentialSecurityDialog";
+import { DataTransferDialog } from "./ui/DataTransferDialog";
 import { StartupProblem } from "./ui/StartupProblem";
 import { useSettings } from "./data/settingsStore";
 import { useLab } from "./lab/store";
@@ -65,6 +66,7 @@ export function App({ problem }: { readonly problem: string | null }) {
         <DeleteAccountDialog />
         <DeleteGroupDialog />
         <SeasonResetDialog />
+        <DataTransferDialog />
         <UpdateDialog />
         <WhatsNewDialog />
         <ToastStack />

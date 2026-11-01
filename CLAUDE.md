@@ -3,13 +3,11 @@
 Ground-up rewrite of RankDB (Overwatch multi-account rank tracker; the old app lives in `../RankDB`).
 Only the core idea carries over. Current phase: **polish and release** (phase 7 in `docs/PLAN.md`).
 
-This is the shared project contract for Claude and Codex (`AGENTS.md` points here): rules first,
-details elsewhere.
+This is the project contract: rules first, details elsewhere.
 - `docs/ARCHITECTURE.md`: how each area works and the user's decisions behind it. **Read the
   section for an area before changing it**, and update it with the change.
-- `docs/HANDOFF.md`: the latest verified state and open findings; update it when switching assistants.
-- `docs/PLAN.md` (phases), `docs/NOT-CARRIED-OVER.md` (what we don't copy from the old app; check it
-  before porting a feature), `docs/CREDENTIAL-ENCRYPTION.md`, `docs/EDITING-TEXT.md`.
+- `docs/PLAN.md`: phases, what's still open, and what we don't copy from the old app (check it
+  before porting a feature). Also `docs/CREDENTIAL-ENCRYPTION.md`, `docs/EDITING-TEXT.md`.
 
 Stack: React 19 + TypeScript 7 (native `tsc`) + Vite 8, Tauri 2 shell (WebView2 on Windows).
 Dependencies are pinned exactly; when upgrading, pick the newest version that is at least two weeks old.
@@ -27,7 +25,7 @@ WebView2's own browser features off (print, find, reload, zoom, DevTools keys, p
 | `npm run app:dev:mcp` | Tauri app + MCP bridge on 127.0.0.1:9223 for the `tauri` MCP server |
 | `npm run app:profile` | Same as above + WebView2 DevTools protocol on 127.0.0.1:9333 (for `npm run bench`) |
 | `npm run bench` | Benchmark matrix in the running `app:profile` window |
-| `npm run bundle:dev` | Release installer for **RankDB Dev** (per-user NSIS, `src-tauri/tauri.devapp.conf.json`) |
+| `npm run installer:build` | RankDB Setup for the published app: `release/RankDB_<version>_installer.exe` (version from `package.json`; unsigned without `TAURI_SIGNING_PRIVATE_KEY`, which only GitHub has). Never run it outside Windows Sandbox: it installs over RankDB |
 | `npm run check` | Strings, typecheck, production build, `cargo check` |
 | `npm test` | Every test suite: `test:strings`, `test:toasts`, `test:credentials`, `test:scroll`, `test:rust` |
 | `npm run lint:rust` | Clippy, warnings as errors |
@@ -35,18 +33,24 @@ WebView2's own browser features off (print, find, reload, zoom, DevTools keys, p
 `.github/workflows/check.yml` runs `check`, a release `cargo check`, `lint:rust` and `npm test` on
 every push. Keep all of them passing.
 
+Releases: push a tag `v<version>` and `.github/workflows/release.yml` builds, signs (repo secrets)
+and drafts a GitHub release with the setup, NSIS installer, `.sig` and `latest.json`; publishing
+the draft is what offers the update to installed apps. **Before any release or version change,
+read `RELEASE-CHECKLIST.md`** (repo root, git-ignored, local to Merk's PC) and go through it with
+Merk; keep it current when the release process changes.
+
 `npm run dev` is only the Vite server Tauri starts for itself; it is not something to open in a
 browser. Always launch through the npm scripts (`scripts/dev-app.mjs` stops this checkout's stale
 Vite/`rankdb.exe` first), never `tauri dev` directly.
 
-**RankDB Dev** installs next to the user's old installed RankDB 0.3.0 (`%LOCALAPPDATA%\RankDB`, id
-`com.rankdb.desktop`) without sharing anything: own name, install folder, `rankdb-dev.exe` and id
-`com.merkdesigns.rankdb.devapp`. It is a release build: no lab, no MCP bridge, no DevTools.
+The user's installed RankDB 0.3.0 (`%LOCALAPPDATA%\RankDB`, id `com.rankdb.desktop`) is real:
+never run a release installer outside Windows Sandbox, it installs over it.
 
 ## Interface text
 
 All authored interface copy lives in **`src/text/strings.json`**, grouped by feature (including the
-lab and Rust errors); see `docs/EDITING-TEXT.md`. Use `uiText("feature.control.description",
+lab and Rust errors); see `docs/EDITING-TEXT.md`. The exception is What's New, plain text in
+`src/text/whats-new.txt` (by request). Use `uiText("feature.control.description",
 { namedPlaceholder: value })` (`src/text/index.ts`) and Rust `crate::text::text` / `format`; keep
 keys static and placeholder objects explicit. Display tiers with `rankName(tier)`, keeping stored
 IDs. `check:strings` rejects unknown, unused and uncatalogued text.
@@ -65,7 +69,7 @@ IDs. `check:strings` rejects unknown, unused and uncatalogued text.
   afterwards (`npm run bench` does). **App settings** (accent, columns, privacy, UI scale) are in
   the database's `settings` table; restore any a test changes.
 - Separate identifiers have separate data folders: base `com.merkdesigns.rankdb.next` (release),
-  `…next.dev` (MCP config), `com.merkdesigns.rankdb.devapp` (installed RankDB Dev).
+  `…next.dev` (MCP config).
 
 ## Testing the UI
 
@@ -92,7 +96,9 @@ IDs. `check:strings` rejects unknown, unused and uncatalogued text.
 - Secrets never reach the page unasked: rows get `hasEmail`/`hasPassword`, copying goes through
   Rust, only the edit-credentials dialog reads values. The lock is enforced in Rust.
 - RankDB 0.3 is migrated once, only into an empty database, never appended (`legacy.rs`).
-- Removed by request, not to be rebuilt without a new one: export/import, backups, rank-change
+- Backups (`db/backup.rs`) replace everything; a 0.3 export replaces only accounts and groups,
+  never settings or credential protection. Never import into the dev app's real data.
+- Removed by request, not to be rebuilt without a new one: automatic backups, rank-change
   logging, themes, owapi rank refresh, maximize, horizontal resizing.
 
 **Glass and motion**

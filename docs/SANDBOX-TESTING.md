@@ -14,8 +14,11 @@ update path can be tested there without touching the installed RankDB 0.3 or its
    - `latest.json`, which offers 1.0.1 to 1.0.0.
 
    `npm run sandbox:build -- --fresh` rebuilds the 1.0.x installers after code changes.
-3. `npm run sandbox:open` starts the sandbox. It opens the **RankDB test** folder on the sandbox
-   desktop and starts the update feed in a minimized PowerShell window (leave it open).
+3. `npm run sandbox:open` starts the sandbox. It starts the update feed in a minimized PowerShell
+   window (leave it open), installs the WebView2 runtime, then opens the **RankDB test** folder on
+   the sandbox desktop. Windows Sandbox has no WebView2 of its own (real Windows 10/11 does), so
+   `sandbox:build` downloads Microsoft's offline installer once; wait for the folder to appear
+   (about a minute) before installing anything.
 
 **Never run the 1.0.x test installers outside the sandbox**: they would install over your RankDB.
 

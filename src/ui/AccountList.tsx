@@ -68,8 +68,9 @@ export function AccountList() {
 const SCROLL_SETTLE_MS = 200;
 
 /**
- * Marks the list `data-scrolling` while it scrolls. Sparkles and shines (rank effects) are hidden
- * meanwhile: their animated layers made every row scrolling into view re-layerize the list.
+ * Marks the list `data-scrolling` while it scrolls. Sparkles and shines (rank effects) stop
+ * meanwhile (rankEffects.ts): their animated layers made every row scrolling into view
+ * re-layerize the list.
  */
 function useScrollingFlag(scrollerRef: RefObject<HTMLDivElement | null>) {
   useLayoutEffect(() => {

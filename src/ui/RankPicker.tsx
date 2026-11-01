@@ -217,6 +217,16 @@ function RankPickerPanel({ target: current, open }: { readonly target: PickerTar
     timing: OPEN_FROM_PRESENCE,
     onExited: closeRankPicker,
   });
+  // While it is open or animating, only the edited badge's rank effects run (rankEffects.ts).
+  const shown = open || present;
+  useLayoutEffect(() => {
+    if (!shown) return;
+    const root = document.documentElement;
+    root.dataset.pickerOpen = "";
+    return () => {
+      delete root.dataset.pickerOpen;
+    };
+  }, [shown]);
 
   const unranked = tier === "Unranked";
   const tierIndex = TIERS.indexOf(tier);

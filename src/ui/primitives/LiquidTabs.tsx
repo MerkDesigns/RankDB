@@ -86,7 +86,9 @@ export function LiquidTabs<Value extends string>({
     const animateTo = (next: { start: number; size: number }, instant: boolean) => {
       cancelAnimationFrame(frame.current);
       const end = next.start + next.size;
-      if (instant || !edges.current) {
+      // A hidden tab list (a closed dialog kept mounted) measures 0: the pill's minimum size could
+      // never reach it, so the spring would never settle and run every frame. Place it instead.
+      if (instant || !edges.current || next.size < MIN_SIZE) {
         edges.current = { start: settleSpring(next.start), end: settleSpring(end) };
         write(next.start, next.size, REST_RADIUS);
         return;

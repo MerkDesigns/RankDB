@@ -1,0 +1,371 @@
+/* RankDB Setup (installer/): the app's glass on a scene of its own. A fixed 680 × 420 window. */
+
+.installer {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+  color: var(--tm-text);
+}
+
+/* ---------- Scene: the app's ASCII smoke (InstallerApp, glass/smokeField.ts) ---------- */
+
+.installer-scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #06070b;
+}
+
+/* Drag regions react only to presses on themselves, so the canvas passes them through. */
+.installer-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---------- Title bar ---------- */
+
+.installer-titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 14px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.06);
+  /* A plain blur of the scene under the bar, as in TaskMap's setup. */
+  background: rgb(8 9 13 / 0.5);
+  backdrop-filter: blur(14px);
+  color: var(--tm-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Drag regions react only to presses on themselves, so the label and icon pass presses through. */
+.installer-titlebar > img,
+.installer-titlebar > span:not(.window-controls) {
+  pointer-events: none;
+}
+
+.installer-titlebar .window-controls {
+  align-self: stretch;
+  margin-left: auto;
+}
+
+.installer-titlebar .window-button:disabled {
+  cursor: default;
+  opacity: 0.35;
+  background: none;
+}
+
+/* ---------- Content, straight on the scene ---------- */
+
+.installer-content {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding: 20px 36px 18px;
+}
+
+.installer h1,
+.installer h2,
+.installer p {
+  margin: 0;
+}
+
+.installer h1 {
+  font-size: 29px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.installer h2 {
+  margin-top: 2px;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.installer-body {
+  max-width: 360px;
+  color: rgb(255 255 255 / 0.62);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* Each screen eases in. Glass islands only move: an opacity fade on them would stop their blur
+   from sampling the scene. */
+.installer-hero,
+.installer-footer,
+.installer-page > :not(.installer-island) {
+  animation: installer-fade 260ms ease-out both;
+}
+
+.installer-page > .installer-island {
+  animation: installer-rise 260ms ease-out both;
+}
+
+@keyframes installer-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes installer-rise {
+  from {
+    transform: translateY(6px);
+  }
+}
+
+/* ---------- Hero screens ---------- */
+
+.installer-hero {
+  display: grid;
+  flex: 1;
+  /* A fixed copy column, so the icon sits in the same place on every hero screen. */
+  grid-template-columns: 170px 360px;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+.installer-mark {
+  justify-self: center;
+  width: 144px;
+}
+
+.installer-mark img {
+  display: block;
+  width: 100%;
+  filter: drop-shadow(0 16px 40px rgb(139 63 217 / 0.5));
+}
+
+.installer-hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.installer .installer-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 184px;
+  height: 40px;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.installer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--tm-muted);
+  font-size: 12px;
+}
+
+.installer .installer-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--tm-muted);
+}
+
+.installer .installer-quiet:hover:not(:disabled) {
+  border-color: transparent;
+  background: rgb(255 255 255 / 0.07);
+  color: var(--tm-text);
+}
+
+/* "Open RankDB" on the last screen: a checkbox in the accent, like the progress steps' dots. */
+.installer-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--tm-text);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.installer-check {
+  display: grid;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 2px solid rgb(255 255 255 / 0.3);
+  border-radius: 5px;
+  color: #0d1014;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.installer-launch:hover .installer-check {
+  border-color: rgb(255 255 255 / 0.5);
+}
+
+.installer-launch[aria-checked="true"] .installer-check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.installer-launch:focus-visible {
+  outline: 2px solid rgb(var(--accent-rgb) / 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The close-RankDB step: a small spinner in the accent while it waits. */
+.installer-waiting {
+  width: 20px;
+  height: 20px;
+  margin: 4px 0 2px;
+  border: 2px solid rgb(var(--accent-rgb) / 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: installer-spin 900ms linear infinite;
+}
+
+@keyframes installer-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* ---------- Pages (options, progress, failure) ---------- */
+
+.installer-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 540px;
+  align-self: center;
+}
+
+.installer-island-rows,
+.installer-stages {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.installer-island .button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.installer-location {
+  display: flex;
+  max-width: 380px;
+  align-items: center;
+  gap: 6px;
+  color: var(--tm-muted);
+  font-size: 12.5px;
+}
+
+.installer-location span,
+.installer-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.installer-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.installer-actions .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 96px;
+  justify-content: center;
+}
+
+.installer-stages {
+  list-style: none;
+}
+
+.installer-stages li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--tm-muted);
+  font-size: 13.5px;
+  transition: color 200ms;
+}
+
+.installer-stages li[data-state="active"],
+.installer-stages li[data-state="done"] {
+  color: var(--tm-text);
+}
+
+.installer-stages li[data-state="active"] {
+  font-weight: 600;
+}
+
+.installer-stage-dot {
+  display: grid;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 2px solid rgb(255 255 255 / 0.2);
+  border-radius: 50%;
+  color: #0d1014;
+  transition:
+    background-color 200ms,
+    border-color 200ms;
+}
+
+.installer-stages li[data-state="done"] .installer-stage-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.installer-stages li[data-state="active"] .installer-stage-dot {
+  border-color: var(--accent);
+  animation: installer-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes installer-pulse {
+  50% {
+    box-shadow: 0 0 0 5px rgb(var(--accent-rgb) / 0.18);
+  }
+}
+
+.installer-progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.installer-progress-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, rgb(139 63 217), var(--accent));
+  transform-origin: left;
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}

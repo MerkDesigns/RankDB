@@ -69,7 +69,7 @@ fn decode(value: &str) -> Result<Vec<u8>, String> {
     base64::engine::general_purpose::STANDARD.decode(value).map_err(|_| crate::text::text("errors.credentialSecurity.metadataDamaged").into())
 }
 fn validate_password(password: &str) -> Result<(), String> {
-    if !(8..=1024).contains(&password.chars().count()) { return Err(crate::text::text("errors.credentialSecurity.invalidPasswordLength").into()); }
+    if !(1..=1024).contains(&password.chars().count()) { return Err(crate::text::text("errors.credentialSecurity.invalidPasswordLength").into()); }
     Ok(())
 }
 
@@ -111,6 +111,12 @@ pub struct Vault { protection: Mutex<Protection> }
 impl Vault {
     pub fn load(connection: &Connection) -> Result<Self, String> {
         Ok(Self { protection: Mutex::new(Protection::load(connection)?) })
+    }
+    /// After the whole database was replaced (a backup): its own protection, locked.
+    pub fn reload(&self, connection: &Connection) -> Result<SecurityStatus, String> {
+        let mut state = self.lock_state()?;
+        *state = Protection::load(connection)?;
+        Ok(state.status())
     }
     fn lock_state(&self) -> Result<std::sync::MutexGuard<'_, Protection>, String> { self.protection.lock().map_err(|error| error.to_string()) }
     pub fn status(&self) -> Result<SecurityStatus, String> { Ok(self.lock_state()?.status()) }
@@ -316,10 +322,10 @@ mod tests {
     }
 
     #[test]
-    fn short_password_and_damaged_envelope_are_rejected() {
+    fn empty_password_and_damaged_envelope_are_rejected() {
         let mut connection = database();
         let vault = Vault::load(&connection).unwrap();
-        assert!(vault.configure(&mut connection, &[], true, "short", "").is_err());
+        assert!(vault.configure(&mut connection, &[], true, "", "").is_err());
         assert_eq!(bytes(&connection), b"fixture-password");
         for json in ["{}", r#"{"version":1,"iterations":1,"salt":"","sealedKey":""}"#] {
             assert!(Envelope::parse(json).is_err());

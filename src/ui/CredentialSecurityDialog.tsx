@@ -28,7 +28,7 @@ export function CredentialSecurityDialog() {
   }, [open, action]);
   const needsNew = action === "enable" || action === "change";
   const needsCurrent = action === "unlock" || action === "change" || (action === "disable" && status?.mode === "password");
-  const invalid = (needsNew && (password.length < 8 || password !== confirm)) || (needsCurrent && !current);
+  const invalid = (needsNew && (password.length < 1 || password !== confirm)) || (needsCurrent && !current);
   const close = () => { if (!operation.current) finishCredentialSecurity(false); };
   const submit = async () => {
     if (invalid || operation.current) return;
@@ -63,7 +63,7 @@ export function CredentialSecurityDialog() {
           <TextInput data-autofocus="" type="password" autoComplete="off" value={current} maxLength={1024} disabled={busy} onChange={(event) => setCurrent(event.target.value)} />
         </Field>}
         {needsNew && <>
-          <Field label={uiText("credentialSecurity.password.newLabel")} description={uiText("credentialSecurity.password.hint")}>
+          <Field label={uiText("credentialSecurity.password.newLabel")}>
             <TextInput data-autofocus={!needsCurrent ? "" : undefined} type="password" autoComplete="new-password" value={password} maxLength={1024} disabled={busy} onChange={(event) => setPassword(event.target.value)} />
           </Field>
           <Field label={uiText("credentialSecurity.password.confirmLabel")} description={confirm && password !== confirm ? uiText("credentialSecurity.password.mismatch") : undefined}>

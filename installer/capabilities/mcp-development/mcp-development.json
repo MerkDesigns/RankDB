@@ -1,0 +1,7 @@
+{
+  "$schema": "../../gen/schemas/desktop-schema.json",
+  "identifier": "mcp-development",
+  "description": "Opt-in local development MCP bridge permissions",
+  "windows": ["main"],
+  "permissions": ["mcp-bridge:default"]
+}

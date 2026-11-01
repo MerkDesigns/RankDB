@@ -10,8 +10,13 @@
 //! → Data offers it while the database is still empty (a manual download, or a failed first try).
 //! It never adds to existing accounts. Credentials arrive unencrypted; a master password can be
 //! set afterwards. The old folder is opened read-only and never changed.
+//!
+//! Settings → Data also reads 0.3's password-encrypted exports (`.rankdb-export`). Those replace
+//! the accounts and groups (and their past ranks) but leave the app's settings and credential
+//! protection as they are: credentials are sealed under the current protection.
 
-use rusqlite::{params, Connection, OpenFlags};
+use base64::Engine;
+use rusqlite::{params, Connection, OpenFlags, Transaction};
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
@@ -20,13 +25,17 @@ use std::path::{Path, PathBuf};
 
 use crate::credential_security::Vault;
 use crate::db::{
-    to_message, write_rank, Rank, Status, MAX_CURRENCY, MAX_DODGES,
+    binding_for, to_message, write_rank, Rank, SecretField, Status, MAX_CURRENCY, MAX_DODGES,
     MAX_NAME, MAX_NOTES, ROLE_SLOTS, SIXV6_SLOT, TIERS, VALUES_A, VALUES_B,
 };
 
 const OLD_IDENTIFIER: &str = "com.rankdb.desktop";
 const OLD_DATABASE: &str = "rankdb.sqlite3";
 const OLD_INSTALL_DATE: &str = "install-date.txt";
+/// 0.3's export file (`EncryptedExportBundle` in its lib.rs): JSON, snake_case fields; the payload
+/// is `nonce || AES-256-GCM` (no associated data) under a PBKDF2-SHA256 key from the password.
+const EXPORT_FORMAT: &str = "rankdb-encrypted-export-v1";
+pub const EXPORT_EXTENSION: &str = "rankdb-export";
 /// Setting written once the first start migrated the data: `{ at, accounts }`. Stops a later start
 /// with an emptied list from migrating again.
 pub const MARKER: &str = "oldAppImport";
@@ -117,6 +126,45 @@ pub fn import_installed(connection: &mut Connection, secrets: &Vault) -> Result<
     let root = read(&folder, &key)?;
     let summary = import(connection, secrets, &convert(&root), install_date(&folder))?;
     Ok(Some(summary))
+}
+
+/// Replaces the accounts and groups (with their ranks, credentials and past ranks) with those in
+/// a 0.3 export. Settings, the install day and credential protection stay as they are; with a
+/// master password the credentials need it unlocked. All or nothing.
+pub fn replace_from_export(connection: &mut Connection, secrets: &Vault, file: &[u8], password: &str) -> Result<ImportSummary, String> {
+    let root = decrypt_export(file, password)?;
+    let data = convert(&root);
+    secrets.require_unlocked()?;
+    let transaction = connection.transaction().map_err(to_message)?;
+    // Ranks, currencies, credentials and past ranks go with their accounts (ON DELETE CASCADE).
+    transaction.execute_batch("DELETE FROM accounts; DELETE FROM groups;").map_err(to_message)?;
+    write_accounts(&transaction, secrets, &data)?;
+    transaction.commit().map_err(to_message)?;
+    Ok(ImportSummary { accounts: data.accounts.len() })
+}
+
+#[derive(serde::Deserialize)]
+struct ExportBundle {
+    format: String,
+    version: u32,
+    salt: String,
+    pbkdf2_iterations: u32,
+    encrypted_payload: String,
+}
+
+/// Opens a 0.3 export with its password: the `{ accounts, groups, uiSettings, ... }` payload.
+fn decrypt_export(file: &[u8], password: &str) -> Result<Value, String> {
+    let unreadable = || crate::text::text("errors.legacyExport.unreadable").to_string();
+    let bundle: ExportBundle = serde_json::from_slice(file).map_err(|_| unreadable())?;
+    if bundle.format != EXPORT_FORMAT || bundle.version != 1 || !(1..=2_000_000).contains(&bundle.pbkdf2_iterations) {
+        return Err(unreadable());
+    }
+    let decode = |value: &str| base64::engine::general_purpose::STANDARD.decode(value).map_err(|_| unreadable());
+    let payload = crate::secrets::Secrets::from_password(password, &decode(&bundle.salt)?, bundle.pbkdf2_iterations)?
+        .open_bytes(&decode(&bundle.encrypted_payload)?, "")
+        .map_err(|_| crate::text::text("errors.legacyExport.wrongPassword").to_string())?;
+    let payload = zeroize::Zeroizing::new(payload);
+    serde_json::from_slice(&payload).map_err(|_| unreadable())
 }
 
 /* ---------- Conversion ---------- */
@@ -405,6 +453,32 @@ fn import(connection: &mut Connection, secrets: &Vault, data: &OldData, install_
     if !is_empty(&transaction)? {
         return Err(crate::text::text("errors.oldApp.notEmpty").into());
     }
+    write_accounts(&transaction, secrets, data)?;
+    for (key, value) in &data.settings {
+        transaction
+            .execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?1, ?2)", params![key, value.to_string()])
+            .map_err(to_message)?;
+    }
+    if let Some(day) = install_day {
+        transaction
+            .execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('installedOn', json_quote(?1))", [day])
+            .map_err(to_message)?;
+    }
+    let summary = ImportSummary { accounts: data.accounts.len() };
+    transaction
+        .execute(
+            "INSERT OR REPLACE INTO settings (key, value)
+             VALUES (?1, json_object('at', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 'accounts', ?2))",
+            params![MARKER, summary.accounts as i64],
+        )
+        .map_err(to_message)?;
+    transaction.commit().map_err(to_message)?;
+    Ok(summary)
+}
+
+/// Adds the old groups and accounts (ranks, currencies, credentials, past ranks) in `transaction`.
+/// Credentials are sealed under the current protection.
+fn write_accounts(transaction: &Transaction, secrets: &Vault, data: &OldData) -> Result<(), String> {
     let mut group_ids = HashMap::new();
     for group in &data.groups {
         let id = crate::db::new_group_id()?;
@@ -431,15 +505,15 @@ fn import(connection: &mut Connection, secrets: &Vault, data: &OldData, install_
         let id = transaction.last_insert_rowid();
         for (slot, rank) in ROLE_SLOTS.iter().zip(&account.ranks).chain(std::iter::once((&SIXV6_SLOT, &account.six_v6))) {
             rank.validate()?;
-            write_rank(&transaction, id, slot, rank)?;
+            write_rank(transaction, id, slot, rank)?;
         }
         for (kind, value) in VALUES_A.iter().zip(account.values_a).chain(VALUES_B.iter().zip(account.values_b)) {
             transaction
                 .execute("INSERT INTO currencies (account_id, kind, value) VALUES (?1, ?2, ?3)", params![id, kind, value])
                 .map_err(to_message)?;
         }
-        let plain = |value: &str| (!value.is_empty()).then(|| value.as_bytes().to_vec());
-        let (email, password) = (plain(&account.email), plain(&account.password));
+        let seal = |value: &str, field| (!value.is_empty()).then(|| secrets.seal(value, &binding_for(id, field))).transpose();
+        let (email, password) = (seal(&account.email, SecretField::Email)?, seal(&account.password, SecretField::Password)?);
         if email.is_some() || password.is_some() {
             transaction
                 .execute("INSERT INTO credentials (account_id, email, password) VALUES (?1, ?2, ?3)", params![id, email, password])
@@ -455,26 +529,7 @@ fn import(connection: &mut Connection, secrets: &Vault, data: &OldData, install_
                 .map_err(to_message)?;
         }
     }
-    for (key, value) in &data.settings {
-        transaction
-            .execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?1, ?2)", params![key, value.to_string()])
-            .map_err(to_message)?;
-    }
-    if let Some(day) = install_day {
-        transaction
-            .execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('installedOn', json_quote(?1))", [day])
-            .map_err(to_message)?;
-    }
-    let summary = ImportSummary { accounts: data.accounts.len() };
-    transaction
-        .execute(
-            "INSERT OR REPLACE INTO settings (key, value)
-             VALUES (?1, json_object('at', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), 'accounts', ?2))",
-            params![MARKER, summary.accounts as i64],
-        )
-        .map_err(to_message)?;
-    transaction.commit().map_err(to_message)?;
-    Ok(summary)
+    Ok(())
 }
 
 #[cfg(test)]
@@ -607,4 +662,53 @@ mod tests {
         assert_eq!(install_date(&folder).as_deref(), Some("2024-05-06"));
         fs::remove_dir_all(folder).unwrap();
     }
+
+    /// A 0.3 export as its lib.rs `encrypt_export_payload` wrote it (fewer rounds, to stay quick).
+    fn old_export(password: &str) -> Vec<u8> {
+        let salt = [5u8; 16];
+        let payload = old_state()["payload"].to_string();
+        let sealed = crate::secrets::Secrets::from_password(password, &salt, 1).unwrap().seal(&payload, "").unwrap();
+        let encode = |value: &[u8]| base64::engine::general_purpose::STANDARD.encode(value);
+        serde_json::json!({
+            "format": EXPORT_FORMAT, "version": 1, "exported_at": "2025-01-01T00:00:00.000Z",
+            "salt": encode(&salt), "pbkdf2_iterations": 1, "encrypted_payload": encode(&sealed),
+        })
+        .to_string()
+        .into_bytes()
+    }
+
+    #[test]
+    fn an_export_replaces_the_accounts_and_keeps_settings_and_the_master_password() {
+        let (mut connection, vault) = database();
+        connection.execute_batch(
+            "INSERT INTO accounts (name, sort_key) VALUES ('Mine', 0);
+             INSERT INTO groups (id, name, sort_key) VALUES ('g', 'Mine', 1);
+             INSERT INTO settings (key, value) VALUES ('showSixV6', 'true'), ('installedOn', '\"2020-01-01\"');",
+        ).unwrap();
+        vault.configure(&mut connection, &[], true, "fixture master password", "").unwrap();
+        assert!(replace_from_export(&mut connection, &vault, &old_export("export pw"), "wrong").is_err());
+        vault.lock().unwrap();
+        assert!(replace_from_export(&mut connection, &vault, &old_export("export pw"), "export pw").is_err());
+        let accounts: i64 = connection.query_row("SELECT COUNT(*) FROM accounts WHERE name = 'Mine'", [], |row| row.get(0)).unwrap();
+        assert_eq!(accounts, 1);
+
+        vault.unlock("fixture master password").unwrap();
+        let summary = replace_from_export(&mut connection, &vault, &old_export("export pw"), "export pw").unwrap();
+        assert_eq!(summary.accounts, 4);
+        let roster = crate::db::read_roster(&connection).unwrap();
+        assert!(roster.accounts.iter().all(|account| account.name != "Mine"));
+        assert!(roster.groups.iter().all(|group| group.name != "Mine"));
+        let setting = |key: &str| -> String {
+            connection.query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| row.get(0)).unwrap()
+        };
+        assert_eq!(setting("showSixV6"), "true");
+        assert_eq!(setting("installedOn"), "\"2020-01-01\"");
+        assert!(!vault.is_plain().unwrap());
+        let (id, email): (i64, Vec<u8>) = connection
+            .query_row("SELECT account_id, email FROM credentials WHERE email IS NOT NULL", [], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap();
+        assert_ne!(email, b"a@b.c");
+        assert_eq!(vault.open_sealed(&email, &binding_for(id, SecretField::Email)).unwrap(), "a@b.c");
+    }
+
 }

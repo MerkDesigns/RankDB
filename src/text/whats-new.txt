@@ -1,0 +1,19 @@
+1.0.0
+
+A new RankDB
+Rebuilt from the ground up, with a new design.
+
+Choose the apps look in the visual settings
+Currently only 2 designs, more coming soon.
+
+Choose if you want Encryption
+Your old Database gets migrated and you can choose to encrypt the sensitive data like e-mails and password. You will need to enter your chosen password to copy your credentials.
+
+Rank history
+You can now peek at your archived ranks from previous rank resets more easily. (new toolbar button)
+
+Placements Progress
+Set placement match progress on predicted ranks.
+
+Drag Accounts into Groups
+previously it was only possible to put accounts into groups through the context menu.

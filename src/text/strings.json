@@ -21,7 +21,7 @@
       "accessibleLabel": "Settings sections"
     },
     "footer": {
-      "author": "Made by Merk"
+      "author": "Made by Merk · v{version}"
     },
     "credentialButtons": {
       "label": "Credential buttons",
@@ -42,7 +42,7 @@
     "accentColour": {
       "label": "Accent colour",
       "description": "Change the app's accent colour",
-      "resetTooltip": "Reset to RankDB cyan",
+      "resetTooltip": "Reset to RankDB purple",
       "resetAccessibleLabel": "Reset accent colour"
     },
     "rankEffects": {
@@ -104,13 +104,37 @@
     "sections": {
       "columns": "Columns",
       "credentialProtection": "Credential protection",
-      "privacy": "Privacy"
+      "privacy": "Privacy",
+      "backup": "Backup",
+      "oldApp": "RankDB 0.3",
+      "designs": "Designs"
     },
     "oldApp": {
       "label": "RankDB 0.3 accounts",
       "description": "Migrate the accounts from the previous version.",
       "action": "Migrate",
       "busy": "Migrating"
+    },
+    "backup": {
+      "export": {
+        "label": "Export all data",
+        "description": "Accounts, past ranks and settings in one file",
+        "action": "Export"
+      },
+      "import": {
+        "label": "Import backup",
+        "description": "Replaces all data in RankDB",
+        "action": "Import"
+      }
+    },
+    "legacyExport": {
+      "label": "Import Legacy RankDB 0.3 export",
+      "description": "Replaces your accounts and groups. Settings stay.",
+      "action": "Import"
+    },
+    "designs": {
+      "flat": "Flat",
+      "haze": "Haze"
     }
   },
   "toolbar": {
@@ -294,7 +318,7 @@
       "description": "{cleared} {rankWord} moved to Past ranks. Undo it from Past ranks."
     },
     "title": "Reset all ranks",
-    "description": "Set every rank of every account (6v6 included) back to Unranked, as at the start of a new season. The current ranks are kept under Past ranks in each account's info.",
+    "description": "Set every rank of every account to unranked. Only do this when an official account wide rank reset happens in overwatch. The current ranks are kept under Past ranks in each account's info.",
     "confirm": "Reset ranks",
     "count": {
       "singular": "rank",
@@ -356,7 +380,6 @@
       "label": "Master password",
       "currentLabel": "Current master password",
       "newLabel": "New master password",
-      "hint": "At least 8 characters.",
       "confirmLabel": "Confirm master password",
       "mismatch": "The passwords don't match."
     },
@@ -401,29 +424,8 @@
     "actions": {
       "later": "Later",
       "install": "Install and restart",
-      "busy": "Installing"
-    }
-  },
-  "whatsNew": {
-    "redesign": {
-      "title": "A new RankDB",
-      "description": "Rebuilt from the ground up, with a glass look and a much faster list."
-    },
-    "migration": {
-      "title": "Your data stays yours",
-      "description": "Existing Windows-protected credentials are decrypted once, then work independently of Windows keys."
-    },
-    "credentials": {
-      "title": "Safer credentials",
-      "description": "Choose optional master-password protection for emails and passwords in Settings. Copies stay out of clipboard history."
-    },
-    "history": {
-      "title": "Rank history",
-      "description": "Season resets keep the previous ranks for review."
-    },
-    "reordering": {
-      "title": "Drag to reorder",
-      "description": "Move accounts and groups by dragging, with the list making room as you go."
+      "downloading": "Downloading {percent}%",
+      "restarting": "Restarting"
     }
   },
   "discord": {
@@ -451,55 +453,34 @@
       "disabled": "meter off",
       "placeholder": "–"
     },
-    "glassStrategy": "Glass strategy",
-    "strategyWarning": "Baked glass can't follow an animated backdrop: it shows a frozen blur.",
-    "toastPreviews": {
-      "success": "Success",
-      "error": "Error",
-      "countdown": "Countdown",
-      "stack": "Stack of 3",
-      "burst": "Burst of 20",
-      "clear": "Clear previews",
-      "help": "Real notifications, with harmless example content. Previews stay for 15 seconds; hover pauses ordinary ones. Clear previews only removes these examples."
+    "smoke": {
+      "title": "Smoke",
+      "cellHeight": "Cell height",
+      "speed": "Speed",
+      "updates": "Updates per second",
+      "trail": "Trail",
+      "contrast": "Contrast",
+      "brightness": "Brightness",
+      "opacity": "Opacity",
+      "ink": "Ink",
+      "accent": "Accent",
+      "inkColour": "Smoke ink colour",
+      "accentColour": "Smoke accent colour",
+      "characters": "Characters",
+      "charactersLabel": "Smoke characters, from empty to full",
+      "use": "Use as background"
     },
-    "toastNotifications": "Toast notifications",
-    "shapeAndContent": "Shape and content",
-    "toastCorners": "Toast corners",
-    "toastIcon": "Toast icon",
-    "iconStroke": "Icon stroke",
-    "titleContrast": "Title contrast",
-    "detailContrast": "Detail contrast",
-    "placementAndMotion": "Placement and motion",
-    "rightInset": "Right inset",
-    "bottomInset": "Bottom inset",
-    "animationSpeed": "Animation speed",
-    "majorGlass": "Major glass",
-    "toastMaterial": {
-      "followShared": "Follow shared Major material",
-      "help": "Uncheck to tune glass for notifications only. The header and other overlays keep their own material."
-    },
-    "toastBlur": "Toast blur",
-    "toastPreBlur": "Toast pre-blur",
-    "toastSaturation": "Toast saturation",
-    "toastBrightness": "Toast brightness",
-    "toastTint": "Toast tint",
-    "toastRim": "Toast rim",
-    "toastShadow": "Toast shadow",
     "scene": "Scene",
     "background": "Background",
     "colour": "Colour",
     "backgroundColour": "Background colour",
     "shadows": "Shadows",
     "headerOverlap": "Rows scroll under the header (glass-on-glass)",
-    "draggedRow": "Dragged row",
-    "glassBlur": "Glass blur",
-    "off": "off",
     "units": {
       "pixels": "{value}px",
       "signedPixels": "{sign}{value}px",
       "seconds": "{value}s",
       "percent": "{value}%",
-      "multiplier": "{value}×",
       "percentSymbol": "%",
       "ratio": "{ratio}×"
     },
@@ -528,38 +509,6 @@
     "rowOutlineColour": "Row outline colour",
     "white": "white",
     "outlineOpacity": "Outline opacity",
-    "material": "Material",
-    "preset": "Preset",
-    "custom": "Custom",
-    "majorMaterialHeading": "Major — header islands",
-    "minorMaterialHeading": "Minor — rows and groups",
-    "shared": "Shared",
-    "overscan": "Overscan",
-    "rimHighlight": "Rim highlight",
-    "shadow": "Shadow",
-    "shellBody": "Shell body",
-    "rimStyle": "Rim style",
-    "blur": "Blur",
-    "preBlur": "Pre-blur",
-    "saturation": "Saturation",
-    "brightness": "Brightness",
-    "tint": "Tint",
-    "rim": "Rim",
-    "rankPicker": "Rank picker",
-    "pickerPreview": "Open picker (first badge)",
-    "pickerPreviewHelp": "Clicks in the lab do not close the picker, so changes show live.",
-    "sizes": "Sizes",
-    "cell": "Cell",
-    "emblem": "Emblem",
-    "gap": "Gap",
-    "padding": "Padding",
-    "division": "Division",
-    "confirmHeight": "Confirm height",
-    "confirmRadius": "Confirm radius",
-    "offset": "Offset",
-    "look": "Look",
-    "cellFill": "Cell fill",
-    "selected": "Selected",
     "benchmark": "Benchmark",
     "benchmarkHelp": "Scrolls the list top to bottom and back at a constant speed and records every frame. Leave the mouse still while it runs.",
     "duration": "Duration",
@@ -577,7 +526,35 @@
     "clear": "Clear",
     "resetAllLabSettings": "Reset all lab settings",
     "missingValue": "—",
-    "running": "Running…"
+    "running": "Running…",
+    "tabs": {
+      "label": "Glass Lab sections",
+      "window": "Window",
+      "background": "Background",
+      "ascii": "ASCII",
+      "rows": "Rows",
+      "data": "Data",
+      "benchmark": "Benchmark"
+    },
+    "ambient": {
+      "title": "Ambient",
+      "use": "Use as background",
+      "colour": "Colour {number}",
+      "colourLabel": "Ambient light {number} colour",
+      "intensity": "Intensity",
+      "size": "Size",
+      "softness": "Softness",
+      "speed": "Speed",
+      "drift": "Drift",
+      "updates": "Updates per second",
+      "grain": "Grain",
+      "shuffle": "Shuffle layout"
+    },
+    "draggedRow": {
+      "title": "Dragged row",
+      "blur": "Blur",
+      "off": "Off"
+    }
   },
   "labOptions": {
     "strategies": {
@@ -606,7 +583,9 @@
       "flat": "Flat",
       "dots": "Dots",
       "aurora": "Aurora",
-      "auroraAnimated": "Aurora (animated)"
+      "auroraAnimated": "Aurora (animated)",
+      "smoke": "Smoke",
+      "ambient": "Ambient"
     },
     "windowChrome": {
       "nativeDescription": "The Windows title bar.",
@@ -813,7 +792,7 @@
       "cleanupFailed": "Credential protection was changed, but database cleanup failed: {error}",
       "metadataDamaged": "Credential encryption metadata is damaged.",
       "unlockFailed": "Wrong master password, or credential encryption metadata is damaged.",
-      "invalidPasswordLength": "Use a master password of 8 to 1024 characters.",
+      "invalidPasswordLength": "Use a master password of 1 to 1024 characters.",
       "metadataMissing": "Credential encryption metadata is missing.",
       "unknownMode": "Unknown credential protection mode.",
       "unlockRequired": "Unlock credentials with your master password first.",
@@ -833,6 +812,20 @@
       "notFound": "No RankDB 0.3 data was found on this PC.",
       "notEmpty": "RankDB 0.3's accounts can only be migrated into an empty list.",
       "protected": "Turn off the master password before migrating RankDB 0.3's accounts. You can turn it on again afterwards."
+    },
+    "backup": {
+      "readFailed": "The file could not be read: {error}",
+      "writeFailed": "The backup could not be saved: {error}",
+      "unreadable": "This isn't a RankDB backup, or it is damaged.",
+      "wrongPassword": "Wrong password, or the backup is damaged.",
+      "newerVersion": "This backup is from a newer version of RankDB. Update RankDB first.",
+      "invalidPassword": "Use a password of 1 to 1024 characters.",
+      "replaceFailed": "The data could not be replaced: {error}",
+      "safetyCopyFailed": "The current data could not be copied aside first, so nothing was changed: {error}"
+    },
+    "legacyExport": {
+      "unreadable": "This isn't a RankDB 0.3 export, or it is damaged.",
+      "wrongPassword": "Wrong password, or the export is damaged."
     }
   },
   "oldApp": {
@@ -843,5 +836,122 @@
       "description": "Accounts migrated: {count}."
     },
     "failed": "Couldn't migrate your RankDB 0.3 accounts"
+  },
+  "installer": {
+    "windowTitle": "{product} Setup",
+    "version": "Version {version}",
+    "options": "Options",
+    "back": "Back",
+    "welcome": {
+      "title": "Welcome to {product}",
+      "description": "Track the ranks of all your Overwatch accounts in one place."
+    },
+    "actions": {
+      "install": "Install",
+      "update": "Update",
+      "reinstall": "Reinstall"
+    },
+    "update": {
+      "title": "Update {product}",
+      "reinstallTitle": "Reinstall {product}",
+      "description": "Version {installed} is installed. This updates it to {version}.",
+      "reinstallDescription": "Version {installed} is already installed. Reinstalling repairs it.",
+      "keepsData": "Your accounts and settings stay as they are.",
+      "migrates": "Your accounts are migrated when it first starts."
+    },
+    "newer": {
+      "title": "A newer {product} is installed",
+      "description": "Version {installed} is installed, which is newer than this setup ({version})."
+    },
+    "optionsPage": {
+      "title": "Install options",
+      "location": "Install folder",
+      "change": "Change",
+      "chooseFolder": "Choose where to install {product}",
+      "startMenu": "Start menu shortcut",
+      "desktop": "Desktop shortcut",
+      "updateNote": "Updates install into the existing folder and keep its shortcuts."
+    },
+    "progress": {
+      "install": "Installing {product}",
+      "update": "Updating {product}",
+      "reinstall": "Reinstalling {product}",
+      "label": "Installation progress"
+    },
+    "stages": {
+      "preparing": "Preparing",
+      "installing": "Installing files",
+      "shortcuts": "Creating shortcuts",
+      "shortcutsUpdate": "Updating shortcuts",
+      "finishing": "Finishing up"
+    },
+    "appRunning": {
+      "title": "Close {product} to continue",
+      "description": "Setup continues as soon as {product} is closed."
+    },
+    "finished": {
+      "title": "{product} is ready",
+      "installed": "{product} {version} was installed.",
+      "updated": "{product} was updated to {version}.",
+      "reinstalled": "{product} {version} was reinstalled.",
+      "launch": "Open {product}",
+      "finish": "Finish"
+    },
+    "failed": {
+      "title": "Setup didn't finish",
+      "retry": "Try again",
+      "invalidLocation": "That folder can't be used. Choose a different one.",
+      "prepare": "Setup couldn't prepare its files. Check that there is free disk space.",
+      "start": "Windows couldn't start the installation.",
+      "failed": "The installation didn't complete. Close {product} if it's open and try again.",
+      "notFound": "{product} was installed, but couldn't be found afterwards.",
+      "shortcut": "{product} was installed, but its shortcuts couldn't be created.",
+      "appRunning": "{product} is still open. Close it and try again.",
+      "newerInstalled": "A newer {product} is installed, so this version wasn't installed.",
+      "unknown": "Something went wrong."
+    }
+  },
+  "dataTransfer": {
+    "fileTypes": {
+      "backup": "RankDB backup",
+      "legacy": "RankDB 0.3 export"
+    },
+    "backupFileName": "RankDB backup {date}.rankdb-backup",
+    "titles": {
+      "export": "Export all data",
+      "import": "Import backup",
+      "legacy": "Import RankDB 0.3 export"
+    },
+    "descriptions": {
+      "export": "Choose a password for the backup. You need it to import the backup.",
+      "import": "This replaces all accounts, groups, past ranks and settings with the ones in the backup. It can't be undone.",
+      "legacy": "This replaces all accounts and groups with the ones in the export. Your settings stay as they are."
+    },
+    "recoveryWarning": "Without this password the backup can't be opened.",
+    "password": {
+      "backup": "Backup password",
+      "confirm": "Confirm password",
+      "legacy": "Export password",
+      "mismatch": "The passwords don't match."
+    },
+    "actions": {
+      "export": "Export",
+      "import": "Replace all data",
+      "legacy": "Replace accounts",
+      "exporting": "Exporting",
+      "importing": "Importing"
+    },
+    "chooseFailed": "Couldn't open the file picker",
+    "exported": {
+      "title": "Backup saved"
+    },
+    "imported": {
+      "title": "Backup imported",
+      "description": "Accounts: {count}."
+    },
+    "legacyImported": {
+      "title": "RankDB 0.3 export imported",
+      "description": "Accounts: {count}."
+    }
   }
 }

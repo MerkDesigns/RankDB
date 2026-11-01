@@ -1,7 +1,6 @@
 import { uiText } from "../text/index";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
-import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useEffect, useRef, useState } from "react";
 import { command } from "../data/backend";
@@ -134,6 +133,7 @@ export function UpdateDialog() {
   const update = useRef<Update | null>(null);
   if (open) update.current = available;
   const [progress, setProgress] = useState<number | null>(null);
+  const [installing, setInstalling] = useState(false);
   useEffect(() => {
     if (open) setProgress(null);
   }, [open]);
@@ -152,15 +152,18 @@ export function UpdateDialog() {
           setProgress(total ? done / total : 0);
         }
       });
-      // The installer ends the app at once: every pending save first, and the database file
+      // The installer replaces the app at once: every pending save first, and the database file
       // complete on its own, so the new version opens exactly what this one saved.
+      setInstalling(true);
       await settleSaves();
       await command("prepare_for_update");
+      // Quiet NSIS (tauri.conf.json): no installer window. On Windows this call ends the app and
+      // the installer starts the new version when it's done, so nothing after it runs.
       await pending.install();
-      await relaunch();
     } catch (error) {
       showError(uiText("updates.installFailed"), error);
       setProgress(null);
+      setInstalling(false);
     }
   };
 
@@ -171,13 +174,17 @@ export function UpdateDialog() {
       {pending?.body && <p className="dialog-note update-notes">{pending.body}</p>}
       {progress !== null && (
         <div className="update-progress" role="progressbar" aria-valuenow={Math.round(progress * 100)}>
-          <span style={{ width: `${Math.round(progress * 100)}%` }} />
+          <span style={{ width: `${installing ? 100 : Math.round(progress * 100)}%` }} />
         </div>
       )}
       <div className="dialog-actions">
         <Button onClick={dialogs.close} disabled={progress !== null}>{uiText("updates.actions.later")}</Button>
         <Button variant="primary" data-autofocus="" onClick={() => void install()} disabled={progress !== null}>
-          {progress === null ? uiText("updates.actions.install") : uiText("updates.actions.busy")}
+          {progress === null
+            ? uiText("updates.actions.install")
+            : installing
+              ? uiText("updates.actions.restarting")
+              : uiText("updates.actions.downloading", { percent: Math.round(progress * 100) })}
         </Button>
       </div>
     </Dialog>

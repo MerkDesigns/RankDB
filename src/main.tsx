@@ -6,16 +6,19 @@ import { ALL_IMAGE_URLS } from "./data/assets";
 import { initRoster } from "./data/rosterStore";
 import { invoke } from "@tauri-apps/api/core";
 import { initSettings } from "./data/settingsStore";
+import { startDesigns } from "./glass/designs";
 import { startGlassEngine } from "./glass/engine";
 import { initLabStore } from "./lab/store";
 import {
   fitWindowToContent,
   revealWindow,
   startWindowChrome,
+  startFocusTracking,
   startSaveOnClose,
   startWindowFit,
 } from "./platform/window";
 import { startAppServices } from "./ui/AppUpdates";
+import { startAnimationWarmup } from "./ui/warmup";
 import "./styles/app.css";
 import "./styles/glass.css";
 import "./styles/dialogs.css";
@@ -32,6 +35,7 @@ void (async () => {
   const problem = await invoke<string | null>("database_problem");
   if (problem === null) {
     await initSettings();
+    startDesigns();
     await initRoster();
     startSaveOnClose();
   }
@@ -52,7 +56,10 @@ void (async () => {
   // Size the window to the UI before showing it, then keep it fitted.
   await fitWindowToContent();
   startWindowFit();
+  startFocusTracking();
   await revealWindow();
   // Discord, What's New and the update check: after the window is up, never in the way of it.
   if (problem === null) startAppServices();
+  // First openings as smooth as later ones (ui/warmup.ts).
+  if (problem === null) startAnimationWarmup();
 })();

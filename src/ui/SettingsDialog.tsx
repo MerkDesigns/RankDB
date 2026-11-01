@@ -1,6 +1,7 @@
 import { uiText } from "../text/index";
+import { version as appVersion } from "../../package.json";
 import { lockCredentials, openCredentialSecurity, useCredentialSecurity } from "../data/credentialSecurity";
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ClipboardClock,
   Columns3,
@@ -17,6 +18,11 @@ import {
   Sparkles,
   ZoomIn,
   Download,
+  Layers,
+  Archive,
+  FileDown,
+  FileUp,
+  History,
 } from "lucide-react";
 import { ICONS } from "../data/assets";
 import { Glass, SharedMinorPlane } from "../glass/Glass";
@@ -27,6 +33,8 @@ import {
   PRIVACY_CHARS,
   settingsStore,
   DEFAULT_SETTINGS,
+  DESIGNS,
+  type Design,
   nearestUiScale,
   UI_SCALE_STEPS,
   useSettings,
@@ -39,6 +47,11 @@ import { reloadRoster } from "../data/rosterStore";
 import { LiquidTabs, type LiquidTab } from "./primitives/LiquidTabs";
 import { LiquidToggleSwitch } from "./primitives/LiquidToggleSwitch";
 import { Dialog } from "./primitives/Dialog";
+import { startDataTransfer } from "./DataTransferDialog";
+import { DESIGN_BACKDROPS } from "../glass/designs";
+import { resolveBackdrop } from "../glass/backdrops";
+import { ambientSnapshot } from "../glass/ambientField";
+import { useLab } from "../lab/store";
 
 type Tab = "visuals" | "data" | "misc";
 
@@ -69,7 +82,7 @@ export function SettingsDialog() {
         {tab === "data" && <DataTab />}
         {tab === "misc" && <MiscTab />}
       </SettingsBody>
-      <div className="settings-footer">{uiText("settings.footer.author")}</div>
+      <div className="settings-footer">{uiText("settings.footer.author", { version: appVersion })}</div>
     </Dialog>
   );
 }
@@ -152,7 +165,40 @@ function VisualsTab() {
       </Island>
 
       <AppearanceIsland />
+      <DesignsIsland />
     </div>
+  );
+}
+
+const DESIGN_LABELS: Record<Design, string> = { flat: uiText("settings.designs.flat"), haze: uiText("settings.designs.haze") };
+
+/** Pick the scene behind the app; each choice is a small still of its backdrop (glass/designs.ts). */
+function DesignsIsland() {
+  const design = useSettings((settings) => settings.design);
+  return (
+    <Island heading={uiText("settings.sections.designs")} icon={<Layers size={14} strokeWidth={2.2} />}>
+      <div className="settings-designs" role="radiogroup" aria-label={uiText("settings.sections.designs")}>
+        {DESIGNS.map((option) => (
+          <button key={option} type="button" role="radio" aria-checked={design === option} className="settings-design" onClick={() => settingsStore.set({ design: option })}>
+            <span className="settings-design-label">{DESIGN_LABELS[option]}</span>
+            <DesignPreview design={option} />
+          </button>
+        ))}
+      </div>
+    </Island>
+  );
+}
+
+/** Flat is its colour; Haze is a still image of the ambient field at the window's shape. */
+function DesignPreview({ design }: { readonly design: Design }) {
+  const backdrop = DESIGN_BACKDROPS[design];
+  const base = useLab((state) => resolveBackdrop(backdrop, state.backdropColor).base);
+  const ambient = useLab((state) => state.ambient);
+  const image = useMemo(() => (backdrop === "ambient" ? ambientSnapshot(ambient, base) : null), [backdrop, ambient, base]);
+  return (
+    <span className="settings-design-preview" style={{ backgroundColor: base }}>
+      {image && <img src={image} alt="" draggable={false} />}
+    </span>
   );
 }
 
@@ -219,8 +265,18 @@ function DataTab() {
           {security.mode !== "plain" && <button type="button" className="settings-button" onClick={() => openCredentialSecurity("disable")}>{uiText("settings.encryption.actions.disable")}</button>}
         </div>}
       </Island>
-      <Island>
+      <Island heading={uiText("settings.sections.backup")} icon={<Archive size={14} strokeWidth={2.2} />}>
+        <Row icon={<FileDown size={17} strokeWidth={2.2} />} label={uiText("settings.backup.export.label")} description={uiText("settings.backup.export.description")}
+          control={<button type="button" className="settings-button" onClick={() => void startDataTransfer("export")}>{uiText("settings.backup.export.action")}</button>} />
+        <Row icon={<FileUp size={17} strokeWidth={2.2} />} label={uiText("settings.backup.import.label")} description={uiText("settings.backup.import.description")}
+          control={<button type="button" className="settings-button" onClick={() => void startDataTransfer("import")}>{uiText("settings.backup.import.action")}</button>} />
+      </Island>
+      <Island heading={uiText("settings.sections.oldApp")} icon={<History size={14} strokeWidth={2.2} />}>
         <OldAppRow />
+        <Row icon={<FileUp size={17} strokeWidth={2.2} />} label={uiText("settings.legacyExport.label")} description={uiText("settings.legacyExport.description")}
+          control={<button type="button" className="settings-button" onClick={() => void startDataTransfer("legacy")}>{uiText("settings.legacyExport.action")}</button>} />
+      </Island>
+      <Island>
         <Row
           icon={<RotateCcw size={17} strokeWidth={2.2} />}
           label={uiText("settings.rankReset.label")}

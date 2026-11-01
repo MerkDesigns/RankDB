@@ -92,6 +92,15 @@ button {
   overflow: hidden;
 }
 
+/* Covers the backdrop (the window); its pixels come from the window size, not the UI scale. */
+.backdrop-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .backdrop-blob {
   position: absolute;
   border-radius: 50%;
@@ -700,6 +709,10 @@ button {
   padding: 0;
   border: 0;
   background: none;
+  /* The effects' blend modes (glow, glint, shine) blend inside the badge. Without this the row is
+     the blend group, gets its own render surface and becomes a backdrop root: the dragged row's
+     blur then saw nothing on rows with Emerald and up. */
+  isolation: isolate;
   transition: filter 150ms;
 }
 
@@ -723,18 +736,17 @@ button {
 }
 
 /* ---------- Rank effects (RankBadge: Emerald and up, weaker the lower the rank) ----------
-   Every loop animates only opacity, scale, rotate or translate, so it runs on the compositor; rows
-   out of view (content-visibility) don't run them at all. A moving (transform) animation has no
-   fixed bounds, so the browser would assume it may overlap everything painted after it and
-   re-layerize half the list as rows scroll in (10 ms frames): the effect layer is clipped to just
-   around the badge, which bounds it. Settings → Appearance → Rank effects switches them off
-   (data-badge-effects on the root). */
+   The motion is in rankEffects.ts (Web Animations, 60 updates a second, stopped while out of
+   view). Every loop animates only opacity, scale, rotate or translate, so it runs on the
+   compositor. A moving (transform) animation has no fixed bounds, so the browser would assume it
+   may overlap everything painted after it and re-layerize half the list as rows scroll in (10 ms
+   frames): the effect layer is clipped to just around the badge, which bounds it. Settings →
+   Visuals → Rank effects switches them off (data-badge-effects on the root). */
 
 .badge-fx {
   --rgb: 255 255 255;
   --glow: 0;
   --shine: 0;
-  --every: 6s;
   --cx: 33%;
   --cy: 47%;
   position: absolute;
@@ -753,7 +765,6 @@ button {
   --rgb: 200 121 249;
   --glow: 0.8;
   --shine: 0.44;
-  --every: 3.2s;
   --cx: 32.8%;
   --cy: 48%;
 }
@@ -763,7 +774,6 @@ button {
   --rgb: 132 110 244;
   --glow: 0.6;
   --shine: 0.34;
-  --every: 4.4s;
   --cx: 32.7%;
   --cy: 44.2%;
 }
@@ -772,7 +782,6 @@ button {
   --rgb: 137 225 95;
   --glow: 0.44;
   --shine: 0.19;
-  --every: 6s;
   --cx: 33.2%;
   --cy: 46%;
 }
@@ -781,7 +790,6 @@ button {
   --rgb: 99 157 235;
   --glow: 0.28;
   --shine: 0.18;
-  --every: 7s;
   --cx: 33.2%;
   --cy: 48.5%;
 }
@@ -794,30 +802,22 @@ button {
 }
 
 /* Glow: a soft light on the emblem in the tier's own colour (no white, which would wash it out),
-   screen-blended, dimming to 70% and back. */
+   screen-blended, dimming to 70% and back. Its strength is in the gradient, so the pulse animates
+   opacity from 1. */
 .fx-glow {
   position: absolute;
   inset: 0;
   background: radial-gradient(
     circle at var(--cx) var(--cy),
-    rgb(var(--rgb) / 0.9) 0,
-    rgb(var(--rgb) / 0.6) calc(var(--badge-h) * 0.2),
-    rgb(var(--rgb) / 0.22) calc(var(--badge-h) * 0.37),
+    rgb(var(--rgb) / calc(var(--glow) * 0.9)) 0,
+    rgb(var(--rgb) / calc(var(--glow) * 0.6)) calc(var(--badge-h) * 0.2),
+    rgb(var(--rgb) / calc(var(--glow) * 0.22)) calc(var(--badge-h) * 0.37),
     transparent calc(var(--badge-h) * 0.54)
   );
   mix-blend-mode: screen;
-  opacity: var(--glow);
-  animation: fx-pulse 3.2s ease-in-out infinite;
-  animation-delay: calc(var(--fx-phase) * -3.2s);
 }
 
-@keyframes fx-pulse {
-  50% {
-    opacity: calc(var(--glow) * 0.7);
-  }
-}
-
-/* Shine: a soft band crossing the badge (clipped to its shape) in the first ~0.7 s of each cycle. */
+/* Shine: a soft band crossing the badge (clipped to its shape) now and then. */
 .fx-glint {
   position: absolute;
   inset: 0;
@@ -841,18 +841,6 @@ button {
   );
   mix-blend-mode: plus-lighter;
   content: "";
-  animation: fx-glint var(--every) cubic-bezier(0.3, 0, 0.2, 1) infinite;
-  animation-delay: calc(var(--fx-phase) * -1 * var(--every));
-}
-
-@keyframes fx-glint {
-  0% {
-    transform: translateX(0);
-  }
-  22%,
-  100% {
-    transform: translateX(270%);
-  }
 }
 
 /* Sparkles: four-pointed stars that pop in, turn a little and fade, each on its own beat. Each is
@@ -866,42 +854,6 @@ button {
   background: var(--sparkle) center / contain no-repeat;
   opacity: 0;
   scale: 0;
-  animation: fx-twinkle 2.8s ease-in-out infinite;
-  animation-delay: calc(var(--delay) + var(--fx-phase) * -2.8s);
-}
-
-@keyframes fx-twinkle {
-  0%,
-  100% {
-    opacity: 0;
-    scale: 0;
-    rotate: 0deg;
-  }
-  18% {
-    opacity: 0.8;
-    scale: 0.9;
-  }
-  40% {
-    opacity: 0;
-    scale: 0.2;
-    rotate: 90deg;
-  }
-}
-
-/* While the list scrolls (AccountList data-scrolling), only the glow stays. */
-.list-scroller[data-scrolling] :is(.fx-glint, .fx-sparkle) {
-  display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fx-glow {
-    animation: none;
-  }
-
-  .fx-glint,
-  .fx-sparkle {
-    display: none;
-  }
 }
 
 /* A changed rank: the new badge eases in over the old one fading out, and a shine sweeps across

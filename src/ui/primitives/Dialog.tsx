@@ -7,6 +7,21 @@ import { usePresence } from "./motion/usePresence";
 import { useWarmMount } from "./useWarmMount";
 
 /**
+ * How many dialogs are on screen. While any is, the root carries `data-dialog-open`, which stops
+ * the rank effects under the scrim (rankEffects.ts): their animated layers made every frame of a dialog's
+ * own motion (tabs, scrolling) re-layerize the page, at ~13 ms a frame.
+ */
+let dialogsShown = 0;
+function markDialogShown() {
+  dialogsShown += 1;
+  document.documentElement.dataset.dialogOpen = "";
+  return () => {
+    dialogsShown -= 1;
+    if (dialogsShown === 0) delete document.documentElement.dataset.dialogOpen;
+  };
+}
+
+/**
  * A modal dialog, TaskMap style: a Major glass panel centred over a scrim, opening and closing with
  * TaskMap's dialog presence (material fade, the scrim fading with it). Escape, the close button or
  * a press on the scrim close it. Its content stays mounted while it animates out; with
@@ -59,6 +74,9 @@ export function Dialog({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, present, dismissible]);
+
+  const shownNow = open || present;
+  useEffect(() => (shownNow ? markDialogShown() : undefined), [shownNow]);
 
   const warm = useWarmMount(keepMounted);
   useEffect(() => {

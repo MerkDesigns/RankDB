@@ -6,7 +6,7 @@ app's features, and shipping.
 
 Each phase ends with something usable in the dev app. Features are rebuilt from what they do, not
 copied from the old code (`../RankDB/app/components/rankdb/RankDbApp.vue`, one 7.8k-line component).
-Check `docs/NOT-CARRIED-OVER.md` before porting anything.
+Check [Not carried over](#not-carried-over-from-the-old-app) before porting anything.
 
 ## Feature inventory (old app → rewrite)
 
@@ -32,8 +32,8 @@ Check `docs/NOT-CARRIED-OVER.md` before porting anything.
 | Rank history: past season resets in account info; past ranks in the list (toolbar) | Done | 4 |
 | Season rank reset (archive all ranks, reset to unranked) | Done; undo from Past ranks | 4 |
 | Games-dodged counter (record, reset, penalty info) | Done | 4 |
-| Encrypted export / import (password, PBKDF2 + AES-GCM) | Removed/deferred by request (2026-10-30) | — |
-| Legacy import: old `.rankdb-export` files | Removed/deferred by request (2026-10-30) | — |
+| Encrypted backup export / import (password, PBKDF2 + AES-GCM; import replaces everything) | Done, by request (2026-11-01) | 7 |
+| Legacy import: old `.rankdb-export` files (replaces accounts and groups, keeps settings) | Done, by request (2026-11-01) | 7 |
 | Migration from the installed old RankDB 0.3 | Done: one way, into an empty database only (2026-10-31) | 7 |
 | Automatic local backups (old: before updates) | Removed/deferred by request (2026-10-30) | — |
 | Toast notifications | Done | 2 |
@@ -135,8 +135,8 @@ Phase 4 is done.
 ### Phase 5: Credential protection
 - [x] Optional master-password encryption for email/password; fresh installations are plain.
 - [x] Unlock/lock/change password/disable in Settings, with transactional conversion and cleanup.
-- Export/import and all backup features were removed/deferred by user request on 2026-10-30.
-  They may be designed again later; do not treat them as pending release work.
+- Export/import and backups were removed by user request on 2026-10-30, then brought back as
+  manual backups and 0.3 export imports on 2026-11-01 (automatic backups stay removed).
 
 Phase 5 is done for the current scope.
 
@@ -155,11 +155,89 @@ Phase 6 is done. For the first release (phase 7): set the app version, build wit
 - [ ] Accessibility pass (dialog focus trap and restoration).
 - [x] Lab off in release (chosen values as constants, 2026-10-31).
 - [ ] Installer and update channel; verify the installer replaces 0.3 in place.
+- [ ] A license file (the repository is public without one).
 
 ## Decisions
 
 - **Themes:** dropped. The accent colour is the only colour setting.
 - **Rank refresh (owapi.eu):** dropped, with its refresh action.
 - **Role sorting:** temporary, never saved; covers 6v6 as well as the three roles.
-- **Export/import/backups:** removed and deferred by request.
+- **Backups:** manual only (export and import in Settings → Data); importing replaces everything.
 - **RankDB 0.3:** migrated once into an empty database; never appended to existing accounts.
+
+## Not carried over from the old app
+
+Things the old RankDB (`../RankDB`) had that the rewrite deliberately leaves out or changes. Add an
+entry whenever we decide not to copy something, so it isn't rebuilt by accident.
+
+### Removed
+
+- **Automatic local backups** (daily snapshots, before updates) and the backup history are removed
+  by request (2026-10-30). Manual backups came back on 2026-11-01 as one encrypted file of the whole
+  database, and 0.3's exports can be imported (accounts and groups only; settings stay). The
+  installed 0.3 app's data is still migrated once, into an empty database only.
+
+- **Browser support.** RankDB only runs as the installed Tauri app. All browser fallbacks are gone:
+  localStorage settings, scroll-timeline fallbacks, the web-only lab and the Edge benchmark. Don't add
+  `isTauri()` checks or browser fallbacks back.
+- **WebView2's built-in browser features.** The old app still had them (Ctrl+P printed the "web
+  page"). `src-tauri/src/webview_browser_features.rs`, ported from TaskMap, turns these off:
+  - print, save-page and find-in-page;
+  - reload, back and forward;
+  - DevTools keys, zoom keys, pinch zoom and swipe navigation;
+  - the link status bar and opening links in new windows;
+  - form autofill and password saving;
+  - the page right-click menu (text fields keep only cut, copy, paste and select all).
+- **Maximize.** The window has a fixed width, so it isn't maximizable, the same as the League client
+  or Character Map. The maximize button is gone, and dragging to the top of the screen, Win+↑ and
+  double-click do nothing. People change the height by dragging the top or bottom edge.
+- **Horizontal window resizing.** The width follows the UI, so only the top and bottom edges resize,
+  and the side edges no longer show a resize cursor.
+- **Toolbar chevron that expanded and collapsed the credential buttons.** It's now the
+  "Credential Buttons" toggle in Settings → Visuals.
+- **Themes.** The toolbar's design button and theme editor (custom themes, theme files, premade
+  themes) are gone for good. The accent colour in Settings is the only colour setting.
+- **Rank refresh via owapi.eu.** The "refresh rank" action and the owapi lookup are gone: the source
+  was too limited to rely on. Ranks are entered by hand.
+- **Outlines around account rows.** The glass rows have no rim. The rim code is kept for future
+  highlights, such as a selected or new account.
+- **Red tint on banned rows.** The "Banned Accounts" divider still marks the section.
+
+### Changed
+
+- **UI scale** uses five chips (80/90/100/110/120%) instead of a slider; 100% is the default.
+- **Rank badges** are 10% smaller, and the gap between the role ranks and the 6v6 rank is narrower.
+- **Rank picker** is a floating glass menu (no dimmed backdrop) with the same controls (tier grid,
+  divisions as a liquid tab switcher, predicted, a plain glass Confirm),
+  plus placement games 1–10 for predicted ranks (a vertical drag bar), which the old app didn't
+  track. Portrait only; a landscape layout was tried and dropped.
+- **Copying email/password** no longer goes through the page: Rust copies it, keeps it out of
+  Windows clipboard history and cloud sync, and only clears the clipboard if it still holds it.
+- **Credential encryption is optional**, off for fresh installations. Users can enable a master
+  password in Settings for email/password fields only (AES-GCM, password-wrapped random data key).
+  No keyring or Windows account dependency. Accounts migrated from 0.3 arrive unencrypted; a
+  master password can be set afterwards. See `CREDENTIAL-ENCRYPTION.md`.
+- **New accounts** open straight into name editing (the "New" pill stays until the name is saved).
+  Names can also be edited by double-click, not only from the context menu.
+- **Toasts** sit in the bottom-right corner.
+- **Group outline**: two rounded brackets above and below a group's accounts (corners curving
+  toward the rows) instead of a box.
+- **Groups** sit anywhere among the loose accounts as before, but are placed by one shared order
+  instead of being anchored to an account. Collapsing is saved. New groups open into their name.
+- **Move to group** is the account menu's Move To submenu.
+- **Updates** use the same GitHub channel and signing key, restart after installation, and check
+  silently on start. There is no automatic backup. Development builds never check.
+- **Discord presence** reconnects by itself when Discord is started after RankDB.
+- **Rank history** is only the season resets, all of them in one Account info tab (role icons over
+  badge columns, a row per reset), instead of a dropdown of snapshots. Rank changes aren't logged.
+  The toolbar shows past reset ranks; the newest reset can be undone there. Notifications have no
+  action buttons or clear-all control.
+- **Status** has three states (Clean, SMS, Banned) instead of a banned switch; SMS accounts get
+  their own section above the banned one.
+- **Role sorting** covers 6v6 too, and is never saved (a restart shows your own order).
+- **Scrollbar** is a thin overlay that only shows while the pointer is over the window.
+
+### Current scope
+
+Clipboard auto-clear, rank reset, Discord presence, update checks, manual backups and 0.3 export
+imports are implemented.

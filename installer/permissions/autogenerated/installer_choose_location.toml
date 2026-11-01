@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-installer-choose-location"
+description = "Enables the installer_choose_location command without any pre-configured scope."
+commands.allow = ["installer_choose_location"]
+
+[[permission]]
+identifier = "deny-installer-choose-location"
+description = "Denies the installer_choose_location command without any pre-configured scope."
+commands.deny = ["installer_choose_location"]

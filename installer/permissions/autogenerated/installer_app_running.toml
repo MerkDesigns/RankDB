@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-installer-app-running"
+description = "Enables the installer_app_running command without any pre-configured scope."
+commands.allow = ["installer_app_running"]
+
+[[permission]]
+identifier = "deny-installer-app-running"
+description = "Denies the installer_app_running command without any pre-configured scope."
+commands.deny = ["installer_app_running"]

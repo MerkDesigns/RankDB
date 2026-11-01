@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 import { settingsStore, useSettings } from "../data/settingsStore";
-import { useLab } from "../lab/store";
+import { useLab, type RowPlates } from "../lab/store";
 
 
 interface Shape {
@@ -8,22 +8,48 @@ interface Shape {
   y: number;
   width: number;
   height: number;
+  /** Corner radius; the Minor recipe's when null. */
+  radius: number | null;
 }
 
-/** Positions of every plane-backed surface in the list content's own (scrolling) coordinates. */
-function measureShapes(content: HTMLElement): Shape[] {
+/** An element's offset in the list content's own (scrolling) coordinates; null if outside it. */
+function offsetIn(content: HTMLElement, element: HTMLElement) {
+  let x = 0;
+  let y = 0;
+  let node: HTMLElement | null = element;
+  while (node && node !== content) {
+    x += node.offsetLeft;
+    y += node.offsetTop;
+    node = node.offsetParent as HTMLElement | null;
+  }
+  return node === content ? { x, y } : null;
+}
+
+/**
+ * Every plane-backed surface: the Minor surfaces (`data-plane-shape`) and the account bars, i.e.
+ * the row plates (`.row::before`, app.css) on the rows that show one.
+ */
+function measureShapes(content: HTMLElement, plates: RowPlates): Shape[] {
   const shapes: Shape[] = [];
   for (const element of content.querySelectorAll<HTMLElement>("[data-plane-shape]")) {
-    let x = 0;
-    let y = 0;
-    let node: HTMLElement | null = element;
-    while (node && node !== content) {
-      x += node.offsetLeft;
-      y += node.offsetTop;
-      node = node.offsetParent as HTMLElement | null;
-    }
-    if (node !== content) continue;
-    shapes.push({ x, y, width: element.offsetWidth, height: element.offsetHeight });
+    const offset = offsetIn(content, element);
+    if (offset) shapes.push({ ...offset, width: element.offsetWidth, height: element.offsetHeight, radius: null });
+  }
+  if (plates === "off") return shapes;
+  const rows = content.querySelectorAll<HTMLElement>(plates === "all" ? ".row" : ".row[data-stripe]");
+  for (const row of rows) {
+    const offset = offsetIn(content, row);
+    if (!offset) continue;
+    const plate = getComputedStyle(row, "::before");
+    const top = parseFloat(plate.top);
+    const left = parseFloat(plate.left);
+    shapes.push({
+      x: offset.x + left,
+      y: offset.y + top,
+      width: row.offsetWidth - left - parseFloat(plate.right),
+      height: row.offsetHeight - top - parseFloat(plate.bottom),
+      radius: parseFloat(plate.borderTopLeftRadius),
+    });
   }
   return shapes;
 }
@@ -32,7 +58,7 @@ function shapesMask(width: number, height: number, shapes: readonly Shape[], rad
   const rects = shapes
     .map(
       (shape) =>
-        `<rect x="${shape.x}" y="${shape.y}" width="${shape.width}" height="${shape.height}" rx="${Math.min(radius, shape.height / 2)}" fill="#fff"/>`,
+        `<rect x="${shape.x}" y="${shape.y}" width="${shape.width}" height="${shape.height}" rx="${Math.min(shape.radius ?? radius, shape.height / 2)}" fill="#fff"/>`,
     )
     .join("");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${rects}</svg>`;
@@ -58,6 +84,10 @@ export function ListPlane({
   const strategy = useLab((state) => state.strategy);
   const radius = useLab((state) => state.tuning.minor.radius);
   const zoom = useSettings((settings) => settings.uiScale);
+  // The bars' shapes follow the Rows settings and the credential buttons (which round them less).
+  const plates = useLab((state) => state.rowPlates);
+  const plateShape = useLab((state) => `${state.rowPlateRadius}:${state.rowPlateHeight}:${state.rowPlateOverhang}`);
+  const credentials = useSettings((settings) => settings.showCredentialButtons);
   const planeRef = useRef<HTMLDivElement>(null);
   const active = strategy === "shared" || strategy === "baked";
 
@@ -72,7 +102,7 @@ export function ListPlane({
       const height = content.scrollHeight;
       plane.style.width = `${width}px`;
       plane.style.height = `${height}px`;
-      plane.style.setProperty("--plane-mask", shapesMask(width, height, measureShapes(content), radius));
+      plane.style.setProperty("--plane-mask", shapesMask(width, height, measureShapes(content, plates), radius));
 
       const rect = scroller.getBoundingClientRect();
       const currentZoom = settingsStore.get().uiScale;
@@ -95,7 +125,7 @@ export function ListPlane({
     observer.observe(scroller);
 
     return () => observer.disconnect();
-  }, [active, strategy, radius, zoom, layoutKey, contentRef, scrollerRef]);
+  }, [active, strategy, radius, zoom, layoutKey, plates, plateShape, credentials, contentRef, scrollerRef]);
 
   if (!active) return null;
   return (

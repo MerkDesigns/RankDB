@@ -277,7 +277,7 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     (manual download, failed first try). Dev builds never auto-migrate; never test it on the user's real 0.3 data. The new installer has
     the same product name and `rankdb.exe` as 0.3, so it is expected to install over it in place
     (verified 2026-11-01 by Merk in a VM with the 1.0.0 test build: installed over 0.3 in place,
-    data migrated).
+    data migrated; and after publishing, 0.3's own in-app update installed 1.0.0 the same way).
   - **Designs** (Settings → Visuals, by request 2026-11-01; `src/glass/designs.ts`): the app setting
     `design` picks the backdrop, Flat (`flat`, the base colour) or Haze (`ambient`, the default).
     The backdrop stays lab state, which the engine and `Backdrop` read; `startDesigns` sets it from

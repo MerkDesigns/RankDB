@@ -1,6 +1,6 @@
 [package]
 name = "rankdb"
-version = "1.0.0"
+version = "1.0.1"
 description = "RankDB rewrite"
 authors = ["Merk"]
 edition = "2021"
@@ -29,6 +29,8 @@ tauri-plugin-updater = "=2.14.0"
 tauri-plugin-dialog = "=2.8.3"
 # One running copy: a second start focuses the first instead of opening the database twice.
 tauri-plugin-single-instance = "=2.5.4"
+# Reopens the window where it was closed, at the same height (position and size only).
+tauri-plugin-window-state = "=2.5.0"
 # Discord Rich Presence (src/discord.rs).
 discord-rich-presence = "=1.1.0"
 # Bundled SQLite: the data store (src/db.rs).

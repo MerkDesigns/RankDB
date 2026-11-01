@@ -27,22 +27,29 @@ export function startAppServices() {
   servicesStarted = true;
   syncDiscord();
   settingsStore.subscribe(syncDiscord);
-  void showWhatsNewAfterUpdate();
-  void checkForUpdates(true);
-  void reportOldAppImport();
+  void startupPopups();
+}
+
+/** One after another: What's New (after an update or 0.3's migration), then an available update. */
+async function startupPopups() {
+  const migrated = await reportOldAppImport();
+  await showWhatsNewAfterUpdate(migrated);
+  await checkForUpdates(true);
 }
 
 /* ---------- RankDB 0.3 ---------- */
 
 /** The first start brought over RankDB 0.3's accounts (Rust, before the list loaded): say so. */
-async function reportOldAppImport() {
+async function reportOldAppImport(): Promise<boolean> {
   try {
     const summary = await command<{ accounts: number } | null>("take_old_app_import");
     if (summary) {
       showToast({ tone: "success", title: uiText("oldApp.imported.title"), message: uiText("oldApp.imported.description", { count: summary.accounts }) });
     }
+    return summary !== null;
   } catch (error) {
     showError(uiText("oldApp.failed"), error);
+    return false;
   }
 }
 
@@ -69,12 +76,16 @@ function syncDiscord() {
 
 /* ---------- What's New ---------- */
 
-/** Old app's rule: never on a first start; once after the version changes, if it has notes. */
-async function showWhatsNewAfterUpdate() {
+/**
+ * Old app's rule: never on a first start; once after the version changes, if it has notes. Coming
+ * from 0.3 counts as an update (its version isn't in the new database).
+ */
+async function showWhatsNewAfterUpdate(migrated: boolean) {
   const version = await getVersion();
   const { lastSeenVersion } = settingsStore.get();
   settingsStore.set({ lastSeenVersion: version });
-  if (lastSeenVersion && lastSeenVersion !== version && WHATS_NEW.some((entry) => entry.version === version)) {
+  const updated = migrated || (lastSeenVersion && lastSeenVersion !== version);
+  if (updated && WHATS_NEW.some((entry) => entry.version === version)) {
     dialogs.open({ kind: "whats-new" });
   }
 }
@@ -124,7 +135,11 @@ export async function checkForUpdates(silent: boolean) {
     if (!silent) showError(uiText("updates.checkFailed"), error);
     return;
   }
-  if (available) dialogs.open({ kind: "update" });
+  if (available) {
+    // On start it waits for What's New (or anything else open) to close instead of replacing it.
+    if (silent) await dialogs.whenClosed();
+    dialogs.open({ kind: "update" });
+  }
   else if (!silent) showToast({ tone: "success", title: uiText("updates.upToDate") });
 }
 

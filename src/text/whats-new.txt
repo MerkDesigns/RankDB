@@ -1,3 +1,8 @@
+1.0.1
+
+Remembers the window
+RankDB now opens where you closed it, at the same height.
+
 1.0.0
 
 A new RankDB

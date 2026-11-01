@@ -3327,7 +3327,7 @@ checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
 name = "rankdb"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "aes-gcm",
  "base64 0.23.1",
@@ -3344,6 +3344,7 @@ dependencies = [
  "tauri-plugin-mcp-bridge",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
+ "tauri-plugin-window-state",
  "webview2-com",
  "windows",
  "windows-core",
@@ -4544,6 +4545,21 @@ dependencies = [
  "url",
  "windows-sys 0.61.2",
  "zip",
+]
+
+[[package]]
+name = "tauri-plugin-window-state"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d6815cab7b212f9cfe16a9d79d8d22f9e14159e4a9460f7dec1467167a008e3"
+dependencies = [
+ "bitflags 2.13.2",
+ "log",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

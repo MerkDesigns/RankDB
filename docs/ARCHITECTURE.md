@@ -311,10 +311,13 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
       builds never check. The version is `package.json`'s everywhere
       (`tauri.conf.json` names it; `scripts/check-version.mjs`, in `npm run check`, holds the Cargo
       manifests and locks to it); releases: tag `v<version>`, `.github/workflows/release.yml`.
-      Silent check on start; Install downloads the update and restarts (no automatic backup).
+      Silent check on start: an available update opens its popup, after What's New and any other
+      open dialog closes (`dialogs.whenClosed()`); Install downloads the update and restarts (no
+      automatic backup).
     - What's New (`src/data/whatsNew.ts`, text in `src/text/whats-new.txt`, by request so it can be
       edited in one place; format in docs/EDITING-TEXT.md): the old app's rule, never on a first start, once after
-      the version changes (`lastSeenVersion` setting); also from Settings → Misc.
+      the version changes (`lastSeenVersion` setting), and once after 0.3's data was migrated
+      (`take_old_app_import`: 0.3 counts as an update); also from Settings → Misc.
     - Discord (`src-tauri/src/discord.rs`): a worker thread owns the connection, follows the
       `discordPresence` setting (on by default, as before), retries every 30 s while Discord
       isn't running. "User since" is the `installedOn` setting (first start, or the old app's).
@@ -527,6 +530,12 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
 - The window is created hidden (`visible: false`). The frontend applies decorations for the saved
   frame, renders, then shows the window, so the native bar never flashes. `main.rs` shows the window
   after 3 s if the frontend never does.
+- **The window reopens where it was closed** (user request 2026-11-01): `tauri-plugin-window-state`
+  in `main.rs`, position and size only (`StateFlags::POSITION | SIZE`; the frame, visibility and
+  maximise stay the app's). Rust restores it while the window is still hidden and saves it on
+  close and exit, in its own file in the app's data folder (not the database, so backups don't
+  carry one PC's screen layout to another). A position on a monitor that's gone isn't restored.
+  The width is refitted to the layout afterwards as always; only the height really carries over.
 - Custom frames drag through our own `data-drag-region` handling, not Tauri's
   `data-tauri-drag-region`, because Tauri's hard-wires double-click to the system maximize. It's on
   the top strip, the header itself (the gaps between islands), the island spacer, the rail spacer and

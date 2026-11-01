@@ -184,6 +184,13 @@ fn main() {
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        // Position and size only: the frame, visibility and maximise are the app's own. Restored
+        // while the window is still hidden; a spot no longer on any monitor isn't restored.
+        .plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_state_flags(tauri_plugin_window_state::StateFlags::POSITION | tauri_plugin_window_state::StateFlags::SIZE)
+                .build(),
+        )
         .manage(discord::Discord::start())
         .setup(|app| {
             // A database that can't be opened (damaged, from a newer version) doesn't stop the app:

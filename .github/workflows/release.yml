@@ -1,7 +1,8 @@
 # Push a tag like v1.0.0: GitHub builds RankDB Setup and the app's NSIS installer, signs the update
 # with the repository's key (secrets, as for 0.3) and makes a draft release with the setup, the
-# NSIS installer, its .sig and latest.json. Nobody sees a draft; publishing it makes it the latest
-# release, which every installed RankDB (0.3 included) then updates to.
+# NSIS installer, its .sig and latest.json, and this version's What's New as its text. Nobody sees
+# a draft; publishing it makes it the latest release, which every installed RankDB (0.3 included)
+# then updates to.
 name: Release
 
 on:
@@ -48,6 +49,9 @@ jobs:
 
       - run: node scripts/write-update-feed.mjs ${{ env.VERSION }}
 
+      # The release text is this version's What's New (src/text/whats-new.txt).
+      - run: node scripts/write-release-notes.mjs ${{ env.VERSION }}
+
       - name: Draft release
         shell: bash
         env:
@@ -59,5 +63,5 @@ jobs:
           # not the update checks that fetch latest.json) follow each release.
           cp "release/RankDB_${VERSION}_installer.exe" release/RankDB_installer.exe
           gh release create "$GITHUB_REF_NAME" --draft --title "RankDB $GITHUB_REF_NAME" \
-            --notes "Download RankDB_installer.exe to install RankDB." \
+            --notes-file release/notes.md \
             release/RankDB_installer.exe "$nsis" "$nsis.sig" release/latest.json

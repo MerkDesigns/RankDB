@@ -30,6 +30,18 @@ export const dialogs = {
   close() {
     dialogs.open(null);
   },
+  /** Resolves once no dialog is open, so startup popups wait their turn. */
+  whenClosed() {
+    return new Promise<void>((resolve) => {
+      if (!openDialog) return resolve();
+      const listener = () => {
+        if (openDialog) return;
+        dialogListeners.delete(listener);
+        resolve();
+      };
+      dialogListeners.add(listener);
+    });
+  },
 };
 
 export function useOpenDialog(): Dialog {

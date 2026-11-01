@@ -16,8 +16,9 @@ for (const file of fs.readdirSync("src-tauri").filter((name) => /^tauri.*\.conf\
 for (const [folder, crate] of [["src-tauri", "rankdb"], ["installer", "rankdb-installer"]]) {
   const manifest = fs.readFileSync(`${folder}/Cargo.toml`, "utf8").match(/^version = "([^"]+)"/m)?.[1];
   assert.equal(manifest, version, `${folder}/Cargo.toml: version ${manifest}, package.json ${version}`);
+  // Line endings follow the checkout (CRLF on GitHub's Windows runners).
   const lock = fs.readFileSync(`${folder}/Cargo.lock`, "utf8");
-  const locked = lock.match(new RegExp(`\\[\\[package\\]\\]\\nname = "${crate}"\\nversion = "([^"]+)"`))?.[1];
+  const locked = lock.match(new RegExp(`\\[\\[package\\]\\]\\r?\\nname = "${crate}"\\r?\\nversion = "([^"]+)"`))?.[1];
   assert.equal(locked, version, `${folder}/Cargo.lock: ${crate} ${locked}, package.json ${version} (run cargo check)`);
 }
 console.log(`Version ${version} everywhere.`);

@@ -52,7 +52,7 @@ for (const file of files("src", /\.tsx?$/)) {
   walk(ast.program);
 }
 for (const file of files("src-tauri/src", /\.rs$/)) {
-  const source = fs.readFileSync(file, "utf8").split("\n#[cfg(test)]\nmod tests")[0];
+  const source = fs.readFileSync(file, "utf8").split(/\r?\n#\[cfg\(test\)\]\r?\nmod tests/)[0];
   for (const match of source.matchAll(/crate::text::(text|format)\("([^"]+)"(?:,\s*&\[([^\]]*)\])?\)/g)) {
     const supplied = [...(match[3] ?? "").matchAll(/\("([^"]+)",/g)].map((m) => m[1]);
     check(match[2], supplied, file);

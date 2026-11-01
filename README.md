@@ -3,6 +3,8 @@
 A Windows desktop app for keeping track of multiple Overwatch accounts: their ranks, currencies,
 login details and status, all in one list.
 
+![RankDB preview](docs/media/preview.webp)
+
 ## Features
 
 - **Ranks** for tank, damage, support and 6v6, with divisions, predicted ranks and placement games.

@@ -1,7 +1,5 @@
 <p align="center">
 <a href="https://github.com/MerkDesigns/RankDB/releases/latest/download/RankDB_installer.exe"> <img src="https://img.shields.io/badge/Download-Windows%20Installer-2ea44f?style=for-the-badge&logo=windows" /></a>
-  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
-<img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FMerkDesigns%2FRankDB%2Fbadges%2Fdownloads.json&style=for-the-badge" />
 </p>
 
 # RankDB

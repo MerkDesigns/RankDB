@@ -9,7 +9,9 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
 
 - **Two materials**, one recipe each, defined in `recipes.ts`:
   - **Major**: header islands.
-  - **Minor**: rows and groups.
+  - **Minor**: rows and groups. Its only blur is the pre-blur, which the app's defaults turn off
+    (rows are shells); RankDB Setup (`src/installer/main.tsx`) passes its own tuning to
+    `startGlassEngine` with TaskMap's pre-blur back, since its islands float on the smoke.
   - A Minor nested in a Minor is a **shell**: tint, rim and shadow, no blur.
 - **Strategies** (`Glass.tsx` `resolveMode`): off, native, shared, shell and baked. The surface
   component is the same in every strategy. Only the material implementation underneath changes, so the
@@ -148,7 +150,8 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   blended child makes the island a backdrop root and its blur samples nothing. Pressing a button
   brightens it; keyboard focus gets an outline. Icons (`.button-icon`, `.role-sort-icon`, and each row's credential and Battletag buttons) dip to
   0.9 while pressed and spring back on release (`scale` only; no hover growth, by request).
-  An account row's plate has its own much larger, fainter hover glow. One delegated
+  An account row's plate has its own much larger, fainter hover glow, on at once and fading out
+  in 120 ms (a slower fade trailed lit rows behind a pointer moving across the list). One delegated
   `pointermove`/`pointerover` listener writes the pointer's position in the bar or row
   (`--pointer-x`/`-y`, registered as not inherited, so a move restyles only that element).
   - Header buttons cover their island edge to edge (square where they meet, the island's corners
@@ -349,8 +352,9 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     shell strategy) their blur drops out for that moment.
   - **Drag to reorder** (`src/ui/listDrag.ts`): TaskMap's canvas browser behaviour
     (`CanvasBrowserRuntime.ts`), extended to groups. Past 6 px (vertical) the row, or a group by
-    its head, lifts to 1.06× and follows the pointer (a group collapses as it lifts, the list
-    below gliding up by FLIP, and stays collapsed where it lands: saved, sent before the move so
+    its head, lifts to 1.06× (z-index 2: over the other rows and the header fade, under the
+    header and rail, whose glass blurs it like any row beneath) and follows the pointer (a group
+    collapses as it lifts, the list below gliding up by FLIP, and stays collapsed where it lands: saved, sent before the move so
     the move's returned roster agrees; Escape restores it); every other piece of the list (rows, group
     heads and rules, the banned divider) slides one slot to open the real gap (190 ms,
     easeOutQuart), with TaskMap's held spread around the enlarged item; TaskMap's smoothstep

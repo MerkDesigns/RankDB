@@ -708,8 +708,7 @@ button {
 
 /* One rounded plate behind the whole row (under its islands, reaching halfway into the row gap):
    the lab's row background (--row-plate-a on every row or every other row), plus the hover, a
-   large soft glow around the pointer (ui/pointerGlow.ts) fading in quickly and out a little
-   slower. */
+   large soft glow around the pointer (ui/pointerGlow.ts), on at once and fading out quickly. */
 @property --row-hover {
   syntax: "<number>";
   inherits: false;
@@ -749,7 +748,7 @@ button {
     inset 0 0 0 1px rgb(255 255 255 / calc(0.03 * var(--row-hover)));
   content: "";
   pointer-events: none;
-  transition: --row-hover 220ms;
+  transition: --row-hover 120ms ease-out;
 }
 
 :root[data-row-plates="all"] .row,
@@ -758,9 +757,10 @@ button {
   --row-outline: var(--row-outline-a);
 }
 
+/* On at once and off quickly: a slower fade left a trail of lit rows behind a moving pointer. */
 .row:hover::before {
   --row-hover: 1;
-  transition-duration: 90ms;
+  transition-duration: 0s;
 }
 
 /* No glow while the list scrolls: it would stay where the row was entered (no JS runs then). */

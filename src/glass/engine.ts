@@ -360,7 +360,12 @@ function applyToasts(state: LabState) {
 
 /** Glass looks come from the lab; columns, accent and UI scale from the app's settings. */
 type EngineState = LabState & AppSettings;
-const current = (): EngineState => ({ ...labStore.get(), ...settingsStore.get() });
+/** Tuning that replaces the lab's (the installer's own glass); null in the app. */
+let tuningOverride: Tuning | null = null;
+const current = (): EngineState => {
+  const state = { ...labStore.get(), ...settingsStore.get() };
+  return tuningOverride ? { ...state, tuning: tuningOverride } : state;
+};
 
 let previous: EngineState | null = null;
 let rimFrame = 0;
@@ -431,7 +436,9 @@ function sync(state: EngineState) {
 }
 
 let resizeFrame = 0;
-export function startGlassEngine() {
+/** `tuning`: the installer's own material instead of the lab's (which the app uses). */
+export function startGlassEngine(tuning: Tuning | null = null) {
+  tuningOverride = tuning;
   sync(current());
   labStore.subscribe(() => sync(current()));
   settingsStore.subscribe(() => sync(current()));

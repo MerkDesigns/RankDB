@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { startGlassEngine } from "../glass/engine";
+import { DEFAULT_TUNING, TASKMAP_TUNING } from "../glass/recipes";
 import { installDragHandling } from "../platform/window";
 import { createTauriInstallerClient } from "./installerClient";
 import { InstallerApp } from "./InstallerApp";
@@ -19,7 +20,9 @@ const preview = import.meta.env.DEV && new URLSearchParams(window.location.searc
 const client = preview ? createPreviewInstallerClient() : createTauriInstallerClient();
 
 // The app's glass runs from its defaults here: no database, no saved settings, nothing persisted.
-startGlassEngine();
+// Except the Minor pre-blur: the app turned it off (its rows are shells), but it is the only blur
+// Minor has, and the installer's islands float on the smoke.
+startGlassEngine({ ...DEFAULT_TUNING, minor: { ...DEFAULT_TUNING.minor, preblur: TASKMAP_TUNING.minor.preblur } });
 installDragHandling();
 
 // Rendered synchronously while the window is still hidden (hidden webviews fire no animation

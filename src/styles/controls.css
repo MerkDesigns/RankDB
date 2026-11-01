@@ -608,8 +608,10 @@
 }
 
 /* The held item: follows the pointer (no translate easing), lifts to 1.06x, above the others. */
+/* Above the other rows (1) and the header fade (2, earlier in the page), but under the header and
+   rail (3), so their glass blurs it like any row passing beneath and its light still bleeds in. */
 .list-content[data-reordering] :is(.row, .group)[data-held] {
-  z-index: 10;
+  z-index: 2;
   pointer-events: none;
   transition: scale 190ms cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -634,7 +636,7 @@
 
 /* A row dragged out of its group: the group (its stacking context) rises with it. */
 .list-content > .group:has(.row[data-held]) {
-  z-index: 10;
+  z-index: 2;
 }
 
 /* No hover plates on the other rows mid-drag. */

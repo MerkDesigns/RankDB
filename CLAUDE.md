@@ -26,6 +26,7 @@ WebView2's own browser features off (print, find, reload, zoom, DevTools keys, p
 | `npm run app:profile` | Same as above + WebView2 DevTools protocol on 127.0.0.1:9333 (for `npm run bench`) |
 | `npm run bench` | Benchmark matrix in the running `app:profile` window |
 | `npm run installer:build` | RankDB Setup for the published app: `release/RankDB_<version>_installer.exe` (version from `package.json`; unsigned without `TAURI_SIGNING_PRIVATE_KEY`, which only GitHub has). Never run it outside Windows Sandbox: it installs over RankDB |
+| `npm run store:build` | The Microsoft Store package: `release/store/RankDB_<version>.0_x64.msix` (`docs/MICROSOFT_STORE.md`; a separate build with the `store` feature and its own identifier. Never install it outside Windows Sandbox either, and never submit it: Merk uploads by hand) |
 | `npm run check` | Strings, typecheck, production build, `cargo check` |
 | `npm test` | Every test suite: `test:strings`, `test:toasts`, `test:credentials`, `test:scroll`, `test:rust` |
 | `npm run lint:rust` | Clippy, warnings as errors |
@@ -37,7 +38,8 @@ Releases: push a tag `v<version>` and `.github/workflows/release.yml` builds, si
 and drafts a GitHub release with the setup, NSIS installer, `.sig` and `latest.json`; publishing
 the draft is what offers the update to installed apps. **Before any release or version change,
 read `RELEASE-CHECKLIST.md`** (repo root, git-ignored, local to Merk's PC) and go through it with
-Merk; keep it current when the release process changes.
+Merk; keep it current when the release process changes. `RELEASE-STEPS.md` (also local) is the short
+version to follow once Merk gives the final go: GitHub release plus the Store `.msix` for him to upload.
 
 `npm run dev` is only the Vite server Tauri starts for itself; it is not something to open in a
 browser. Always launch through the npm scripts (`scripts/dev-app.mjs` stops this checkout's stale
@@ -69,7 +71,8 @@ IDs. `check:strings` rejects unknown, unused and uncatalogued text.
   afterwards (`npm run bench` does). **App settings** (accent, columns, privacy, UI scale) are in
   the database's `settings` table; restore any a test changes.
 - Separate identifiers have separate data folders: base `com.merkdesigns.rankdb.next` (release),
-  `…next.dev` (MCP config).
+  `…next.dev` (MCP config), `com.merkdesigns.rankdb.store` (the Microsoft Store build, which
+  copies the release one's database on its first start and never writes to it).
 
 ## Testing the UI
 
@@ -98,8 +101,12 @@ IDs. `check:strings` rejects unknown, unused and uncatalogued text.
 - RankDB 0.3 is migrated once, only into an empty database, never appended (`legacy.rs`).
 - Backups (`db/backup.rs`) replace everything; a 0.3 export replaces only accounts and groups,
   never settings or credential protection. Never import into the dev app's real data.
+- Discord Rich Presence loads its image from GitHub `main`: keep
+  `src/assets/extras/RankDB_Animated_Icon.webp` (1.0.2 on) and `public/app-icon-512.png` (1.0.0–1.0.1)
+  at those paths.
 - Removed by request, not to be rebuilt without a new one: automatic backups, rank-change
-  logging, themes, owapi rank refresh, maximize, horizontal resizing.
+  logging, themes, owapi rank refresh, maximize, horizontal resizing. (The experimental profile
+  pictures and banners use owapi.eu for images only; ranks stay manual.)
 
 **Glass and motion**
 - Masks go on filter outputs, never on an ancestor of a filter: a masked, filtered or opacity < 1

@@ -55,6 +55,38 @@ export async function copySecret(account: Account, field: "email" | "password") 
   );
 }
 
+/**
+ * The account as a block for Discord (the account menu's Share account): its name and its saved
+ * email and password behind spoilers. Rust builds and copies it like a secret, so it follows the
+ * clipboard timer too.
+ */
+export async function copyShare(account: Account) {
+  if (!isSavedData()) {
+    showToast({ title: uiText("clipboard.dummy.title"), message: uiText("clipboard.dummy.description") });
+    return;
+  }
+  const seconds = settingsStore.get().clipboardClearSeconds;
+  try {
+    if (!(await ensureCredentialsUnlocked())) return;
+    await command("copy_share", { accountId: account.id, clearAfterSeconds: seconds });
+  } catch (error) {
+    showError(uiText("clipboard.shareCopyFailed"), error);
+    return;
+  }
+  notifyCopied(
+    seconds === null
+      ? { key: `copy-share:${account.id}`, tone: "success", title: uiText("clipboard.shareCopied"), message: uiText("clipboard.autoClearDisabled") }
+      : {
+          tone: "success",
+          key: `copy-share:${account.id}`,
+          title: uiText("clipboard.shareCopied"),
+          message: uiText("clipboard.clearCountdown", { seconds: seconds }),
+          durationMs: seconds * 1000,
+          timer: true,
+        },
+  );
+}
+
 export async function copyBattletag(account: Account) {
   try {
     await invoke("copy_text", { text: account.name });

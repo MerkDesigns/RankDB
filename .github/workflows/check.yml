@@ -39,6 +39,9 @@ jobs:
       # A release build leaves the lab and dev-only commands out; make sure it still compiles.
       - run: cargo check --manifest-path src-tauri/Cargo.toml --locked --release
 
+      # The Microsoft Store build (no updater, its own data folder) has to keep compiling too.
+      - run: cargo check --manifest-path src-tauri/Cargo.toml --locked --features store
+
       - run: npm run lint:rust
 
       - run: npm test

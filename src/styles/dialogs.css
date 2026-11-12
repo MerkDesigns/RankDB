@@ -241,10 +241,6 @@
   text-align: left;
 }
 
-.settings-toggle-row {
-  cursor: pointer;
-}
-
 .settings-row[data-disabled] {
   opacity: var(--tm-disabled-opacity);
 }
@@ -292,6 +288,11 @@
   display: flex;
   flex: none;
   align-items: center;
+}
+
+/* The Discord activity line: wide enough for the default text as its placeholder. */
+.settings-row-control .input-shell:has(.settings-text-input) {
+  width: 220px;
 }
 
 /* ---------- Stepper, chips, buttons ---------- */
@@ -433,6 +434,17 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--tm-space-2);
+}
+
+/* Misc's buttons under the scrolling list: always visible. */
+.settings-actions {
+  flex: none;
+  margin-top: var(--tm-space-3);
+}
+
+/* One button alone takes the row (the Microsoft Store build has no update check). */
+.settings-pair > :only-child {
+  grid-column: 1 / -1;
 }
 
 .settings-button {
@@ -800,9 +812,7 @@
   padding: 0;
   border-radius: calc(var(--picker-radius) * 0.7);
   color: rgb(248 250 252 / 0.62);
-  font-family: "RankBadgeNumber", sans-serif;
   font-size: var(--picker-division-size);
-  font-weight: 600;
   line-height: 1;
 }
 
@@ -987,12 +997,17 @@
 }
 
 /* A temporary mode is on (past ranks): the accent glows behind the icon. Toolbar buttons fill the
-   island, so there the circle is drawn behind the icon, centred 19px in. */
-.island-actions .icon-button[data-glow]::after {
+   island and narrow when it does (credential buttons hidden), so the circle is centred on the
+   icon itself, not at a fixed spot in the button. */
+.island-actions .icon-button[data-glow] .button-icon {
+  position: relative;
+}
+
+.island-actions .icon-button[data-glow] .button-icon::after {
   position: absolute;
   z-index: -1;
   top: 50%;
-  left: 2px;
+  left: 50%;
   width: 34px;
   height: 34px;
   border-radius: 999px;
@@ -1001,7 +1016,7 @@
     0 0 14px rgb(var(--accent-rgb) / 0.55),
     inset 0 0 0 1px rgb(var(--accent-rgb) / 0.45);
   content: "";
-  translate: 0 -50%;
+  translate: -50% -50%;
   pointer-events: none;
 }
 
@@ -1027,4 +1042,56 @@
   font-size: 12px;
   overflow-wrap: anywhere;
   margin: 0;
+}
+
+/* Profile pictures and banners (Settings → Misc → Profiles, under Discord): which parts show, then
+   progress (a spinner while checking) and Refresh now. Both indented to the row's text. */
+.settings-checks {
+  display: flex;
+  gap: 20px;
+  padding-left: 30px;
+}
+
+.settings-profile-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tm-space-3);
+  padding-left: 30px;
+  color: var(--tm-muted);
+  font-size: 12.5px;
+}
+
+.settings-button.settings-button-inline {
+  width: auto;
+  height: 32px;
+  flex: none;
+  border-radius: 10px;
+}
+
+.settings-button:disabled {
+  opacity: var(--tm-disabled-opacity);
+}
+
+.settings-profile-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Turns by transform only (compositor); stops with the lookups. */
+.settings-spinner {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgb(var(--accent-rgb) / 0.25);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: settings-spin 900ms linear infinite;
+}
+
+@keyframes settings-spin {
+  to {
+    transform: rotate(1turn);
+  }
 }

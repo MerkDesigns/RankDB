@@ -6,6 +6,7 @@ import { ExternalLink, Eye, EyeOff, KeyRound, UserRound, type LucideIcon } from 
 import { useEffect, useId, useRef, useState } from "react";
 import { displayAccountName, type AccountStatus, type Rank } from "../data/accounts";
 import { ICONS, RANK_IMAGES, ROLE_ICONS } from "../data/assets";
+import { RankDigit } from "./RankDigit";
 import { COUNTRIES, flagOf } from "../data/countries";
 import { deleteAccount, findAccount, isSavedData, setCredentials, setStatus } from "../data/rosterStore";
 import { STATUSES } from "./AccountMenu";
@@ -197,6 +198,13 @@ const INFO_TABS: readonly LiquidTab<"details" | "history">[] = [
   { value: "history", label: uiText("accountDialogs.tabs.history") },
 ];
 
+/** What the chosen status means, beside the Status heading. */
+const STATUS_NOTES: Readonly<Record<AccountStatus, string>> = {
+  clean: uiText("accountDialogs.status.notes.clean"),
+  sms: uiText("accountDialogs.status.notes.sms"),
+  suspended: uiText("accountDialogs.status.notes.suspended"),
+  banned: uiText("accountDialogs.status.notes.banned"),
+};
 const STATUS_TABS: readonly LiquidTab<AccountStatus>[] = STATUSES.map(({ value, label }) => ({ value, label }));
 
 export function AccountInfoDialog() {
@@ -318,7 +326,10 @@ export function AccountInfoDialog() {
                 />
               </label>
               <div className="info-section">
-                <span className="info-label">{uiText("accountDialogs.status.label")}</span>
+                <span className="info-label">
+                  {uiText("accountDialogs.status.heading")}
+                  <span className="info-label-note" data-status={status}>{STATUS_NOTES[status]}</span>
+                </span>
                 <div className="status-tabs" data-status={status}>
                   <LiquidTabs label={uiText("accountDialogs.status.label")} tabs={STATUS_TABS} value={status} onChange={setStatusDraft} />
                 </div>
@@ -403,7 +414,7 @@ function StaticBadge({ rank, label }: { readonly rank: Rank | undefined; readonl
   return (
     <span className="badge" data-state={state} aria-label={uiText("accountDialogs.history.rankAccessibleLabel", { label: label, rank: tier === "Unranked" ? rankName(tier) : uiText("accountDialogs.history.rank", { tier: rankName(tier), division: rank!.division }) })}>
       <img src={RANK_IMAGES[tier]} alt="" draggable={false} />
-      {tier !== "Unranked" && <span className="badge-number">{rank!.division}</span>}
+      {tier !== "Unranked" && <span className="badge-number"><RankDigit value={rank!.division} /></span>}
     </span>
   );
 }

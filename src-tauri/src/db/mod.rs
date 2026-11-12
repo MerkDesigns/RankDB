@@ -25,6 +25,8 @@ mod credentials;
 mod groups;
 mod history;
 mod backup;
+mod store_data;
+mod profiles;
 #[cfg(test)]
 mod upgrade_tests;
 
@@ -35,6 +37,8 @@ pub use credentials::*;
 pub use groups::*;
 pub use history::*;
 pub use backup::*;
+pub use store_data::StoreImport;
+pub use profiles::*;
 use migrations::MIGRATIONS;
 
 const FILE_NAME: &str = "rankdb.sqlite3";
@@ -65,6 +69,8 @@ pub struct Database {
     dir: PathBuf,
     /// The first start's import of RankDB 0.3, reported once to the frontend.
     old_import: Mutex<Option<Result<ImportSummary, String>>>,
+    /// The Store build's first start: the GitHub version's data it copied, reported once.
+    store_import: Mutex<Option<Result<StoreImport, String>>>,
 }
 
 impl Database {
@@ -103,11 +109,17 @@ const UPGRADE_COPIES: &str = "upgrade-copies";
 /// version is refused rather than misread, so going back to an older version can't damage it.
 pub fn open(app: &AppHandle) -> Result<Database, String> {
     let dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    // The Store build has its own data folder; its first start copies the database of the RankDB
+    // installed from GitHub, if there is one, before anything is opened (store_data.rs).
+    let github = if cfg!(feature = "store") { store_data::github_folder(&dir) } else { None };
+    let store_import = github.as_deref().map(|from| store_data::bring_over(from, &dir)).and_then(Result::transpose);
     let database = open_at(&dir)?;
+    *database.store_import.lock().map_err(|error| error.to_string())? = store_import;
     // The first start of a release build migrates RankDB 0.3's data into the empty database
     // (src/legacy.rs). A failure leaves both databases as they were, is reported, and is tried
-    // again next start.
-    if !cfg!(debug_assertions) {
+    // again next start. Not in a Store build beside a GitHub version: that one's data is newer
+    // than 0.3's, and filling the list from 0.3 would keep it from ever being copied.
+    if !cfg!(debug_assertions) && github.is_none() {
         let mut connection = database.lock()?;
         if legacy::is_empty(&connection)? && !legacy::imported(&connection)? {
             let result = legacy::import_installed(&mut connection, &database.secrets).transpose();
@@ -145,7 +157,7 @@ pub(crate) fn open_at(dir: &Path) -> Result<Database, String> {
             [],
         )
         .map_err(to_message)?;
-    Ok(Database { connection: Mutex::new(connection), secrets, dir: dir.to_path_buf(), old_import: Mutex::new(None) })
+    Ok(Database { connection: Mutex::new(connection), secrets, dir: dir.to_path_buf(), old_import: Mutex::new(None), store_import: Mutex::new(None) })
 }
 
 fn schema_version(connection: &Connection) -> Result<i64, String> {
@@ -243,6 +255,14 @@ pub async fn prepare_for_update(database: State<'_, Database>) -> Result<(), Str
 #[tauri::command]
 pub async fn take_old_app_import(database: State<'_, Database>) -> Result<Option<ImportSummary>, String> {
     let result = database.old_import.lock().map_err(|error| error.to_string())?.take();
+    result.transpose()
+}
+
+/// The Store build's first start, once: what it copied from the GitHub version, its error, or
+/// null when nothing was copied (always null in the GitHub build).
+#[tauri::command]
+pub async fn take_store_import(database: State<'_, Database>) -> Result<Option<StoreImport>, String> {
+    let result = database.store_import.lock().map_err(|error| error.to_string())?.take();
     result.transpose()
 }
 

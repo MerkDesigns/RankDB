@@ -29,6 +29,15 @@ export interface AppSettings {
   clipboardClearSeconds: number | null;
   /** Show "Managing Overwatch accounts" in Discord (on by default, as in the old app). */
   discordPresence: boolean;
+  /** Replaces "Managing Overwatch accounts" in Discord; "" = that default. Always clean (below). */
+  discordActivityText: string;
+  /**
+   * Profile pictures and banners from owapi.eu (experimental, off by default; data/profiles.ts).
+   * Off deletes what was fetched. The two below choose what shows while it is on.
+   */
+  profileImages: boolean;
+  profileAvatar: boolean;
+  profileBanner: boolean;
   /** Glow, shine and sparkles on high ranks (Emerald up; on by default, as in the old app). */
   badgeEffects: boolean;
   /** The version whose What's New was last shown (not a visible setting). */
@@ -57,6 +66,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   uiScale: 1,
   clipboardClearSeconds: 10,
   discordPresence: true,
+  discordActivityText: "",
+  profileImages: false,
+  profileAvatar: true,
+  profileBanner: true,
   badgeEffects: true,
   lastSeenVersion: null,
 };
@@ -70,6 +83,25 @@ const bool = (value: unknown, fallback: boolean) => (typeof value === "boolean" 
 
 const color = (value: unknown): string | null =>
   typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value.toLowerCase() : null;
+
+/** The Discord activity text's limits: Discord wants 2–128 UTF-16 units; 64 characters stay under. */
+export const ACTIVITY_TEXT = { min: 2, max: 64 } as const;
+
+/**
+ * Cleans a custom Discord activity line, the same way Rust does again before sending it
+ * (`discord.rs` `clean_activity`): control characters, line breaks, invisible and text-direction
+ * characters become spaces; runs of spaces become one; stacked accent marks (zalgo) keep two;
+ * at most 64 characters. Too short to show (under 2) is "", the default line.
+ */
+export function cleanActivityText(value: string): string {
+  const cleaned = value
+    .replace(/[\p{Cc}\u2028\u2029\u200B\u200E\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/gu, " ")
+    .replace(/([\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]{2})[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]+/gu, "$1")
+    .replace(/\s+/gu, " ")
+    .trim();
+  const limited = Array.from(cleaned).slice(0, ACTIVITY_TEXT.max).join("").trim();
+  return Array.from(limited).length < ACTIVITY_TEXT.min ? "" : limited;
+}
 
 function normalizeSettings(raw: Record<string, unknown>): AppSettings {
   const d = DEFAULT_SETTINGS;
@@ -87,6 +119,10 @@ function normalizeSettings(raw: Record<string, unknown>): AppSettings {
         ? null
         : Math.round(number(raw.clipboardClearSeconds, 10, CLIPBOARD_CLEAR.min, CLIPBOARD_CLEAR.max)),
     discordPresence: bool(raw.discordPresence, d.discordPresence),
+    discordActivityText: typeof raw.discordActivityText === "string" ? cleanActivityText(raw.discordActivityText) : d.discordActivityText,
+    profileImages: bool(raw.profileImages, d.profileImages),
+    profileAvatar: bool(raw.profileAvatar, d.profileAvatar),
+    profileBanner: bool(raw.profileBanner, d.profileBanner),
     badgeEffects: bool(raw.badgeEffects, d.badgeEffects),
     lastSeenVersion: typeof raw.lastSeenVersion === "string" ? raw.lastSeenVersion.slice(0, 32) : null,
   };

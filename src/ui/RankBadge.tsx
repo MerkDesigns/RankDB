@@ -2,6 +2,7 @@ import { uiText, rankName } from "../text/index";
 import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
 import { sameRank, type Rank } from "../data/accounts";
 import { RANK_IMAGES } from "../data/assets";
+import { RankDigit } from "./RankDigit";
 import { EFFECT_TIERS, SPARKLES, SPOTS, useRankEffects } from "./rankEffects";
 
 const stateOf = (rank: Rank) => (rank.tier === "Unranked" ? "unranked" : rank.predicted ? "predicted" : "ranked");
@@ -90,7 +91,7 @@ export const RankBadge = memo(function RankBadge({
       )}
       {rank.tier !== "Unranked" && (
         <span key={`number-${changes}`} className={changes ? "badge-number badge-in" : "badge-number"}>
-          {rank.division}
+          <RankDigit value={rank.division} />
         </span>
       )}
       {previous && (

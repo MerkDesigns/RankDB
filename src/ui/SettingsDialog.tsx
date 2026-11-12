@@ -8,6 +8,9 @@ import {
   Database,
   EyeOff,
   KeyRound,
+  CircleUserRound,
+  ImageIcon,
+  MessageSquareText,
   Minus,
   Palette,
   Plus,
@@ -16,6 +19,7 @@ import {
   Settings2,
   Shield,
   Sparkles,
+  Square,
   ZoomIn,
   Download,
   Layers,
@@ -30,6 +34,8 @@ import { useScrollEdgeMorph } from "../glass/scrollEdgeMorph";
 import {
   DEFAULT_ACCENT,
   CLIPBOARD_CLEAR,
+  ACTIVITY_TEXT,
+  cleanActivityText,
   PRIVACY_CHARS,
   settingsStore,
   DEFAULT_SETTINGS,
@@ -40,6 +46,7 @@ import {
   useSettings,
 } from "../data/settingsStore";
 import { dialogs, useOpenDialog } from "./appActions";
+import { STORE_BUILD } from "../platform/channel";
 import { checkForUpdates } from "./AppUpdates";
 import { showError, showToast } from "./toasts";
 import { command } from "../data/backend";
@@ -47,6 +54,10 @@ import { reloadRoster } from "../data/rosterStore";
 import { LiquidTabs, type LiquidTab } from "./primitives/LiquidTabs";
 import { LiquidToggleSwitch } from "./primitives/LiquidToggleSwitch";
 import { Dialog } from "./primitives/Dialog";
+import { TextInput } from "./primitives/Field";
+import { Checkbox } from "./primitives/Checkbox";
+import { refreshProfiles, stopProfiles, useProfileSummary } from "../data/profiles";
+import { useRoster } from "../data/rosterStore";
 import { startDataTransfer } from "./DataTransferDialog";
 import { DESIGN_BACKDROPS } from "../glass/designs";
 import { resolveBackdrop } from "../glass/backdrops";
@@ -82,6 +93,7 @@ export function SettingsDialog() {
         {tab === "data" && <DataTab />}
         {tab === "misc" && <MiscTab />}
       </SettingsBody>
+      {tab === "misc" && <MiscActions />}
       <div className="settings-footer">{uiText("settings.footer.author", { version: appVersion })}</div>
     </Dialog>
   );
@@ -167,6 +179,67 @@ function VisualsTab() {
       <AppearanceIsland />
       <DesignsIsland />
     </div>
+  );
+}
+
+/**
+ * Profile pictures and banners (experimental, off by default; data/profiles.ts): the switch, which
+ * parts show, and how far the lookups are.
+ */
+function ProfilesIsland() {
+  const enabled = useSettings((settings) => settings.profileImages);
+  const avatar = useSettings((settings) => settings.profileAvatar);
+  const banner = useSettings((settings) => settings.profileBanner);
+  const summary = useProfileSummary();
+  const total = useRoster().total;
+  const progress = summary.paused
+    ? uiText("settings.profileImages.paused")
+    : summary.stopped
+      ? uiText("settings.profileImages.stopped", { found: summary.found, total })
+      : summary.running
+      ? uiText("settings.profileImages.checking", { found: summary.found, total })
+      : uiText("settings.profileImages.found", { found: summary.found, total });
+  return (
+    <Island heading={uiText("settings.sections.profiles")} icon={<CircleUserRound size={14} strokeWidth={2.2} />} tag={uiText("settings.experimental")}>
+      <ToggleRow
+        icon={<ImageIcon size={17} strokeWidth={2.2} />}
+        label={uiText("settings.profileImages.label")}
+        description={uiText("settings.profileImages.description")}
+        checked={enabled}
+        onChange={(checked) => settingsStore.set({ profileImages: checked })}
+      />
+      <div className="settings-checks">
+        <Checkbox label={uiText("settings.profileImages.avatar")} checked={avatar} disabled={!enabled} onChange={(checked) => settingsStore.set({ profileAvatar: checked })} />
+        <Checkbox label={uiText("settings.profileImages.banner")} checked={banner} disabled={!enabled} onChange={(checked) => settingsStore.set({ profileBanner: checked })} />
+      </div>
+      {enabled && (
+        <div className="settings-profile-status">
+          <span className="settings-profile-progress" aria-live="polite">
+            {summary.running && <span className="settings-spinner" aria-hidden="true" />}
+            {progress}
+          </span>
+          {summary.running ? (
+            <button
+              type="button"
+              className="settings-button settings-button-inline"
+              onClick={() => void stopProfiles().catch((error: unknown) => showError(uiText("settings.profileImages.stopFailed"), error))}
+            >
+              <Square size={13} strokeWidth={2.4} />
+              {uiText("settings.profileImages.stop")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="settings-button settings-button-inline"
+              onClick={() => void refreshProfiles().catch((error: unknown) => showError(uiText("settings.profileImages.refreshFailed"), error))}
+            >
+              <RefreshCw size={14} strokeWidth={2.2} />
+              {uiText("settings.profileImages.refresh")}
+            </button>
+          )}
+        </div>
+      )}
+    </Island>
   );
 }
 
@@ -406,14 +479,27 @@ function MiscTab() {
           checked={discordPresence}
           onChange={(checked) => settingsStore.set({ discordPresence: checked })}
         />
+        <ActivityTextRow disabled={!discordPresence} />
       </Island>
-      <span className="settings-spacer" />
-      <div className="settings-pair">
+      <ProfilesIsland />
+    </div>
+  );
+}
+
+/**
+ * Misc's Check for updates and What's new, pinned under the scrolling list (by request) so they
+ * are always visible, however long the list gets.
+ */
+function MiscActions() {
+  return (
+    <div className="settings-pair settings-actions">
+      {/* The Microsoft Store updates its build itself. */}
+      {!STORE_BUILD && (
         <button type="button" className="settings-button" onClick={() => void checkForUpdates(false)}>
           <RefreshCw size={15} strokeWidth={2.2} />{uiText("settings.updates.check")}</button>
-        <button type="button" className="settings-button" onClick={() => dialogs.open({ kind: "whats-new" })}>
-          <Sparkles size={15} strokeWidth={2.2} />{uiText("settings.updates.whatsNew")}</button>
-      </div>
+      )}
+      <button type="button" className="settings-button" onClick={() => dialogs.open({ kind: "whats-new" })}>
+        <Sparkles size={15} strokeWidth={2.2} />{uiText("settings.updates.whatsNew")}</button>
     </div>
   );
 }
@@ -425,12 +511,15 @@ function Island({
   heading,
   icon,
   soon,
+  tag,
   children,
 }: {
   /** Without one the island is just its rows (e.g. UI scale). */
   readonly heading?: string;
   readonly icon?: ReactNode;
   readonly soon?: boolean;
+  /** A small label after the heading, e.g. "Experimental". */
+  readonly tag?: string;
   readonly children: ReactNode;
 }) {
   return (
@@ -442,11 +531,65 @@ function Island({
             <span className="settings-island-icon">{icon}</span>
             {heading}
             {soon && <span className="settings-soon">{uiText("settings.soon")}</span>}
+            {tag && <span className="settings-soon">{tag}</span>}
           </div>
         )}
         <div className="settings-island-rows">{children}</div>
       </div>
     </Glass>
+  );
+}
+
+/**
+ * The Discord activity line. Typing only edits the field; it is cleaned and saved (and sent to
+ * Discord, which limits how often a presence changes) on Enter or leaving the field. Escape puts
+ * back the saved text. Empty means the default line, shown as the placeholder.
+ */
+function ActivityTextRow({ disabled }: { readonly disabled: boolean }) {
+  const saved = useSettings((settings) => settings.discordActivityText);
+  const [draft, setDraft] = useState(saved);
+  useEffect(() => setDraft(saved), [saved]);
+  // Escape blurs to undo: that blur must not save what was typed.
+  const reverting = useRef(false);
+  const commit = () => {
+    if (reverting.current) {
+      reverting.current = false;
+      return;
+    }
+    const cleaned = cleanActivityText(draft);
+    setDraft(cleaned);
+    if (cleaned !== saved) settingsStore.set({ discordActivityText: cleaned });
+  };
+  return (
+    <Row
+      icon={<MessageSquareText size={17} strokeWidth={2.2} />}
+      label={uiText("settings.discordActivity.label")}
+      description={uiText("settings.discordActivity.description")}
+      disabled={disabled}
+      control={
+        <TextInput
+          className="settings-text-input"
+          aria-label={uiText("settings.discordActivity.label")}
+          placeholder={uiText("discord.activity")}
+          value={draft}
+          maxLength={ACTIVITY_TEXT.max}
+          disabled={disabled}
+          autoComplete="off"
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+            if (event.key === "Escape") {
+              // Only undoes the typing; Settings stays open.
+              event.stopPropagation();
+              setDraft(saved);
+              reverting.current = true;
+              event.currentTarget.blur();
+            }
+          }}
+        />
+      }
+    />
   );
 }
 
@@ -475,7 +618,7 @@ function Row({
   );
 }
 
-/** The whole row toggles, like TaskMap's SettingsToggleRow, with its liquid switch. */
+/** A setting with its liquid switch. Only the switch toggles it (Merk's choice), not the row. */
 function ToggleRow({
   icon,
   label,
@@ -490,7 +633,7 @@ function ToggleRow({
   readonly onChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="settings-row settings-toggle-row" onClick={() => onChange(!checked)}>
+    <div className="settings-row">
       <span className="settings-row-leading">{icon}</span>
       <span className="settings-row-copy">
         <span className="settings-row-label">{label}</span>

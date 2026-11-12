@@ -25,8 +25,11 @@ export function sameRank(a: Rank, b: Rank): boolean {
   return a.tier === b.tier && a.division === b.division && a.predicted === b.predicted && a.placements === b.placements;
 }
 
-/** Clean, needs SMS verification, or banned (suspended). SMS and banned have their own sections. */
-export type AccountStatus = "clean" | "sms" | "banned";
+/**
+ * Clean, needs SMS verification, temporarily banned (`suspended`) or banned for good. All but
+ * clean have their own section below the list.
+ */
+export type AccountStatus = "clean" | "sms" | "suspended" | "banned";
 
 export interface Account {
   readonly id: number;
@@ -67,10 +70,11 @@ export type ListEntry =
   | { readonly kind: "account"; readonly account: Account }
   | { readonly kind: "group"; readonly group: Group; readonly accounts: readonly Account[] };
 
-/** The list as shown: the top level, then the SMS and banned sections. */
+/** The list as shown: the top level, then the SMS, temporarily banned and banned sections. */
 export interface Roster {
   readonly entries: readonly ListEntry[];
   readonly sms: readonly Account[];
+  readonly suspended: readonly Account[];
   readonly banned: readonly Account[];
   readonly total: number;
   /** A role sort is on: the top level is one flat, sorted list (no groups). */

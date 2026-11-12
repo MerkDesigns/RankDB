@@ -149,11 +149,8 @@ function OptionRow({
   readonly onChange: (checked: boolean) => void;
 }) {
   return (
-    <div
-      className="settings-row settings-toggle-row"
-      data-disabled={disabled || undefined}
-      onClick={disabled ? undefined : () => onChange(!checked)}
-    >
+    // Only the switch toggles, as in Settings.
+    <div className="settings-row" data-disabled={disabled || undefined}>
       <span className="settings-row-leading">{icon}</span>
       <span className="settings-row-copy">
         <span className="settings-row-label">{label}</span>

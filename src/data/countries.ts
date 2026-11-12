@@ -67,8 +67,10 @@ const LIST: readonly { readonly code: string; readonly label: string; readonly d
   { code: "MA", label: uiText("countries.morocco"), dialCode: "+212" },
 ];
 
+// Relative, not "/node_modules/…": a leading slash is Vite's root, which is src/ (vite.config.ts),
+// and the pattern then matches nothing (the flags were missing in 1.0.0 and 1.0.1).
 const FLAG_FILES = import.meta.glob<string>(
-  "/node_modules/flag-icons/flags/4x3/{us,ca,mx,ar,br,cl,co,pe,gb,ie,fr,de,es,it,nl,be,lu,ch,at,dk,se,no,fi,pl,cz,sk,hu,ro,bg,hr,si,rs,gr,pt,tr,ua,au,nz,jp,kr,tw,hk,mo,sg,th,ph,my,id,vn,in,ae,sa,qa,kw,bh,om,il,za,eg,ma}.svg",
+  "../../node_modules/flag-icons/flags/4x3/{us,ca,mx,ar,br,cl,co,pe,gb,ie,fr,de,es,it,nl,be,lu,ch,at,dk,se,no,fi,pl,cz,sk,hu,ro,bg,hr,si,rs,gr,pt,tr,ua,au,nz,jp,kr,tw,hk,mo,sg,th,ph,my,id,vn,in,ae,sa,qa,kw,bh,om,il,za,eg,ma}.svg",
   { eager: true, query: "?url", import: "default" },
 );
 
@@ -76,5 +78,5 @@ export const COUNTRIES = [...LIST].sort((a, b) => a.label.localeCompare(b.label)
 
 /** The flag image for a country code, or null. */
 export function flagOf(code: string): string | null {
-  return code ? (FLAG_FILES[`/node_modules/flag-icons/flags/4x3/${code.toLowerCase()}.svg`] ?? null) : null;
+  return code ? (FLAG_FILES[`../../node_modules/flag-icons/flags/4x3/${code.toLowerCase()}.svg`] ?? null) : null;
 }

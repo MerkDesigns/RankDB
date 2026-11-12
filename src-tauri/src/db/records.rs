@@ -35,7 +35,8 @@ impl Rank {
     }
 }
 
-/// An account's standing. SMS and banned accounts live in their own sections below the list.
+/// An account's standing. SMS, temporarily banned and banned accounts live in their own sections
+/// below the list.
 #[derive(Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Status {
@@ -43,6 +44,8 @@ pub enum Status {
     Clean,
     /// Needs SMS verification.
     Sms,
+    /// Banned for a while (migration 6); `Banned` is for good.
+    Suspended,
     Banned,
 }
 
@@ -51,6 +54,7 @@ impl Status {
         match self {
             Status::Clean => "clean",
             Status::Sms => "sms",
+            Status::Suspended => "suspended",
             Status::Banned => "banned",
         }
     }
@@ -66,6 +70,7 @@ impl rusqlite::types::FromSql for Status {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
         match value.as_str()? {
             "sms" => Ok(Status::Sms),
+            "suspended" => Ok(Status::Suspended),
             "banned" => Ok(Status::Banned),
             _ => Ok(Status::Clean),
         }

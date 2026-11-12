@@ -1,10 +1,3 @@
-@font-face {
-  font-family: "RankBadgeNumber";
-  src: url("../assets/fonts/futura-no2-d-demi-bold.ttf") format("truetype");
-  font-weight: 600;
-  font-display: block;
-}
-
 :root {
   color-scheme: dark;
   /* One column grid shared by the header islands and every row. Items place themselves by line
@@ -572,12 +565,13 @@ button {
   place-items: center;
 }
 
-:is(.button-icon, .role-sort-icon, .lead-button svg, .bnet-button img) {
+/* Not the BattleTag button: its picture stays still when pressed (by request). */
+:is(.button-icon, .role-sort-icon, .lead-button svg) {
   transition: scale 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 :is(.icon-button, .role-sort):active :is(.button-icon, .role-sort-icon),
-:is(.lead-button, .bnet-button):active > :is(svg, img) {
+.lead-button:active > svg {
   scale: 0.9;
   transition-duration: 80ms;
   transition-timing-function: ease-out;
@@ -763,8 +757,9 @@ button {
   transition-duration: 0s;
 }
 
-/* No glow while the list scrolls: it would stay where the row was entered (no JS runs then). */
-[data-scrolling] .row:hover::before {
+/* No glow while the list scrolls: it would stay where the row was entered (no JS runs then). A held
+   row keeps its glow through a drag's auto-scroll (controls.css): it moves with the pointer. */
+[data-scrolling] .row:not([data-held]):hover::before {
   --row-hover: 0;
 }
 
@@ -855,6 +850,58 @@ button {
 .bnet-button img {
   width: 34px;
   height: 34px;
+}
+
+/* A profile picture (experimental, data/profiles.ts) fills the button inside its border. */
+.bnet-button[data-avatar] img {
+  width: 100%;
+  height: 100%;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+/* The profile banner behind the name (experimental): from 20px left of the row to 10px before the
+   first rank badge, fading out at both ends. Above the glass body, under its rim; the name cell
+   (positioned, later) stays on top. Holds no glass and never animates itself, so the mask and
+   opacity are allowed; it follows the row's presence. */
+.row-banner {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: -20px;
+  width: calc(20px + var(--col-name) + var(--gap) + (var(--col-ranks) - 3 * var(--badge-w) - 20px) / 2 - 10px);
+  background: var(--banner) right center / cover no-repeat;
+  opacity: calc(0.55 * var(--presence));
+  mask-image: linear-gradient(90deg, transparent 0%, #000 30%, #000 70%, transparent 100%);
+  pointer-events: none;
+}
+
+.primary > .name-cell {
+  position: relative;
+}
+
+/* Hover (or keyboard focus): a dark overlay with a copy icon over the picture. Fades by opacity
+   only; it holds no glass. */
+.bnet-button {
+  position: relative;
+}
+
+.bnet-copy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: rgb(0 0 0 / 0.55);
+  color: rgb(255 255 255 / 0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease-out;
+}
+
+.bnet-button:is(:hover, :focus-visible) .bnet-copy {
+  opacity: 1;
 }
 
 /* Cut off where the cell ends, no "..." (as in the old app). */
@@ -1157,11 +1204,18 @@ button {
   top: calc(45% + 1px);
   transform: translate(-50%, calc(-50% + 1.5px));
   color: #111827;
-  font-family: "RankBadgeNumber", sans-serif;
   font-size: var(--badge-number-size);
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* A division number (RankDigit): the image's white ink, painted in the text colour. The box is the
+   one the digit took as text (the rank font's digit width by 1em), so layout is unchanged. Never
+   animated itself: badge-in animates the number around it. */
+.rank-digit {
+  display: block;
+  width: 0.580078em;
+  height: 1em;
+  background-color: currentColor;
+  mask: var(--digit) center / 100% 100% no-repeat;
 }
 
 /* ---------- Groups and banned ---------- */
@@ -1249,7 +1303,8 @@ button {
   margin-top: 4px;
 }
 
-/* The SMS and banned sections' dividers: a line, a pill, a line, in the section's colour. */
+/* The status sections' dividers: a line, a pill, a line, in the section's colour (SMS amber,
+   temporarily banned orange, banned red). */
 .section-divider {
   --section-line: #4a2630;
   --section-fill: #221018;
@@ -1265,6 +1320,12 @@ button {
   --section-line: #4f3a1c;
   --section-fill: #24190b;
   --section-text: rgb(253 214 160 / 0.92);
+}
+
+.section-divider[data-status="suspended"] {
+  --section-line: #4f2c1c;
+  --section-fill: #24130b;
+  --section-text: rgb(253 186 140 / 0.92);
 }
 
 .section-line {

@@ -1,3 +1,30 @@
+1.0.2
+
+New Experimental Feature: Your Cosmetics
+Turn it on in settings and using owapi.eu it downloads your banners and profile pictures using your battletags.
+The api is very limited so it has to wait between requests so it will take a bit if you have many accounts.
+Since this feature is unreliable it will remain experimental and some cosmetics/battletags might not work.
+
+New share account feature
+Rightclick Accounts and click on Share. It copies Battletag, E-mail and Password so you can paste it anywhere you want.
+
+RankDB Exports polished
+Exports now have .rankdb file extension and their own Icon.
+Might need to restart windows explorer if you cant see it yet.
+
+Custom Discord RPC Text
+You can Customize the text in your discord activity now.
+
+BugFixes / Changes: 
+- window resize should not make the bottom flicker
+- swiping toast notifications is not laggy anymore
+- changed undo rankreset icon to trash icon to avoid confusion
+- description in title for account status (banned, sms locked etc.)
+- fixed Country Flags not working in account info
+- improved the 'Whats New' Window
+- and other minor fixes/changes
+
+
 1.0.1
 
 Remembers the window

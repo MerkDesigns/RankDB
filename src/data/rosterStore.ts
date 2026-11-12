@@ -55,7 +55,7 @@ export interface ColumnSort {
 let records: Records = { accounts: [], groups: [] };
 let sort: ColumnSort | null = null;
 // Empty until the first load (buildRoster's helpers are defined further down).
-let roster: Roster = { entries: [], sms: [], banned: [], total: 0, sorted: false };
+let roster: Roster = { entries: [], sms: [], suspended: [], banned: [], total: 0, sorted: false };
 let source: "database" | "dummy" = "database";
 /** The database roster is on screen (not just selected), or on its way. */
 let databaseShown = false;
@@ -187,6 +187,7 @@ function sortValue(account: Account, column: SortColumn): number {
  */
 function buildRoster({ accounts, groups }: Records, columnSort: ColumnSort | null): Roster {
   const sms = accounts.filter((account) => account.status === "sms").sort(bySortKey);
+  const suspended = accounts.filter((account) => account.status === "suspended").sort(bySortKey);
   const banned = accounts.filter((account) => account.status === "banned").sort(bySortKey);
   const active = accounts.filter((account) => account.status === "clean");
   if (columnSort) {
@@ -198,6 +199,7 @@ function buildRoster({ accounts, groups }: Records, columnSort: ColumnSort | nul
     return {
       entries: sorted(active, (account) => savedOrder.get(account.id) ?? 0).map((account) => ({ kind: "account", account })),
       sms: sorted(sms, (account) => account.sortKey),
+      suspended: sorted(suspended, (account) => account.sortKey),
       banned: sorted(banned, (account) => account.sortKey),
       total: accounts.length,
       sorted: true,
@@ -215,7 +217,7 @@ function buildRoster({ accounts, groups }: Records, columnSort: ColumnSort | nul
       accounts: active.filter((account) => account.groupId === group.id).sort(bySortKey),
     })),
   ];
-  return { entries: top.sort(bySortKey), sms, banned, total: accounts.length, sorted: false };
+  return { entries: top.sort(bySortKey), sms, suspended, banned, total: accounts.length, sorted: false };
 }
 
 /** The saved order as one flat list (top level, groups expanded in place). */

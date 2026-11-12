@@ -11,8 +11,22 @@
         "installMode": "currentUser",
         "installerIcon": "icons/icon.ico",
         "headerImage": "installer-images/header.bmp",
-        "sidebarImage": "installer-images/sidebar.bmp"
+        "sidebarImage": "installer-images/sidebar.bmp",
+        "installerHooks": "installer-hooks.nsh"
       }
-    }
+    },
+    "resources": {
+      "icons/backup-file.ico": "backup-file.ico"
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "rankdb"
+        ],
+        "name": "RankDB.Backup",
+        "description": "RankDB backup",
+        "role": "Viewer"
+      }
+    ]
   }
 }

@@ -1,0 +1,50 @@
+# The Microsoft Store package (docs/MICROSOFT_STORE.md), built on request and kept as a download on
+# the run's page. Nothing is submitted, published or released: uploading the .msix to Partner
+# Center is done by hand. Independent of release.yml, which is unchanged.
+#
+# The package identity comes from the repository's Actions variables (Settings → Secrets and
+# variables → Actions → Variables): RANKDB_STORE_NAME, RANKDB_STORE_PUBLISHER and
+# RANKDB_STORE_PUBLISHER_DISPLAY_NAME, as Partner Center shows them. Without them the build uses
+# the local test identity, which can be installed for testing but not submitted.
+name: Store package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      # rust-toolchain.toml picks the Rust version (rustup installs it on first use).
+      - run: rustup show active-toolchain || rustup toolchain install
+
+      - run: npm ci
+
+      # The unsigned package for Partner Center, and a copy signed with a certificate made for
+      # this run only (its public half is in the download, to trust on a test PC).
+      - name: Build the package
+        run: npm run store:build -- --dev-sign
+        env:
+          RANKDB_STORE_NAME: ${{ vars.RANKDB_STORE_NAME }}
+          RANKDB_STORE_PUBLISHER: ${{ vars.RANKDB_STORE_PUBLISHER }}
+          RANKDB_STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.RANKDB_STORE_PUBLISHER_DISPLAY_NAME }}
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: RankDB-store-package
+          path: |
+            release/store/*.msix
+            release/store/*.cer
+          if-no-files-found: error
+          retention-days: 14

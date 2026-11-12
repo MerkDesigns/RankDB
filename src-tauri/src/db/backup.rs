@@ -22,7 +22,9 @@ const VERSION: u32 = 1;
 const ITERATIONS: u32 = 600_000;
 /// Ties the sealed data to this file format.
 const BINDING: &str = "rankdb:backup:v1";
-const EXTENSION: &str = "rankdb-backup";
+const EXTENSION: &str = "rankdb";
+/// Backups made by 1.0.0 and 1.0.1; still offered when importing.
+const OLD_EXTENSION: &str = "rankdb-backup";
 /// Far above any real roster; a wrong file isn't read whole.
 const MAX_FILE_BYTES: u64 = 256 * 1024 * 1024;
 /// The database as it was before the latest import. It sits with the upgrade copies, so credential
@@ -68,7 +70,9 @@ pub async fn choose_transfer_file(app: AppHandle, database: State<'_, Database>,
                 .add_filter(crate::text::text("dataTransfer.fileTypes.backup"), &[EXTENSION])
                 .set_file_name(crate::text::format("dataTransfer.backupFileName", &[("date", today)]))
                 .blocking_save_file(),
-            TransferFile::ImportBackup => dialog.add_filter(crate::text::text("dataTransfer.fileTypes.backup"), &[EXTENSION]).blocking_pick_file(),
+            TransferFile::ImportBackup => dialog
+                .add_filter(crate::text::text("dataTransfer.fileTypes.backup"), &[EXTENSION, OLD_EXTENSION])
+                .blocking_pick_file(),
             TransferFile::LegacyExport => dialog
                 .add_filter(crate::text::text("dataTransfer.fileTypes.legacy"), &[legacy::EXPORT_EXTENSION])
                 .blocking_pick_file(),
@@ -261,7 +265,7 @@ mod tests {
         let (from_dir, to_dir) = (folder("from"), folder("to"));
         let from = open_at(&from_dir).unwrap();
         fill(&from, "Old#1", "#111111");
-        let file = from_dir.join("test.rankdb-backup");
+        let file = from_dir.join("test.rankdb");
         write_backup(&from, &file, "backup password").unwrap();
         let bytes = fs::read(&file).unwrap();
         // The file holds nothing readable.
@@ -296,7 +300,7 @@ mod tests {
             let mut connection = from.lock().unwrap();
             from.secrets.configure(&mut connection, &[], true, "master", "").unwrap();
         }
-        let file = from_dir.join("test.rankdb-backup");
+        let file = from_dir.join("test.rankdb");
         write_backup(&from, &file, "backup password").unwrap();
         let to = open_at(&to_dir).unwrap();
         restore_backup(&to, &fs::read(&file).unwrap(), "backup password").unwrap();
@@ -313,7 +317,7 @@ mod tests {
         let dir = folder("refused");
         let database = open_at(&dir).unwrap();
         fill(&database, "Mine#1", "#222222");
-        let file = dir.join("test.rankdb-backup");
+        let file = dir.join("test.rankdb");
         write_backup(&database, &file, "pw").unwrap();
         let mut backup: serde_json::Value = serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
         backup["schema"] = (MIGRATIONS.len() as i64 + 1).into();

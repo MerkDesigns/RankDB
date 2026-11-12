@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  RankDB's Microsoft Store package (docs/MICROSOFT_STORE.md). A template: scripts/build-store.mjs
+  fills the values in double braces (the identity from Partner Center, the version from package.json) and
+  generates the Assets from the app icon. A full-trust desktop app: the same rankdb.exe as the
+  GitHub build, made with the `store` feature.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity Name="{{name}}" Publisher="{{publisher}}" Version="{{version}}" ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>RankDB</DisplayName>
+    <PublisherDisplayName>{{publisherDisplayName}}</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- Windows 10 2004 or later: AppData kept per package (1903) and an up-to-date WebView2. -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="RankDB" Executable="rankdb.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="RankDB"
+        Description="Track the ranks, currencies and logins of your Overwatch accounts in one place."
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- Backup files (.rankdb) show their own icon and open RankDB, as with the GitHub setup. -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="rankdbbackup">
+            <uap:DisplayName>RankDB backup</uap:DisplayName>
+            <uap:Logo>Assets\BackupFile.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.rankdb</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- A desktop (Win32) app: files, the clipboard, Discord's pipe and WebView2 as outside a package. -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

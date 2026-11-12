@@ -238,3 +238,52 @@
   cursor: default;
   opacity: 0.52;
 }
+
+/* ---------- Checkbox (primitives/Checkbox.tsx) ---------- */
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--tm-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.checkbox-box {
+  display: grid;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 2px solid rgb(255 255 255 / 0.3);
+  border-radius: 5px;
+  color: #0d1014;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.checkbox:hover .checkbox-box {
+  border-color: rgb(255 255 255 / 0.5);
+}
+
+.checkbox[aria-checked="true"] .checkbox-box {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.checkbox:disabled {
+  opacity: var(--tm-disabled-opacity);
+  cursor: default;
+}
+
+.checkbox:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid rgb(var(--accent-rgb) / 0.6);
+  outline-offset: 2px;
+}

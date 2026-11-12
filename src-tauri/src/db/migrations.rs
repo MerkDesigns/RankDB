@@ -111,4 +111,27 @@ pub(super) const MIGRATIONS: &[&str] = &[
     CREATE INDEX rank_history_account ON rank_history (account_id, changed_at);
     CREATE INDEX rank_history_reset ON rank_history (changed_at);
     ",
+    // 6: a fourth status, `suspended` (temporarily banned), with its own section. A column's CHECK
+    // can't be altered, so the status moves to a new column that takes the old one's name; no
+    // table is rebuilt, so nothing that references accounts is touched.
+    "
+    ALTER TABLE accounts ADD COLUMN status_v6 TEXT NOT NULL DEFAULT 'clean'
+        CHECK (status_v6 IN ('clean', 'sms', 'suspended', 'banned'));
+    UPDATE accounts SET status_v6 = status;
+    ALTER TABLE accounts DROP COLUMN status;
+    ALTER TABLE accounts RENAME COLUMN status_v6 TO status;
+    ",
+    // 7: profile pictures and banners (experimental, db/profiles.rs): what owapi.eu had for each
+    // account, looked up by its BattleTag at that time. Images live in files beside the database;
+    // the rows only name them. Empty unless the feature is on.
+    "
+    CREATE TABLE account_profiles (
+        account_id INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+        tag TEXT NOT NULL,
+        state TEXT NOT NULL CHECK (state IN ('found', 'missing', 'invalid')),
+        avatar TEXT,
+        banner TEXT,
+        checked_at TEXT NOT NULL
+    );
+    ",
 ];

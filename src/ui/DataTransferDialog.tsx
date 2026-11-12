@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { command } from "../data/backend";
 import { ensureCredentialsUnlocked, refreshCredentialSecurity } from "../data/credentialSecurity";
 import { reloadRoster } from "../data/rosterStore";
+import { reloadProfiles } from "../data/profiles";
 import { flushSettings, reloadSettings } from "../data/settingsStore";
 import { dialogs, useOpenDialog } from "./appActions";
 import { Button } from "./primitives/Button";
@@ -62,6 +63,8 @@ export function DataTransferDialog() {
         const summary = await command<{ accounts: number }>("import_backup", { path, password });
         dialogs.close();
         await Promise.all([reloadSettings(), reloadRoster(), refreshCredentialSecurity()]);
+        // Account ids changed: the pictures follow (and the setting may have, too).
+        await reloadProfiles();
         showToast({ tone: "success", title: uiText("dataTransfer.imported.title"), message: uiText("dataTransfer.imported.description", { count: summary.accounts }) });
       } else {
         // The imported credentials are sealed under the master password, if one is set.

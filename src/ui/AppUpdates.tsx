@@ -5,6 +5,8 @@ import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useEffect, useRef, useState } from "react";
 import { command } from "../data/backend";
 import { settingsStore } from "../data/settingsStore";
+import { startProfiles } from "../data/profiles";
+import { STORE_BUILD } from "../platform/channel";
 import { settleSaves } from "../platform/window";
 import { WHATS_NEW } from "../data/whatsNew";
 import { dialogs, useOpenDialog } from "./appActions";
@@ -27,11 +29,13 @@ export function startAppServices() {
   servicesStarted = true;
   syncDiscord();
   settingsStore.subscribe(syncDiscord);
+  startProfiles();
   void startupPopups();
 }
 
 /** One after another: What's New (after an update or 0.3's migration), then an available update. */
 async function startupPopups() {
+  if (STORE_BUILD) await reportStoreImport();
   const migrated = await reportOldAppImport();
   await showWhatsNewAfterUpdate(migrated);
   await checkForUpdates(true);
@@ -53,14 +57,30 @@ async function reportOldAppImport(): Promise<boolean> {
   }
 }
 
+/* ---------- Microsoft Store build ---------- */
+
+/** Its first start copied the data of the RankDB installed from GitHub (Rust, db/store_data.rs). */
+async function reportStoreImport() {
+  try {
+    const summary = await command<{ accounts: number } | null>("take_store_import");
+    if (summary) {
+      showToast({ tone: "success", title: uiText("storeData.imported.title"), message: uiText("storeData.imported.description", { count: summary.accounts }) });
+    }
+  } catch (error) {
+    showError(uiText("storeData.failed"), error);
+  }
+}
+
 /* ---------- Discord ---------- */
 
-let discordWanted: boolean | null = null;
+let discordWanted: string | null = null;
 
 function syncDiscord() {
-  const enabled = settingsStore.get().discordPresence;
-  if (enabled === discordWanted) return;
-  discordWanted = enabled;
+  const { discordPresence: enabled, discordActivityText: activity } = settingsStore.get();
+  // Only an actual change reaches Discord (it limits how often a presence may change).
+  const wanted = JSON.stringify([enabled, activity]);
+  if (wanted === discordWanted) return;
+  discordWanted = wanted;
   void command<string>("installed_on")
     .catch(() => "")
     .then((day) => {
@@ -69,7 +89,7 @@ function syncDiscord() {
         date && !Number.isNaN(date.getTime())
           ? uiText("updates.userSinceLabel", { date: date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) })
           : uiText("common.rankdb");
-      return invoke("set_discord_presence", { enabled, userSince: since });
+      return invoke("set_discord_presence", { enabled, userSince: since, activity });
     })
     .catch((error: unknown) => console.error(uiText("updates.discordPresence"), error));
 }
@@ -120,6 +140,8 @@ export function WhatsNewDialog() {
 
 /** Silent: only an available update is announced (startup). Otherwise every outcome is. */
 export async function checkForUpdates(silent: boolean) {
+  // The Microsoft Store updates its build; the updater isn't part of it.
+  if (STORE_BUILD) return;
   if (!(await invoke<boolean>("updates_enabled"))) {
     if (!silent) {
       showToast({

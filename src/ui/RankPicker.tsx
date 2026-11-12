@@ -19,6 +19,7 @@ import { OPEN_FROM_PRESENCE } from "./primitives/motion/presence";
 import { usePresence } from "./primitives/motion/usePresence";
 import { useWarmMount } from "./primitives/useWarmMount";
 import { getRoster } from "../data/rosterStore";
+import { RankDigit } from "./RankDigit";
 
 /* ---------- Which badge the picker is open for (UI state, not saved) ---------- */
 
@@ -133,6 +134,7 @@ type Division = "1" | "2" | "3" | "4" | "5";
 const DIVISIONS: readonly LiquidTab<Division>[] = (["1", "2", "3", "4", "5"] as const).map((value) => ({
   value,
   label: value,
+  content: <RankDigit value={Number(value)} />,
 }));
 /** Top to bottom: the bar fills upward from game 1. */
 const PLACEMENT_CELLS = Array.from({ length: PLACEMENT_GAMES }, (_, index) => PLACEMENT_GAMES - index);

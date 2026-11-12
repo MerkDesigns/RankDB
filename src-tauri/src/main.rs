@@ -26,11 +26,33 @@ const RELEASE_IDENTIFIER: &str = "com.merkdesigns.rankdb.next";
 
 /// Update checks only in the published app (release build, its own identifier) from 1.0 on. Dev
 /// builds never check: the release channel may carry a version they'd take for an "update" (it
-/// still carries the old RankDB 0.3).
+/// still carries the old RankDB 0.3). Never in the Microsoft Store build: the Store updates it,
+/// and the updater plugin isn't even registered there.
 #[tauri::command]
 fn updates_enabled(app: tauri::AppHandle) -> bool {
     let version = app.package_info().version.clone();
-    !cfg!(debug_assertions) && app.config().identifier == RELEASE_IDENTIFIER && version.major >= 1
+    !cfg!(feature = "store") && !cfg!(debug_assertions) && app.config().identifier == RELEASE_IDENTIFIER && version.major >= 1
+}
+
+/// Where Windows really keeps `dir` for a packaged app (the Microsoft Store build): what the app
+/// writes under AppData lands in the package's own folder, and Explorer opened at the plain path
+/// would show an empty one. The plain path when not packaged, or when nothing is there.
+#[cfg(windows)]
+fn packaged_location(dir: &std::path::Path) -> std::path::PathBuf {
+    use windows::core::PWSTR;
+    use windows::Win32::Foundation::ERROR_SUCCESS;
+    use windows::Win32::Storage::Packaging::Appx::GetCurrentPackageFamilyName;
+    let mut name = [0u16; 256];
+    let mut length = name.len() as u32;
+    // Fails with APPMODEL_ERROR_NO_PACKAGE in the GitHub build, which has no package.
+    if unsafe { GetCurrentPackageFamilyName(&mut length, Some(PWSTR(name.as_mut_ptr()))) } != ERROR_SUCCESS {
+        return dir.to_path_buf();
+    }
+    let family = String::from_utf16_lossy(&name[..(length as usize).saturating_sub(1)]);
+    let packaged = std::env::var_os("LOCALAPPDATA").zip(dir.file_name()).map(|(local, folder)| {
+        std::path::PathBuf::from(local).join("Packages").join(family).join("LocalCache").join("Roaming").join(folder)
+    });
+    packaged.filter(|path| path.exists()).unwrap_or_else(|| dir.to_path_buf())
 }
 
 /// Opens the folder that holds the database (shown when it can't be opened, for recovery).
@@ -42,7 +64,7 @@ fn open_data_folder(app: tauri::AppHandle) -> Result<(), String> {
         use windows::core::{w, HSTRING};
         use windows::Win32::UI::Shell::ShellExecuteW;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-        let path = HSTRING::from(dir.as_os_str());
+        let path = HSTRING::from(packaged_location(&dir).as_os_str());
         // ShellExecute returns a value above 32 on success.
         let result = unsafe { ShellExecuteW(None, w!("open"), &path, None, None, SW_SHOWNORMAL) };
         if result.0 as isize <= 32 {
@@ -80,6 +102,13 @@ fn main() {
         db::database_problem,
         db::prepare_for_update,
         db::take_old_app_import,
+        db::take_store_import,
+        db::load_profiles,
+        db::set_profile_images,
+        db::refresh_profiles,
+        db::refresh_profile,
+        db::stop_profiles,
+        db::profile_status,
         db::old_app_status,
         db::import_old_app,
         db::choose_transfer_file,
@@ -105,6 +134,7 @@ fn main() {
         db::set_credentials,
         db::copy_secret,
         db::copy_text,
+        db::copy_share,
         db::add_group,
         db::rename_group,
         db::set_group_collapsed,
@@ -129,6 +159,13 @@ fn main() {
         db::database_problem,
         db::prepare_for_update,
         db::take_old_app_import,
+        db::take_store_import,
+        db::load_profiles,
+        db::set_profile_images,
+        db::refresh_profiles,
+        db::refresh_profile,
+        db::stop_profiles,
+        db::profile_status,
         db::old_app_status,
         db::import_old_app,
         db::choose_transfer_file,
@@ -154,6 +191,7 @@ fn main() {
         db::set_credentials,
         db::copy_secret,
         db::copy_text,
+        db::copy_share,
         db::add_group,
         db::rename_group,
         db::set_group_collapsed,
@@ -182,7 +220,6 @@ fn main() {
                 let _ = window.set_focus();
             }
         }))
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         // Position and size only: the frame, visibility and maximise are the app's own. Restored
         // while the window is still hidden; a spot no longer on any monitor isn't restored.
@@ -192,6 +229,22 @@ fn main() {
                 .build(),
         )
         .manage(discord::Discord::start())
+        .manage(db::ProfileQueue::default())
+        // Kept profile pictures and banners (experimental, db/profiles.rs), read by the page as
+        // http://profile.localhost/<file>: only image files the queue wrote, nothing else.
+        .register_uri_scheme_protocol("profile", |context, request| {
+            let name = request.uri().path().trim_start_matches('/');
+            let image = context.app_handle().try_state::<db::Database>().and_then(|database| database.profile_image(name));
+            let response = tauri::http::Response::builder();
+            match image {
+                Some((bytes, content_type)) => response
+                    .header("Content-Type", content_type)
+                    .header("Cache-Control", "max-age=31536000, immutable")
+                    .body(bytes),
+                None => response.status(404).body(Vec::new()),
+            }
+            .unwrap_or_default()
+        })
         .setup(|app| {
             // A database that can't be opened (damaged, from a newer version) doesn't stop the app:
             // it shows the problem instead of the list, and the file stays untouched.
@@ -199,6 +252,7 @@ fn main() {
                 Ok(database) => {
                     app.manage(database);
                     app.manage(db::StartupProblem(None));
+                    db::start_profile_worker(app.handle().clone());
                 }
                 Err(problem) => {
                     app.manage(db::StartupProblem(Some(problem)));
@@ -221,6 +275,10 @@ fn main() {
             }
             Ok(())
         });
+
+    // Updates from GitHub releases; the Microsoft Store build is updated by the Store instead.
+    #[cfg(not(feature = "store"))]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
     #[cfg(all(debug_assertions, feature = "mcp-development"))]
     let builder = builder.plugin(

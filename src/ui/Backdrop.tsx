@@ -126,7 +126,7 @@ function useListScrollRange(field: { readonly current: AmbientField | null }, zo
     const scroller = document.querySelector<HTMLElement>(".list-scroller");
     const content = scroller?.firstElementChild;
     if (AMBIENT_LAYERS === 1 || fieldKind !== "ambient" || !scroller || !content) return;
-    const measure = () => field.current?.setScroll(Math.max(0, scroller.scrollHeight - scroller.clientHeight), zoom);
+    const measure = () => field.current?.setScroll(Math.max(0, scroller.scrollHeight - scroller.clientHeight));
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
     observer.observe(content);

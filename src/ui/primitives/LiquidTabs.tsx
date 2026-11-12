@@ -24,6 +24,8 @@ export interface LiquidTab<Value extends string> {
   readonly value: Value;
   readonly label: string;
   readonly icon?: ReactNode;
+  /** Shown instead of the label text (which then only names the tab), e.g. the rank digits. */
+  readonly content?: ReactNode;
 }
 
 const REST_RADIUS = 7;
@@ -218,6 +220,7 @@ export function LiquidTabs<Value extends string>({
           aria-selected={tab.value === value}
           tabIndex={tab.value === value && !disabled ? 0 : -1}
           data-liquid-tab={tab.value}
+          aria-label={tab.content ? tab.label : undefined}
           className="liquid-tab"
           // Keyboard (Enter/Space) and assistive tech activate tabs through click.
           onClick={() => {
@@ -225,7 +228,7 @@ export function LiquidTabs<Value extends string>({
           }}
         >
           {tab.icon && <span className="liquid-tab-icon">{tab.icon}</span>}
-          <span className="liquid-tab-label">{tab.label}</span>
+          <span className="liquid-tab-label">{tab.content ?? tab.label}</span>
         </button>
       ))}
     </div>

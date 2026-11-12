@@ -367,6 +367,9 @@
   width: 100%;
   transition: transform var(--toast-move-ms), height var(--toast-move-ms), --presence var(--toast-fade-ms) ease;
 }
+/* While dragged the card follows the pointer at once (Sonner's own rule, which the transition above
+   outranks): a transition here makes every pointer move ease in late. */
+[data-sonner-toaster].rankdb-toaster [data-sonner-toast].rankdb-toast[data-styled="true"][data-swiping="true"] { transition: none; }
 [data-sonner-toaster].rankdb-toaster [data-sonner-toast][data-swipe-out="true"] { animation-duration: var(--toast-fade-ms); }
 [data-sonner-toaster].rankdb-toaster [data-sonner-toast][data-mounted="true"][data-visible="true"]:not([data-removed="true"]) { --presence: 1; }
 
@@ -624,11 +627,13 @@
     opacity 190ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-/* The held row keeps its plate and gains a plain blur of whatever it passes over: no hover tint and
-   no saturation or brightness change, which read as a grey cast (by request). The blur exists only
-   while dragging, so resting rows cost nothing. */
+/* The held row keeps its plate and gains a plain blur of whatever it passes over: no saturation or
+   brightness change, which read as a grey cast (by request). Its hover glow stays on from the grab
+   to the drop (by request), so nothing flashes when it is let go; if the pointer is no longer over
+   it then, it fades as a hover does. The blur exists only while dragging, so resting rows cost
+   nothing. Set, not :hover, because the held row may not be the hovered element mid-drag. */
 .row[data-held]::before {
-  --row-hover: 0;
+  --row-hover: 1;
   backdrop-filter: blur(var(--held-blur));
   transition: none;
 }
@@ -850,7 +855,6 @@
   gap: 18px;
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 
 .info-details > * {
@@ -869,7 +873,6 @@
 .info-notes .textarea.notes {
   height: 96px;
   min-height: 38px;
-  scrollbar-width: thin;
   flex: 0 1 auto;
 }
 
@@ -885,6 +888,30 @@
   font-weight: 650;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+/* Beside the Status heading: what the chosen status means, in that status's colour. */
+.info-label-note {
+  margin-left: 8px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.info-label-note[data-status="clean"] {
+  color: rgb(167 243 208 / 0.85);
+}
+
+.info-label-note[data-status="sms"] {
+  color: rgb(253 214 160 / 0.85);
+}
+
+.info-label-note[data-status="suspended"] {
+  color: rgb(253 186 140 / 0.85);
+}
+
+.info-label-note[data-status="banned"] {
+  color: rgb(254 205 211 / 0.85);
 }
 
 .account-info .input,
@@ -903,21 +930,26 @@
   min-width: 0;
 }
 
+/* The flag fills its box: the same box as the dropdown (height, border, corners), 4:3 like the
+   flags. The flag sits inside the border, as the dropdown's fill does; drawn over the border it
+   read as taller than the dropdown. */
 .country-flag {
-  display: grid;
+  position: relative;
   flex: none;
-  place-items: center;
-  width: 60px;
+  width: 48px;
+  overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.1);
   border-radius: 8px;
   background: rgb(8 9 10 / 0.66);
 }
 
+/* Out of flow, so the image's own size never stretches the row. */
 .country-flag img {
-  width: 28px;
-  height: 21px;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .battlenet-button {
@@ -941,8 +973,16 @@
 }
 
 /* Status: the selected label takes the section's colour. */
+.status-tabs[data-status="clean"] .liquid-tab[aria-selected="true"] {
+  color: rgb(167 243 208);
+}
+
 .status-tabs[data-status="sms"] .liquid-tab[aria-selected="true"] {
   color: rgb(253 214 160);
+}
+
+.status-tabs[data-status="suspended"] .liquid-tab[aria-selected="true"] {
+  color: rgb(253 186 140);
 }
 
 .status-tabs[data-status="banned"] .liquid-tab[aria-selected="true"] {
@@ -983,7 +1023,6 @@
   align-content: start;
   gap: 4px;
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 
 .history-row {
@@ -1027,13 +1066,85 @@
 
 /* ---------- Phase 6: What's new, updates ---------- */
 
+/* The dialogs' own scrollbar: a slim rounded thumb, no track and no arrow buttons, instead of
+   Windows' (which shows arrows and sits hard against the text). */
+:is(.info-details, .textarea.notes, .history-body, .whats-new-list, .update-notes)::-webkit-scrollbar {
+  width: 6px;
+}
+
+:is(.info-details, .textarea.notes, .history-body, .whats-new-list, .update-notes)::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.16);
+}
+
+:is(.info-details, .textarea.notes, .history-body, .whats-new-list, .update-notes)::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.28);
+}
+
+/* Wider than the other small dialogs: the notes are the longest text in the app. */
+.account-dialog.whats-new {
+  width: 440px;
+}
+
 .whats-new-list {
   display: grid;
   gap: var(--tm-space-3);
   max-height: 380px;
   margin-bottom: var(--tm-space-2);
+  /* Room between the text and the scrollbar; the negative margin keeps the bar at the edge. */
+  margin-right: -6px;
+  padding-right: 14px;
   overflow-y: auto;
-  scrollbar-width: thin;
+  /* Text fades out at an edge it continues past, instead of being cut off there: no fade at the
+     top while at the top, none at the bottom at the end (the scroll position drives both, no JS;
+     a list that fits has no scroll timeline and so no fade). The second layer keeps the scrollbar
+     solid. */
+  mask-image:
+    linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent),
+    linear-gradient(#000, #000);
+  mask-size: calc(100% - 6px) 100%, 6px 100%;
+  mask-position: left, right;
+  mask-repeat: no-repeat;
+  animation: whats-new-fade linear both;
+  animation-timeline: scroll(self);
+}
+
+@property --fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes whats-new-fade {
+  0% {
+    --fade-top: 0px;
+    --fade-bottom: 32px;
+  }
+
+  6% {
+    --fade-top: 32px;
+  }
+
+  94% {
+    --fade-bottom: 32px;
+  }
+
+  100% {
+    --fade-top: 32px;
+    --fade-bottom: 0px;
+  }
+}
+
+/* A line between versions (above every one but the newest). */
+.whats-new-list section + section {
+  padding-top: var(--tm-space-3);
+  border-top: 1px solid rgb(255 255 255 / 0.1);
 }
 
 .whats-new-list ul {
@@ -1047,7 +1158,7 @@
 .whats-new-list li {
   display: grid;
   gap: 2px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.45;
 }
 
@@ -1059,6 +1170,7 @@
 
 .update-notes {
   max-height: 160px;
+  padding-right: 14px;
   overflow-y: auto;
   white-space: pre-line;
 }

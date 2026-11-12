@@ -6,10 +6,13 @@ import {
   FolderClosed,
   FolderMinus,
   Gamepad2,
+  Hourglass,
   IdCard,
   PenLine,
   Plus,
+  RefreshCw,
   RotateCcw,
+  Share2,
   ShieldCheck,
   ShieldEllipsis,
   Smartphone,
@@ -25,6 +28,10 @@ import {
   setGamesDodged,
   useRoster,
 } from "../data/rosterStore";
+import { copyShare } from "../data/copy";
+import { refreshProfile } from "../data/profiles";
+import { useSettings } from "../data/settingsStore";
+import { showError } from "./toasts";
 import { dialogs } from "./appActions";
 import { startEditing } from "./editing";
 import { ContextMenu, MENU_DIVIDER, type MenuEntry } from "./primitives/ContextMenu";
@@ -60,6 +67,7 @@ function nextPenalty(dodged: number): string {
 export const STATUSES: readonly { readonly value: AccountStatus; readonly label: string; readonly Icon: LucideIcon }[] = [
   { value: "clean", label: uiText("accountMenu.status.clean"), Icon: ShieldCheck },
   { value: "sms", label: uiText("accountMenu.status.sms"), Icon: Smartphone },
+  { value: "suspended", label: uiText("accountMenu.status.suspended"), Icon: Hourglass },
   { value: "banned", label: uiText("accountMenu.status.banned"), Icon: Ban },
 ];
 
@@ -76,6 +84,7 @@ export function AccountMenu() {
   );
   // Re-rendered with the roster, so the dodge counter updates while its submenu stays open.
   useRoster();
+  const profileImages = useSettings((settings) => settings.profileImages);
   if (!current) return null;
   const { accountId } = current;
   const account = findAccount(accountId);
@@ -86,6 +95,12 @@ export function AccountMenu() {
       value: account?.lastRankChangeAt ? LAST_EDIT.format(new Date(account.lastRankChangeAt)) : uiText("common.never"),
     },
     MENU_DIVIDER,
+    {
+      key: "info",
+      label: uiText("accountMenu.accountInfo"),
+      Icon: IdCard,
+      onSelect: () => dialogs.open({ kind: "account-info", accountId }),
+    },
     { key: "battletag", label: uiText("accountMenu.editBattletag"), Icon: PenLine, onSelect: () => startEditing({ accountId, kind: "name" }) },
     {
       key: "credentials",
@@ -94,11 +109,24 @@ export function AccountMenu() {
       onSelect: () => dialogs.open({ kind: "credentials", accountId }),
     },
     {
-      key: "info",
-      label: uiText("accountMenu.accountInfo"),
-      Icon: IdCard,
-      onSelect: () => dialogs.open({ kind: "account-info", accountId }),
+      key: "share",
+      label: uiText("accountMenu.shareAccount"),
+      Icon: Share2,
+      disabled: !account,
+      onSelect: () => account && void copyShare(account),
     },
+    // Experimental profile pictures and banners (Settings → Misc): this account next.
+    ...(profileImages
+      ? [
+          {
+            key: "profile",
+            label: uiText("accountMenu.refreshProfile"),
+            Icon: RefreshCw,
+            disabled: !account,
+            onSelect: () => void refreshProfile(accountId).catch((error: unknown) => showError(uiText("accountMenu.refreshProfileFailed"), error)),
+          },
+        ]
+      : []),
     MENU_DIVIDER,
     {
       key: "dodged",

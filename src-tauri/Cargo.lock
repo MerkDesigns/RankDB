@@ -3327,14 +3327,16 @@ checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
 name = "rankdb"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "aes-gcm",
  "base64 0.23.1",
  "discord-rich-presence",
  "getrandom 0.4.3",
  "pbkdf2",
+ "reqwest",
  "rusqlite",
+ "rustls",
  "serde",
  "serde_json",
  "sha2 0.11.1",
@@ -3345,6 +3347,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
+ "tokio",
  "webview2-com",
  "windows",
  "windows-core",

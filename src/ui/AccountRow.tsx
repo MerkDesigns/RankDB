@@ -1,9 +1,10 @@
 import { uiText } from "../text/index";
-import { memo } from "react";
-import { KeyRound, User } from "lucide-react";
+import { memo, type CSSProperties } from "react";
+import { Copy, KeyRound, User } from "lucide-react";
 import { displayAccountName, formatCompactValue, type Account } from "../data/accounts";
 import { ICONS } from "../data/assets";
 import { copyBattletag, copySecret } from "../data/copy";
+import { profileImageUrl, useProfile } from "../data/profiles";
 import { renameAccount, setCurrency, useViewedReset } from "../data/rosterStore";
 import { useSettings } from "../data/settingsStore";
 import { Glass } from "../glass/Glass";
@@ -25,6 +26,7 @@ export const AccountRow = memo(function AccountRow({
   const viewingPast = useViewedReset() !== null;
   // The badge the rank picker is editing shows its draft.
   const edit = usePickerEdit(account.id);
+  const { avatar, banner } = useProfileImages(account.id);
   return (
     <div
       className="row"
@@ -63,9 +65,20 @@ export const AccountRow = memo(function AccountRow({
       </Glass>
 
       <Glass role="minor" className="primary" tone="primary">
+        {banner && <span className="row-banner" aria-hidden="true" style={{ "--banner": `url("${profileImageUrl(banner)}")` } as CSSProperties} />}
         <div className="name-cell">
-          <button type="button" className="bnet-button" aria-label={uiText("accountRows.copyBattletag")} onClick={() => void copyBattletag(account)}>
-            <img src={ICONS.battlenet} alt="" draggable={false} />
+          <button
+            type="button"
+            className="bnet-button"
+            data-avatar={avatar ? "" : undefined}
+            aria-label={uiText("accountRows.copyBattletag")}
+            onClick={() => void copyBattletag(account)}
+          >
+            <img src={avatar ? profileImageUrl(avatar) : ICONS.battlenet} alt="" draggable={false} />
+            {/* On hover: darkened, with a copy icon, so it reads as "copy BattleTag". */}
+            <span className="bnet-copy" aria-hidden="true">
+              <Copy size={18} strokeWidth={2.4} />
+            </span>
           </button>
           <AccountName account={account} />
         </div>
@@ -173,4 +186,18 @@ function AccountValue({
       {formatCompactValue(value)}
     </button>
   );
+}
+
+/**
+ * The account's profile picture and banner (experimental, data/profiles.ts), if the feature is on,
+ * that part is chosen in Settings, privacy mode is off (both identify an account on stream), and
+ * owapi.eu had one. Otherwise the Battle.net icon and no banner.
+ */
+function useProfileImages(accountId: number): { avatar: string | null; banner: string | null } {
+  const profile = useProfile(accountId);
+  const enabled = useSettings((settings) => settings.profileImages && !settings.privacyMode);
+  const showAvatar = useSettings((settings) => settings.profileAvatar);
+  const showBanner = useSettings((settings) => settings.profileBanner);
+  if (!enabled || !profile) return { avatar: null, banner: null };
+  return { avatar: showAvatar ? profile.avatar : null, banner: showBanner ? profile.banner : null };
 }

@@ -1,6 +1,6 @@
 import { uiText } from "../text/index";
 import { useSyncExternalStore } from "react";
-import { Check, History, Undo2 } from "lucide-react";
+import { Check, History, Trash2 } from "lucide-react";
 import { listSeasonResets, useViewedReset, viewSeasonReset } from "../data/rosterStore";
 import { dialogs } from "./appActions";
 import { ContextMenu, MENU_DIVIDER, type MenuEntry } from "./primitives/ContextMenu";
@@ -67,7 +67,7 @@ export function ResetMenu() {
           disabled: viewed === resetAt,
           onSelect: () => void viewSeasonReset(resetAt),
           // Only the newest: undoing an older one under a newer reset would mix two seasons.
-          ...(index === 0 ? { aside: { label: uiText("pastRanks.undo"), Icon: Undo2, onSelect: () => undoReset(resetAt) } } : {}),
+          ...(index === 0 ? { aside: { label: uiText("pastRanks.undo"), Icon: Trash2, onSelect: () => undoReset(resetAt) } } : {}),
         }))),
   ];
   return (

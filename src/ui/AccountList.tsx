@@ -2,7 +2,7 @@ import { uiText } from "../text/index";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, EllipsisVertical } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
-import type { Account, Group } from "../data/accounts";
+import type { Account, AccountStatus, Group } from "../data/accounts";
 import { renameGroup, setGroupCollapsed, useRoster } from "../data/rosterStore";
 import { Glass, InList } from "../glass/Glass";
 import { ListPlane } from "../glass/ListPlane";
@@ -37,6 +37,7 @@ export function AccountList() {
       )
       .join(","),
     roster.sms.length,
+    roster.suspended.length,
     roster.banned.length,
   ].join(":");
 
@@ -58,6 +59,7 @@ export function AccountList() {
           })}
 
           <Section status="sms" label={uiText("accountList.sections.sms")} accounts={roster.sms} />
+          <Section status="suspended" label={uiText("accountList.sections.suspended")} accounts={roster.suspended} />
           <Section status="banned" label={uiText("accountList.sections.banned")} accounts={roster.banned} />
         </InList.Provider>
       </div>
@@ -95,13 +97,13 @@ function useScrollingFlag(scrollerRef: RefObject<HTMLDivElement | null>) {
   }, [scrollerRef]);
 }
 
-/** The SMS or banned section: its divider, then its rows (siblings of the list's top level). */
+/** The SMS, temporarily banned or banned section: its divider, then its rows (siblings of the list's top level). */
 function Section({
   status,
   label,
   accounts,
 }: {
-  readonly status: "sms" | "banned";
+  readonly status: Exclude<AccountStatus, "clean">;
   readonly label: string;
   readonly accounts: readonly Account[];
 }) {

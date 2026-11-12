@@ -1,6 +1,6 @@
 {
   "name": "rankdb",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,6 +14,7 @@
     "installer:web:build": "vite build --config installer/vite.config.ts",
     "installer:dev": "cd installer && tauri dev --features mcp-development --config tauri.mcp.conf.json",
     "installer:build": "node scripts/build-installer.mjs",
+    "store:build": "node scripts/build-store.mjs",
     "sandbox:build": "node scripts/sandbox/build.mjs",
     "sandbox:open": "node scripts/sandbox/build.mjs --open",
     "bench": "node scripts/bench.mjs",
@@ -38,6 +39,7 @@
     "sonner": "2.0.8"
   },
   "devDependencies": {
+    "@microsoft/winappcli": "0.7.1",
     "@tauri-apps/cli": "2.12.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

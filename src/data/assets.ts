@@ -30,7 +30,20 @@ import emblemGrandmaster from "../assets/emblems/Grandmaster.png";
 import emblemChampion from "../assets/emblems/Champion.png";
 import emblemUnranked from "../assets/emblems/Unranked.png";
 import emblemPredicted from "../assets/emblems/Predicted.png";
+import digit1 from "../assets/digits/1.png";
+import digit2 from "../assets/digits/2.png";
+import digit3 from "../assets/digits/3.png";
+import digit4 from "../assets/digits/4.png";
+import digit5 from "../assets/digits/5.png";
 import type { RankTier } from "./accounts";
+
+/**
+ * The division numbers 1–5 as images (white on transparent, used as masks by RankDigit), drawn
+ * from the font Merk chose to match Overwatch's. Images, not the font: the font's licence doesn't
+ * allow shipping the font file inside the app. Each is the box the text took: the font's digit
+ * width by 1em, baseline at 0.8em.
+ */
+export const DIVISION_DIGITS: Record<number, string> = { 1: digit1, 2: digit2, 3: digit3, 4: digit4, 5: digit5 };
 
 /** Square rank emblems for the rank picker (the badges use the wide images above). */
 export const RANK_EMBLEMS: Record<RankTier, string> = {

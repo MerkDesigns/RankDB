@@ -1,6 +1,6 @@
 [package]
 name = "rankdb"
-version = "1.0.1"
+version = "1.0.2"
 description = "RankDB rewrite"
 authors = ["Merk"]
 edition = "2021"
@@ -10,6 +10,10 @@ rust-version = "1.85"
 default = []
 # Debug-only automation bridge for the `tauri` MCP server (screenshots, JS, IPC). Never in releases.
 mcp-development = ["dep:tauri-plugin-mcp-bridge"]
+# The Microsoft Store build (scripts/build-store.mjs, docs/MICROSOFT_STORE.md): updates come from
+# the Store, so the GitHub updater is left out, and the first start copies the data of the RankDB
+# installed from GitHub (src/db/store_data.rs).
+store = []
 
 [build-dependencies]
 tauri-build = { version = "=2.7.3", features = [] }
@@ -31,6 +35,11 @@ tauri-plugin-dialog = "=2.8.3"
 tauri-plugin-single-instance = "=2.5.4"
 # Reopens the window where it was closed, at the same height (position and size only).
 tauri-plugin-window-state = "=2.5.0"
+# Profile pictures and banners (experimental, src/db/profiles.rs): owapi.eu over HTTPS, set up like
+# the updater's (same versions, already built for it; the Store build has no updater).
+reqwest = { version = "=0.13.5", default-features = false, features = ["rustls-no-provider", "system-proxy"] }
+rustls = { version = "=0.23.46", default-features = false, features = ["ring"] }
+tokio = { version = "=1.54.1", features = ["time", "sync", "macros"] }
 # Discord Rich Presence (src/discord.rs).
 discord-rich-presence = "=1.1.0"
 # Bundled SQLite: the data store (src/db.rs).
@@ -47,6 +56,8 @@ webview2-com = "=0.39.1"
 windows-core = "=0.62.2"
 windows = { version = "=0.62.2", features = [
   "Win32_Foundation",
+  # The Store build's package name, to find where Windows keeps its data folder (main.rs).
+  "Win32_Storage_Packaging_Appx",
   # RankDB 0.3's database key, read once to bring its data over (src/legacy.rs).
   "Win32_Security_Credentials",
   # Clipboard writes kept out of clipboard history, cleared after a delay (src/clipboard.rs).

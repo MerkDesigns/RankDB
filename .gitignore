@@ -8,6 +8,26 @@ src-tauri/gen/schemas
 installer/target
 installer/gen/schemas
 
+# Microsoft Store: the package identity from Partner Center and the local test certificate
+store/identity.json
+store/devcert.*
+*.pfx
+*.cer
+
+# Secrets that could end up in the folder: the updater signing key, env files
+*.key
+*.pem
+*.p12
+.env
+.env.*
+
+# The rank font: licensed, not to be shipped or published. The app uses images of its digits
+# (src/assets/digits, scripts/render-rank-digits.py)
+src/assets/fonts/
+
+# Claude Code's personal settings for this project
+.claude/settings.local.json
+
 # Local tools and test runs
 bench-results
 .sandbox
@@ -15,6 +35,7 @@ bench-results
 
 # Local only: Merk's release checklist and HTML/image mock-ups
 RELEASE-CHECKLIST.md
+RELEASE-STEPS.md
 docs/previews
 
 # Editors and OS

@@ -96,17 +96,37 @@
       "label": "Discord rich presence",
       "description": "Enable to show the app in your Discord activity"
     },
+    "profileImages": {
+      "label": "Profile pictures and banners",
+      "description": "Looks up your BattleTags on owapi.eu. Only public profiles are found",
+      "avatar": "Profile picture",
+      "banner": "Banner",
+      "found": "Found {found} of {total}",
+      "checking": "Checking accounts: {found} of {total} found",
+      "paused": "owapi.eu is unavailable. Trying again tomorrow",
+      "stopped": "Stopped: {found} of {total} found",
+      "refresh": "Refresh now",
+      "refreshFailed": "Could not refresh the profiles.",
+      "stop": "Stop",
+      "stopFailed": "Could not stop the profile check."
+    },
+    "discordActivity": {
+      "label": "Activity text",
+      "description": "Your own line instead of the default one"
+    },
     "updates": {
       "check": "Check for updates",
       "whatsNew": "What's new"
     },
     "soon": "Soon",
+    "experimental": "Experimental",
     "sections": {
       "columns": "Columns",
       "credentialProtection": "Credential protection",
       "privacy": "Privacy",
       "backup": "Backup",
       "oldApp": "RankDB 0.3",
+      "profiles": "Profiles",
       "designs": "Designs"
     },
     "oldApp": {
@@ -162,6 +182,7 @@
   "accountList": {
     "sections": {
       "sms": "SMS verification",
+      "suspended": "Temporarily banned",
       "banned": "Banned accounts"
     },
     "expandGroup": "Expand group",
@@ -185,12 +206,16 @@
     "status": {
       "clean": "Clean",
       "sms": "SMS",
+      "suspended": "Temp ban",
       "banned": "Banned"
     },
     "lastEditLabel": "Last edit",
     "editBattletag": "Edit BattleTag",
     "editCredentials": "Edit credentials",
     "accountInfo": "Account info",
+    "shareAccount": "Share account",
+    "refreshProfile": "Refresh profile",
+    "refreshProfileFailed": "Could not refresh the profile.",
     "dodges": {
       "label": "Games dodged",
       "penaltyLabel": "Next penalty",
@@ -248,7 +273,14 @@
       "label": "Notes"
     },
     "status": {
-      "label": "Status"
+      "label": "Status",
+      "heading": "Status:",
+      "notes": {
+        "clean": "Account is currently fine :D",
+        "sms": "Account is currently SMS-Locked",
+        "suspended": "Account is temporarily banned",
+        "banned": "Account is permanently banned"
+      }
     },
     "history": {
       "roles": {
@@ -309,7 +341,7 @@
     "undone": "Season reset undone",
     "undoDialog": {
       "title": "Undo rank reset",
-      "description": "Only undo a rank reset if the rank reset you made was a mistake.",
+      "description": "Only undo a rank reset if the rank reset you made was a mistake. This removes the reset from your past ranks and puts its ranks back on your accounts. Ranks you have set since the reset stay as they are.",
       "confirm": "Undo reset"
     }
   },
@@ -365,6 +397,8 @@
     "copied": "{field} copied",
     "autoClearDisabled": "Kept on the clipboard (auto-clear is off).",
     "clearCountdown": "Cleared from the clipboard in {seconds} s.",
+    "shareCopied": "Account copied to share",
+    "shareCopyFailed": "Could not copy the account",
     "battletagCopied": "BattleTag copied",
     "battletagCopyFailed": "Could not copy the BattleTag"
   },
@@ -817,6 +851,12 @@
     "labSettings": {
       "tooLarge": "Lab settings are unexpectedly large."
     },
+    "storeData": {
+      "copyFailed": "Your RankDB data could not be copied: {error}",
+      "inUse": "Your other RankDB is busy saving. Close it, then start this one again.",
+      "unreadable": "The data of your other RankDB could not be read.",
+      "newer": "Your other RankDB is newer than this one. Update this one first."
+    },
     "oldApp": {
       "openFailed": "Could not open RankDB 0.3's data: {error}",
       "decryptFailed": "RankDB 0.3's data could not be decrypted with its key.",
@@ -840,6 +880,13 @@
       "unreadable": "This isn't a RankDB 0.3 export, or it is damaged.",
       "wrongPassword": "Wrong password, or the export is damaged."
     }
+  },
+  "storeData": {
+    "imported": {
+      "title": "Your RankDB data is here",
+      "description": "Accounts copied from the version you installed from GitHub: {count}."
+    },
+    "failed": "Couldn't copy the data of your other RankDB"
   },
   "oldApp": {
     "groupName": "Group",
@@ -929,7 +976,7 @@
       "backup": "RankDB backup",
       "legacy": "RankDB 0.3 export"
     },
-    "backupFileName": "RankDB backup {date}.rankdb-backup",
+    "backupFileName": "RankDB backup {date}.rankdb",
     "titles": {
       "export": "Export all data",
       "import": "Import backup",

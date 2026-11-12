@@ -81,6 +81,63 @@ fn upgrade_keeps_every_record_and_copies_the_old_file_first() {
     fs::remove_dir_all(dir).unwrap();
 }
 
+/// Migration 6 moves the status to a column that also takes `suspended`: every status comes
+/// through, with everything attached to the accounts, and the new one can be stored.
+#[test]
+fn statuses_survive_the_new_status_column() {
+    let dir = folder();
+    version_4(&dir);
+    {
+        let connection = Connection::open(dir.join(FILE_NAME)).unwrap();
+        connection.execute_batch(MIGRATIONS[4]).unwrap();
+        connection
+            .execute_batch(
+                "PRAGMA user_version = 5;
+                 INSERT INTO accounts (id, name, sort_key, status) VALUES (3, 'Three#3', 0, 'sms');",
+            )
+            .unwrap();
+    }
+    let database = open_at(&dir).unwrap();
+    let connection = database.lock().unwrap();
+    let status = |id: i64| -> String { connection.query_row("SELECT status FROM accounts WHERE id = ?1", [id], |row| row.get(0)).unwrap() };
+    assert_eq!((status(1).as_str(), status(2).as_str(), status(3).as_str()), ("clean", "banned", "sms"));
+    let roster = read_roster(&connection).unwrap();
+    assert!(roster.accounts.iter().any(|account| account.name == "One#1" && account.has_email && account.values_a == [0, 1200, 0]));
+    connection.execute("UPDATE accounts SET status = 'suspended' WHERE id = 3", []).unwrap();
+    assert!(connection.execute("UPDATE accounts SET status = 'gone' WHERE id = 3", []).is_err());
+    assert!(read_roster(&connection).unwrap().accounts.iter().any(|account| matches!(account.status, Status::Suspended)));
+    drop(connection);
+    drop(database);
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn profiles_arrive_empty_and_follow_their_accounts() {
+    let dir = folder();
+    version_4(&dir);
+    {
+        let connection = Connection::open(dir.join(FILE_NAME)).unwrap();
+        connection.execute_batch(MIGRATIONS[4]).unwrap();
+        connection.execute_batch(MIGRATIONS[5]).unwrap();
+        connection.execute_batch("PRAGMA user_version = 6;").unwrap();
+    }
+    let database = open_at(&dir).unwrap();
+    let connection = database.lock().unwrap();
+    let count = |sql: &str| -> i64 { connection.query_row(sql, [], |row| row.get(0)).unwrap() };
+    assert_eq!(count("SELECT COUNT(*) FROM account_profiles"), 0);
+    assert_eq!(read_roster(&connection).unwrap().accounts.len(), 2);
+    connection
+        .execute_batch("INSERT INTO account_profiles VALUES (1, 'One#1', 'found', 'a.png', NULL, '2026-01-01T00:00:00.000Z');")
+        .unwrap();
+    assert!(connection.execute("INSERT INTO account_profiles VALUES (2, 'Two#2', 'odd', NULL, NULL, '')", []).is_err());
+    assert!(connection.execute("INSERT INTO account_profiles VALUES (99, 'No#9', 'found', NULL, NULL, '')", []).is_err());
+    connection.execute("DELETE FROM accounts WHERE id = 1", []).unwrap();
+    assert_eq!(count("SELECT COUNT(*) FROM account_profiles"), 0);
+    drop(connection);
+    drop(database);
+    fs::remove_dir_all(dir).unwrap();
+}
+
 #[test]
 fn upgraded_schema_matches_a_fresh_one() {
     let fresh_dir = folder();

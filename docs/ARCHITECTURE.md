@@ -122,7 +122,9 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   Toasts are compact: 12px vertical / 16px horizontal padding, 20px bare icons (no circle), 3px
   title/detail gap and no action buttons. Motion uses 320ms transforms and 160ms material fades /
   swipe exit (20% shorter durations); glass-free content follows presence without a second delayed
-  opacity transition.
+  opacity transition. A card being dragged has no transition (`data-swiping`): our transform
+  transition outranks Sonner's own `transition: none`, and with it every pointer move eased in
+  late (the swipe felt delayed, 2026-11-11).
   `npm run test:toasts` covers the adapter; live MCP checks cover Sonner's actual motion/lifetimes.
   Glass Lab → **Toast notifications** exposes notification-only corner radius, icon size/stroke,
   title/detail contrast, screen insets, speed and shadow strength.
@@ -256,14 +258,35 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     history, cloud sync and monitors, and cleared after the Settings timer (5–30 s or never) only
     if the clipboard still holds them. A pending secret is also cleared when the app exits or
     installs an update (`clipboard::clear_pending`), so closing early never leaves it behind.
-  - **Status** (migration 3): `clean`, `sms` (needs SMS verification) or `banned`, one `status`
-    column (`Status` in db/records.rs, `AccountStatus` in TS). SMS and banned accounts each have a section
-    below the list (SMS amber, above banned red), never grouped. Set in Account info (status
-    `LiquidTabs`, applied on Save).
+  - **Share account** (account menu, user request 2026-11-12): `copy_share` copies the account as a
+    block for Discord (`share_block` in db/credentials.rs): `**Account: **name`, then
+    `[ Email:  || … || ]` and `[ Password: || … || ]`, the credentials inside spoilers. The layout
+    is the user's, character for character (a test holds it); a credential that isn't saved
+    leaves its line out. Rust builds it, so the values still never pass through the page, and it
+    is copied as a secret: out of clipboard history, cleared by the same timer, lock enforced.
+  - **Status** (migration 3; `suspended` added in 6, user request 2026-11-12): `clean`, `sms`
+    (needs SMS verification), `suspended` (temporarily banned) or `banned` (for good), one
+    `status` column (`Status` in db/records.rs, `AccountStatus` in TS). SMS, temporarily banned
+    and banned accounts each have a section below the list in that order (amber, orange, red),
+    never grouped. Set in Account info (status `LiquidTabs`, applied on Save); beside the Status
+    heading a short note says what the chosen status means (`accountDialogs.status.notes`, the
+    user's wording). Migration 6 widens the column's CHECK by moving the status to a new column
+    that takes the old name (a CHECK can't be altered, and this rebuilds no table).
   - **Order.** Loose accounts and groups share one top-level order (`sortKey`); each group and each
     section have their own. `move_item(item, destination {groupId, status}, order)` moves one item
     and renumbers its destination from the full `order` (Rust checks every listed item belongs
     there), so keys never run out of precision. A new status takes an account out of its group.
+  - **Microsoft Store build** (user request 2026-11-12, `docs/MICROSOFT_STORE.md`): a second,
+    independent way to ship the same app, as an MSIX (`npm run store:build`). Decided at build
+    time, never at run time: the Rust `store` feature (no updater plugin, `updates_enabled`
+    false), `tauri.store.conf.json` (its own identifier `com.merkdesigns.rankdb.store`, so its
+    own data folder, which Windows keeps inside the package and deletes on uninstall) and
+    `VITE_RANKDB_CHANNEL=store` (`src/platform/channel.ts`, no update button). Its first start
+    copies the GitHub version's database once (`db/store_data.rs`: read-only on that side, only
+    into a database with no accounts, groups or master password, checked before use, a marker
+    file afterwards). The GitHub build, its identifier and its release pipeline are untouched;
+    `store_data.rs` is compiled into both so its tests always run, but only the Store build
+    calls it.
   - **RankDB 0.3 migration** (`src-tauri/src/legacy.rs`, added 2026-10-31 so 0.3 users who
     update don't get an empty app). One way, kept simple by request: old data → new version →
     migrated, nothing else. 0.3 keeps its data in `%APPDATA%\com.rankdb.desktop`
@@ -290,9 +313,16 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     `src/ui/DataTransferDialog.tsx`). Rust opens the file pickers itself (`tauri-plugin-dialog`,
     no page permission); the dialog then asks for the file's password.
     - *Export all data*: a `VACUUM INTO` copy of the whole database, sealed with AES-256-GCM under
-      a PBKDF2-SHA256 (600 000 rounds) key from a backup password, in a JSON `.rankdb-backup`
+      a PBKDF2-SHA256 (600 000 rounds) key from a backup password, in a JSON `.rankdb` file
       (`format`, `version`, `schema`, `exportedAt`, `salt`, `iterations`, `data`). Pending settings
-      are flushed first.
+      are flushed first. 1.0.0 and 1.0.1 wrote the same file as `.rankdb-backup`; the import
+      picker offers both.
+    - The installer registers `.rankdb` (`fileAssociations` in `tauri.release.conf.json`, class
+      `RankDB.Backup`) and gives it its own icon: `icons/backup-file.ico` (made from
+      `src/assets/extras/RankDB_Export_Icon.png`, 16 to 256 px) ships as a resource beside the exe,
+      and `src-tauri/installer-hooks.nsh` points the class's `DefaultIcon` at it, since Tauri's
+      association can only use the exe's icon. Opening a backup from Explorer just starts (or
+      focuses) RankDB; importing stays in Settings → Data.
     - *Import backup* replaces **everything** (accounts, groups, past ranks, settings, credential
       protection): the file is decrypted to a staging file, checked, migrated to this schema (a
       newer one is refused), then copied over the live database with SQLite's backup API, and the
@@ -321,6 +351,37 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     - Discord (`src-tauri/src/discord.rs`): a worker thread owns the connection, follows the
       `discordPresence` setting (on by default, as before), retries every 30 s while Discord
       isn't running. "User since" is the `installedOn` setting (first start, or the old app's).
+      The large image is the animated webp on `main` (`src/assets/extras/RankDB_Animated_Icon.webp`,
+      not bundled; keep it at that path). 1.0.0 and 1.0.1 have
+      `public/app-icon-512.png` on `main` built in, so that static copy of the app icon stays
+      there too (the build doesn't read the root `public/`; Vite's root is `src`). Settings → Misc → Activity text (`discordActivityText`,
+      "" = "Managing Overwatch accounts") replaces the details line; it is saved on Enter or blur
+      only (Discord rate-limits presence changes) and cleaned twice with the same rules,
+      `cleanActivityText` (settingsStore.ts) and `clean_activity` (discord.rs, tested): no control,
+      line-break, invisible or text-direction characters, stacked accents at most two, 2–64
+      characters, else the default.
+    - Profile pictures and banners (experimental, Settings → Misc, off by default;
+      `src-tauri/src/db/profiles.rs`, `src/data/profiles.ts`). Not the removed owapi rank refresh:
+      only images. One async worker looks up BattleTags on `owapi.eu/stats/pc/<name>-<number>`
+      one at a time, 1.5 s apart (their API is slow and shared), newest-due first: new or
+      renamed accounts, "Refresh now", or checks older than 7 days (invalid names never again).
+      200 = found, 400 = invalid, 404/502 = missing (owapi's answers for private or unknown
+      players); anything else (429, outages) or no connection pauses it for 24 h. Settings shows
+      Stop while it runs (`stop_profiles`: in memory only, until the next start or Refresh now;
+      a lookup in flight still lands). The account menu's Refresh profile (only while the
+      feature is on; `refresh_profile`) puts that account at the front of an in-memory priority
+      list, which is served even while stopped, and empties its `checked_at` so a restart still
+      does it. Results live in migration 7's
+      `account_profiles` (cascade with the account; a row only counts while its `tag` still
+      matches the name). Images are downloaded once into `<data>/profile-images/`, named by a hash
+      of their URL (shared between accounts, PNG/JPEG/WebP only, ≤ 4 MB) and served by Rust's
+      `profile` URI scheme (`http://profile.localhost`, in the CSP's `img-src`): the page never
+      loads anything from the internet. Off only stops the queue and hides the images (by request): rows and files stay, so turning it on shows them at once. Backups don't carry
+      them (a missing file makes the account due again). Privacy mode hides them; the two
+      checkboxes pick avatar and/or banner. The avatar replaces the BattleTag button's icon; the
+      banner sits under the name, masked to fade both sides, and ends 10 px before the badges.
+    - Settings → Misc: Check for updates and What's new are outside the scrolling list
+      (`MiscActions`), so they stay visible however long Misc gets.
     - Slow crypto commands are `async`: sync commands run on the UI thread and freeze the window.
       App services start only after the database opened (no startup problem).
   - **Rank tracking.** Rank changes are not logged (by request); `rank_history` holds only season
@@ -364,8 +425,9 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     easeOutQuart), with TaskMap's held spread around the enlarged item; TaskMap's smoothstep
     auto-scroll at the edges. Rows pass through groups (past a head the gap opens inside, past the
     last row back out); a collapsed group takes a row after it hovers the head for 350 ms (head
-    lights up). A held row keeps its plate and outline but not its hover tint (by request: no grey cast,
-    no extra outline or tint); it only gains a plain backdrop blur on its
+    lights up). A held row keeps its plate, outline and hover glow from grab to drop (by later
+    request: dropping no longer flashes the glow back in; also through auto-scroll), with no grey
+    cast or extra outline; it only gains a plain backdrop blur on its
     `::before` plate (no saturation or brightness change: that read as grey), only while held, for
     performance (lab → Rows → Dragged row, `--held-blur`, 0 = off). Held groups get
     no blur (by request) and no shadow. Nothing
@@ -423,6 +485,12 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   - It opens beside the badge if either side fits, otherwise below or above it. Escape cancels,
     Enter confirms.
   - Presses inside the lab pop-up don't close the picker, so it can be tuned while open.
+- **Division numbers** (badges and the picker's division tabs) are images, not a font: `RankDigit`
+  (`src/ui/RankDigit.tsx`) masks `src/assets/digits/<n>.png` with `currentColor`, in the box the
+  digit took as text (0.580078em × 1em), so colour and layout work as they did. Merk chose the font
+  to match Overwatch's numbers and won't change it; its licence doesn't allow shipping the font
+  file, so it stays local (`src/assets/fonts/`, git-ignored) and `scripts/render-rank-digits.py`
+  renders the images from it. Never bundle or commit the font itself.
 - **Rank effects** (`RankBadge` `.badge-fx`; which tier gets what and the motion in
   `ui/rankEffects.ts`, colours and strengths in app.css; Settings → Visuals → Rank effects,
   `badgeEffects`, the old app's `badgeAnimationsEnabled`): real (not predicted) ranks from
@@ -501,6 +569,13 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   with an effect step (82 → ~73 frames/s at 357 Hz; waking early to always share cost more page
   frames than it saved). Measured 2026-10-31 with the window in the background: ~1% GPU, ~2% CPU
   (smoke: ~6% / ~8%).
+  - **Resizing.** The canvas is as tall as the window rounded up to 256px and hangs below it
+    (the backdrop clips it), so dragging the window taller uncovers pixels that are already drawn;
+    the lights follow the new height on the next update. Resizing the canvas on every step of the
+    drag made each new strip wait for a fresh WebGL frame. Measured 2026-11-11 (dev, 357 Hz, 40px
+    steps): the uncovered strip showed the window's background for ~21 ms before, ~15 ms after,
+    the same as the Flat design. That remainder is WebView2 catching up with the window and isn't
+    ours to remove. The Settings preview (`ambientSnapshot`) still draws at exactly the window.
   - **Parallax** (lab only, by request off in releases: `ambient.parallax` default 0, and release
     builds draw one canvas, `AMBIENT_LAYERS` in `Backdrop.tsx`; 0 = one flat layer): the
     lights sit on three canvases (back to front 0.06, 0.14, 0.26 of the scroll at strength 1); the

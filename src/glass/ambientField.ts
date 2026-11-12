@@ -1,3 +1,4 @@
+import { settingsStore } from "../data/settingsStore";
 import type { AmbientTuning } from "../lab/store";
 
 /**
@@ -25,7 +26,10 @@ const RESOLUTION = 0.5;
 const DEPTHS = [0.06, 0.14, 0.26] as const;
 /** Which layer each of a tile's lights is on. */
 const LIGHT_LAYER = [0, 1, 2, 0] as const;
-/** Layer heights grow in steps of this (CSS pixels), so opening a group rarely resizes a canvas. */
+/**
+ * Layer heights grow in steps of this (CSS pixels), so opening a group rarely resizes a canvas and
+ * dragging the window taller only uncovers more of one that is already drawn.
+ */
 const TRAVEL_STEP = 256;
 
 const VERTEX = `#version 300 es
@@ -115,7 +119,7 @@ export interface AmbientField {
   /** New tuning or base colour; applied on the next update. */
   set(tuning: AmbientTuning, background: string): void;
   /** The list's scroll range and the UI scale, which set how far (and how tall) each layer is. */
-  setScroll(maxScroll: number, zoom: number): void;
+  setScroll(maxScroll: number): void;
   destroy(): void;
 }
 
@@ -140,7 +144,7 @@ export function ambientSnapshot(tuning: AmbientTuning, background: string): stri
   let image: string | null = null;
   if (gl && !gl.isContextLost()) {
     try {
-      const field = runAmbientField([{ canvas, gl }], { ...tuning, speed: 0, parallax: 0 }, background);
+      const field = runAmbientField([{ canvas, gl }], { ...tuning, speed: 0, parallax: 0 }, background, 1);
       image = canvas.toDataURL();
       field.destroy();
     } catch (error) {
@@ -213,38 +217,49 @@ function program(gl: WebGL2RenderingContext) {
   };
 }
 
-function runAmbientField(layers: readonly Layer[], initial: AmbientTuning, initialBackground: string): AmbientField {
+/** `heightStep`: canvas heights round up to this (window pixels); 1 for a canvas of exactly the window. */
+function runAmbientField(layers: readonly Layer[], initial: AmbientTuning, initialBackground: string, heightStep = TRAVEL_STEP): AmbientField {
   let tuning = initial;
   let background = initialBackground;
   let maxScroll = 0;
-  let zoom = 1;
   const programs = layers.map(({ gl }) => program(gl));
-  /** Per layer: CSS pixels it travels over the whole scroll, and its height step beyond the window. */
+  /** Per layer: CSS pixels it travels over the whole scroll, and the height its lights cover (window pixels). */
   const travel = layers.map(() => 0);
-  const extra = layers.map(() => -1);
+  const reach = layers.map(() => 0);
 
   const layered = () => tuning.parallax > 0 && layers.length > 1;
   /** Which layer a tile light is on: all on the back layer without parallax. */
   const layerOf = (light: number) => (layered() ? LIGHT_LAYER[light]! : 0);
 
-  /** Sizes each layer to the window plus its travel (in steps), and sets how far it slides. */
+  /**
+   * Sizes each layer to the window plus its travel, rounded up a step, and sets how far it slides.
+   * The canvas hangs below the window (the backdrop clips it): a window dragged taller within the
+   * step uncovers pixels that are already there, where a canvas resized on every step of the drag
+   * made each new strip wait for a fresh WebGL frame (the strip stayed empty ~7 ms longer).
+   * Returns whether a canvas was resized, and so cleared.
+   */
   function resize() {
     const dpr = (window.devicePixelRatio || 1) * RESOLUTION;
+    // The backdrop sits inside the zoomed app: its CSS pixels are window pixels ÷ the UI scale.
+    const zoom = settingsStore.get().uiScale;
+    let cleared = false;
     layers.forEach(({ canvas }, index) => {
       const shown = index === 0 || layered();
       travel[index] = shown && layered() ? DEPTHS[index]! * tuning.parallax * maxScroll : 0;
-      const step = Math.ceil(travel[index]! / TRAVEL_STEP) * TRAVEL_STEP;
       canvas.style.setProperty("--layer-travel", `${travel[index]}px`);
       canvas.hidden = !shown;
+      reach[index] = window.innerHeight + travel[index]! * zoom;
+      const cover = Math.ceil(reach[index]! / heightStep) * heightStep;
       const width = Math.max(1, Math.round(window.innerWidth * dpr));
-      const height = Math.max(1, Math.round((window.innerHeight + step * zoom) * dpr));
-      if (step !== extra[index] || canvas.width !== width || canvas.height !== height) {
-        extra[index] = step;
-        canvas.style.height = step > 0 ? `calc(100% + ${step}px)` : "";
+      const height = Math.max(1, Math.round(cover * dpr));
+      canvas.style.height = `${cover / zoom}px`;
+      if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
+        cleared = true;
       }
     });
+    return cleared;
   }
 
   let time = 0;
@@ -258,7 +273,7 @@ function runAmbientField(layers: readonly Layer[], initial: AmbientTuning, initi
     layers.forEach(({ canvas, gl }, index) => {
       if (canvas.hidden) return;
       // Enough tiles to cover the layer, never more lights than the shader holds.
-      const tiles = Math.min(Math.ceil(canvas.height / (height * (window.devicePixelRatio || 1) * RESOLUTION)), 6);
+      const tiles = Math.min(Math.ceil(reach[index]! / height), 6);
       const colours: number[] = [];
       const placed: number[] = [];
       for (let t = 0; t < tiles; t++) {
@@ -327,8 +342,8 @@ function runAmbientField(layers: readonly Layer[], initial: AmbientTuning, initi
   };
 
   const onResize = () => {
-    resize();
-    draw();
+    // Moving, the next update follows the new height; only a cleared or still canvas draws now.
+    if (resize() || !moving()) draw();
   };
   window.addEventListener("resize", onResize);
   resize();
@@ -347,14 +362,11 @@ function runAmbientField(layers: readonly Layer[], initial: AmbientTuning, initi
       }
       redraw();
     },
-    setScroll(nextMax, nextZoom) {
-      if (nextMax === maxScroll && nextZoom === zoom) return;
+    setScroll(nextMax) {
+      if (nextMax === maxScroll) return;
       maxScroll = nextMax;
-      zoom = nextZoom;
-      const before = extra.join();
-      resize();
-      // Only a layer that grew or shrank a step (and so was cleared) needs drawing again.
-      if (extra.join() !== before) draw();
+      // A layer that grew or shrank a step was cleared; a still field has no update coming.
+      if (resize() || !moving()) draw();
     },
     destroy() {
       cancelAnimationFrame(frame);

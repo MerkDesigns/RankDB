@@ -109,6 +109,33 @@ pub async fn copy_secret(
     clipboard::copy(&secret, true, clear_after_seconds.map(Duration::from_secs))
 }
 
+/// An account as a block to paste into Discord: the name after a bold label, each saved credential
+/// inside a spoiler (`||`), so nothing shows until the reader clicks it. The layout is the user's,
+/// character for character (2026-11-12); a credential that isn't saved leaves its line out.
+fn share_block(name: &str, email: Option<&str>, password: Option<&str>) -> String {
+    let mut lines = vec![format!("**Account: **{name}")];
+    if let Some(email) = email {
+        lines.push(format!("[ Email:  || {email}|| ]"));
+    }
+    if let Some(password) = password {
+        lines.push(format!("[ Password: || {password} || ]"));
+    }
+    lines.join("\r\n")
+}
+
+/// Copies an account to share it (the account menu): `share_block`, handled as a secret like
+/// `copy_secret`, so it stays out of clipboard history and is cleared after the same timer.
+#[tauri::command]
+pub async fn copy_share(database: State<'_, Database>, account_id: i64, clear_after_seconds: Option<u64>) -> Result<(), String> {
+    let connection = database.lock()?;
+    let account = account_or_gone(&connection, account_id)?;
+    let email = read_secret(&database, &connection, account_id, SecretField::Email)?;
+    let password = read_secret(&database, &connection, account_id, SecretField::Password)?;
+    drop(connection);
+    let block = share_block(&account.name, email.as_deref(), password.as_deref());
+    clipboard::copy(&block, true, clear_after_seconds.map(Duration::from_secs))
+}
+
 /// Copies plain text (a Battletag). It goes to clipboard history like any copy.
 #[tauri::command]
 pub async fn copy_text(text: String) -> Result<(), String> {
@@ -149,4 +176,23 @@ pub async fn change_master_password(database: State<'_, Database>, current_passw
     let current_password = zeroize::Zeroizing::new(current_password);
     let mut connection = database.lock()?;
     database.secrets.change_password(&mut connection, &database.upgrade_copies(), &current_password, &password)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::share_block;
+
+    #[test]
+    fn the_share_block_is_the_agreed_layout() {
+        assert_eq!(
+            share_block("Battletag#2233", Some("test@email.com"), Some("testpassword")),
+            "**Account: **Battletag#2233\r\n[ Email:  || test@email.com|| ]\r\n[ Password: || testpassword || ]"
+        );
+    }
+
+    #[test]
+    fn a_credential_that_is_not_saved_leaves_its_line_out() {
+        assert_eq!(share_block("Solo#1", None, Some("pw")), "**Account: **Solo#1\r\n[ Password: || pw || ]");
+        assert_eq!(share_block("Solo#1", None, None), "**Account: **Solo#1");
+    }
 }

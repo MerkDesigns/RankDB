@@ -1,4 +1,6 @@
 <p align="center">
+<a href="https://apps.microsoft.com/detail/9N35JP1XQHVS?referrer=appbadge&mode=direct"><img src="https://get.microsoft.com/images/en-us%20dark.svg" height="56" alt="Get it from Microsoft" /></a>
+<br />
 <a href="https://github.com/MerkDesigns/RankDB/releases/latest/download/RankDB_installer.exe"> <img src="https://img.shields.io/badge/Download-Windows%20Installer-2ea44f?style=for-the-badge&logo=windows" /></a>
 </p>
 
@@ -49,8 +51,9 @@ As always, keep your PC secure and use a strong device password if you store acc
 
 ## Install
 
-Click the download button above, or go to the repository `Releases` section and download `RankDB_installer.exe`.
+Get RankDB from the [Microsoft Store](https://apps.microsoft.com/detail/9N35JP1XQHVS): the Store installs and updates it for you.
 
+Or click the download button above, or go to the repository `Releases` section and download `RankDB_installer.exe`.
 After the first install, future updates can be checked from inside RankDB. Updating from RankDB 0.3 keeps your accounts: they are moved over on the first start.
 
 ## Building from source

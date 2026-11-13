@@ -10,7 +10,7 @@ import { openResetMenu } from "./ResetMenu";
 
 /** The open dialog; account dialogs carry the account they are about. */
 export type Dialog =
-  | { readonly kind: "settings" | "season-reset" | "update" | "whats-new" }
+  | { readonly kind: "settings" | "season-reset" | "update" | "store-update" | "whats-new" }
   | { readonly kind: "credentials" | "delete-account" | "account-info"; readonly accountId: number }
   | { readonly kind: "delete-group"; readonly groupId: string }
   | { readonly kind: "credential-security"; readonly action: "enable" | "disable" | "unlock" | "change" }

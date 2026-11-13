@@ -103,9 +103,37 @@ rmSync(join(output, "Assets"), { recursive: true, force: true });
 winapp(["manifest", "update-assets", quoted(join(root, "src-tauri/icons/icon.png")), "--manifest", quoted(manifestFile), "--quiet"]);
 rmSync(join(layout, "Assets"), { recursive: true, force: true });
 renameSync(join(output, "Assets"), join(layout, "Assets"));
-copyFileSync(join(root, "store/BackupFile.png"), join(layout, "Assets/BackupFile.png"));
+// The .rankdb file icon in every size Explorer asks for (scripts/render-backup-icon.py), so
+// Windows never scales one and blurs it.
+for (const file of readdirSync(join(root, "store/backup-file"))) {
+  copyFileSync(join(root, "store/backup-file", file), join(layout, "Assets", file));
+}
 
 /* ---------- Packing ---------- */
+
+// The resource index (resources.pri) is made here rather than by winapp, which only indexes the
+// four tile logos it knows: the .rankdb icon's size variants have to be in it too, or Windows
+// can't pick one and scales BackupFile.png instead (blurry). Windows SDK's makepri; the GitHub
+// runners have it as well.
+function findMakepri() {
+  const kits = "C:/Program Files (x86)/Windows Kits/10/bin";
+  const versions = existsSync(kits) ? readdirSync(kits).filter((name) => /^10\./.test(name)) : [];
+  versions.sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+  for (const version of versions) {
+    const tool = join(kits, version, "x64/makepri.exe");
+    if (existsSync(tool)) return tool;
+  }
+  throw new Error("makepri.exe not found: install the Windows 10/11 SDK");
+}
+const makepri = findMakepri();
+const priConfig = join(output, "priconfig.xml");
+
+function indexResources() {
+  run(quoted(makepri), ["createconfig", "/cf", quoted(priConfig), "/dq", "en-US", "/pv", "10.0.0", "/o"], { stdio: "ignore" });
+  // One index for the one package: no split resource packages (those are for bundles).
+  writeFileSync(priConfig, readFileSync(priConfig, "utf8").replace(/<packaging>[\s\S]*?<\/packaging>/, ""));
+  run(quoted(makepri), ["new", "/pr", quoted(layout), "/cf", quoted(priConfig), "/mn", quoted(manifestFile), "/of", quoted(join(layout, "resources.pri")), "/o"], { stdio: "ignore" });
+}
 
 const packageName = `RankDB_${packageVersion}_x64`;
 const pack = (file, signing) => {
@@ -114,7 +142,8 @@ const pack = (file, signing) => {
   for (const leftover of readdirSync(layout)) {
     if (/^(pri\.resfiles|priconfig\.xml|resources(\..+)?\.pri|appxmanifest\.xml|package\.appxmanifest)$/i.test(leftover)) rmSync(join(layout, leftover));
   }
-  winapp(["package", quoted(layout), "--manifest", quoted(manifestFile), "--output", quoted(file), ...signing]);
+  indexResources();
+  winapp(["package", quoted(layout), "--manifest", quoted(manifestFile), "--output", quoted(file), "--skip-pri", ...signing]);
   if (!existsSync(file)) throw new Error(`winapp made no package at ${file}`);
 };
 

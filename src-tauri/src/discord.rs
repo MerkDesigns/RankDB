@@ -12,7 +12,8 @@ use std::thread;
 use std::time::Duration;
 
 const CLIENT_ID: &str = "1504897730596704266";
-const GITHUB_URL: &str = "https://github.com/MerkDesigns/RankDB";
+/// The Microsoft Store page (no language or region in it, so it opens in the visitor's own).
+const STORE_URL: &str = "https://apps.microsoft.com/detail/9N35JP1XQHVS";
 /// The animated RankDB icon, served from the repo (not bundled into the app). Discord fetches it
 /// itself; keep the file at this path on `main`, or presences of installed versions lose it.
 const LARGE_IMAGE_URL: &str = "https://raw.githubusercontent.com/MerkDesigns/RankDB/main/src/assets/extras/RankDB_Animated_Icon.webp";
@@ -124,7 +125,7 @@ fn presence<'a>(user_since: &'a str, activity: &'a str) -> activity::Activity<'a
     activity::Activity::new()
         .details(activity)
         .assets(activity::Assets::new().large_image(LARGE_IMAGE_URL).large_text(user_since))
-        .buttons(vec![activity::Button::new(crate::text::text("discord.githubButton"), GITHUB_URL)])
+        .buttons(vec![activity::Button::new(crate::text::text("discord.storeButton"), STORE_URL)])
 }
 
 /// Turns the presence on or off. `user_since` is the hover text (e.g. "User since 12 Mar 2025");

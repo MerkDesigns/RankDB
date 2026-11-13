@@ -1,6 +1,6 @@
 [package]
 name = "rankdb"
-version = "1.0.2"
+version = "1.0.3"
 description = "RankDB rewrite"
 authors = ["Merk"]
 edition = "2021"
@@ -56,6 +56,11 @@ webview2-com = "=0.39.1"
 windows-core = "=0.62.2"
 windows = { version = "=0.62.2", features = [
   "Win32_Foundation",
+  # The Store build asks the Store for its own updates (src/store_updates.rs).
+  "ApplicationModel",
+  "Foundation",
+  "Foundation_Collections",
+  "Services_Store",
   # The Store build's package name, to find where Windows keeps its data folder (main.rs).
   "Win32_Storage_Packaging_Appx",
   # RankDB 0.3's database key, read once to bring its data over (src/legacy.rs).

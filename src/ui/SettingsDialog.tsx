@@ -46,7 +46,6 @@ import {
   useSettings,
 } from "../data/settingsStore";
 import { dialogs, useOpenDialog } from "./appActions";
-import { STORE_BUILD } from "../platform/channel";
 import { checkForUpdates } from "./AppUpdates";
 import { showError, showToast } from "./toasts";
 import { command } from "../data/backend";
@@ -493,11 +492,9 @@ function MiscTab() {
 function MiscActions() {
   return (
     <div className="settings-pair settings-actions">
-      {/* The Microsoft Store updates its build itself. */}
-      {!STORE_BUILD && (
-        <button type="button" className="settings-button" onClick={() => void checkForUpdates(false)}>
-          <RefreshCw size={15} strokeWidth={2.2} />{uiText("settings.updates.check")}</button>
-      )}
+      {/* In the Store build it asks the Store and offers its page (AppUpdates.tsx). */}
+      <button type="button" className="settings-button" onClick={() => void checkForUpdates(false)}>
+        <RefreshCw size={15} strokeWidth={2.2} />{uiText("settings.updates.check")}</button>
       <button type="button" className="settings-button" onClick={() => dialogs.open({ kind: "whats-new" })}>
         <Sparkles size={15} strokeWidth={2.2} />{uiText("settings.updates.whatsNew")}</button>
     </div>

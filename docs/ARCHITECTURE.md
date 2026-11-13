@@ -281,7 +281,9 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
     time, never at run time: the Rust `store` feature (no updater plugin, `updates_enabled`
     false), `tauri.store.conf.json` (its own identifier `com.merkdesigns.rankdb.store`, so its
     own data folder, which Windows keeps inside the package and deletes on uninstall) and
-    `VITE_RANKDB_CHANNEL=store` (`src/platform/channel.ts`, no update button). Its first start
+    `VITE_RANKDB_CHANNEL=store` (`src/platform/channel.ts`). Its Check for updates (and the check
+    on start) asks the Store for a waiting update (`store_updates.rs`) and offers to open its
+    Store page (by request 2026-11-13: Store updates arrive silently and late). Its first start
     copies the GitHub version's database once (`db/store_data.rs`: read-only on that side, only
     into a database with no accounts, groups or master password, checked before use, a marker
     file afterwards). The GitHub build, its identifier and its release pipeline are untouched;
@@ -319,8 +321,11 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
       picker offers both.
     - The installer registers `.rankdb` (`fileAssociations` in `tauri.release.conf.json`, class
       `RankDB.Backup`) and gives it its own icon: `icons/backup-file.ico` (made from
-      `src/assets/extras/RankDB_Export_Icon.png`, 16 to 256 px) ships as a resource beside the exe,
-      and `src-tauri/installer-hooks.nsh` points the class's `DefaultIcon` at it, since Tauri's
+      `src/assets/extras/RankDB_Export_Icon.png` by `scripts/render-backup-icon.py`, which also
+      makes the Store package's `store/backup-file/`) ships as a resource beside the exe. It holds
+      every size Explorer asks for at 100–200% scaling (16 to 256 px, 96 among them): Windows blurs
+      any size it has to scale, and 1.0.2's icon (no 96) looked soft in Large icons at 100%.
+      `src-tauri/installer-hooks.nsh` points the class's `DefaultIcon` at it, since Tauri's
       association can only use the exe's icon. Opening a backup from Explorer just starts (or
       focuses) RankDB; importing stays in Settings → Data.
     - *Import backup* replaces **everything** (accounts, groups, past ranks, settings, credential
@@ -352,7 +357,8 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
       `discordPresence` setting (on by default, as before), retries every 30 s while Discord
       isn't running. "User since" is the `installedOn` setting (first start, or the old app's).
       The large image is the animated webp on `main` (`src/assets/extras/RankDB_Animated_Icon.webp`,
-      not bundled; keep it at that path). 1.0.0 and 1.0.1 have
+      not bundled; keep it at that path). Its button opens the Microsoft Store page
+      (`STORE_URL`, from 1.0.3; earlier versions open the GitHub repo). 1.0.0 and 1.0.1 have
       `public/app-icon-512.png` on `main` built in, so that static copy of the app icon stays
       there too (the build doesn't read the root `public/`; Vite's root is `src`). Settings → Misc → Activity text (`discordActivityText`,
       "" = "Managing Overwatch accounts") replaces the details line; it is saved on Enter or blur
@@ -611,6 +617,10 @@ Ported from `../TaskMap-Refactor` (`docs/GLASS-SYSTEM-CONTRACT.md` is the refere
   close and exit, in its own file in the app's data folder (not the database, so backups don't
   carry one PC's screen layout to another). A position on a monitor that's gone isn't restored.
   The width is refitted to the layout afterwards as always; only the height really carries over.
+  The plugin saves and restores the *content* size on a window that starts with the native title
+  bar, and Windows keeps the outer rectangle when the bar is removed, so `applyDecorations` puts
+  the content size back after `setDecorations`. Without that, every start grew the window by one
+  title bar (fixed 2026-11-13; 1.0.1 and 1.0.2 have the bug).
 - Custom frames drag through our own `data-drag-region` handling, not Tauri's
   `data-tauri-drag-region`, because Tauri's hard-wires double-click to the system maximize. It's on
   the top strip, the header itself (the gaps between islands), the island spacer, the rail spacer and

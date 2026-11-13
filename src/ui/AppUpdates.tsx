@@ -18,9 +18,12 @@ import { showError, showToast } from "./toasts";
  * App services after startup: Discord presence, What's New after an update, and update checks
  * (silent on start, or from Settings → Misc → Check for updates). Updates come from the GitHub
  * releases the old app used (signed); they only run in the published app (see `updates_enabled`).
+ * The Microsoft Store build asks the Store instead and offers its Store page
+ * (src-tauri/src/store_updates.rs): the Store installs the update, not RankDB.
  */
 
 let available: Update | null = null;
+let storeVersion: string | null = null;
 let servicesStarted = false;
 
 /** Starts the services; call once after the first render. */
@@ -141,7 +144,7 @@ export function WhatsNewDialog() {
 /** Silent: only an available update is announced (startup). Otherwise every outcome is. */
 export async function checkForUpdates(silent: boolean) {
   // The Microsoft Store updates its build; the updater isn't part of it.
-  if (STORE_BUILD) return;
+  if (STORE_BUILD) return checkStoreForUpdates(silent);
   if (!(await invoke<boolean>("updates_enabled"))) {
     if (!silent) {
       showToast({
@@ -163,6 +166,41 @@ export async function checkForUpdates(silent: boolean) {
     dialogs.open({ kind: "update" });
   }
   else if (!silent) showToast({ tone: "success", title: uiText("updates.upToDate") });
+}
+
+async function checkStoreForUpdates(silent: boolean) {
+  try {
+    storeVersion = await invoke<string | null>("store_update");
+  } catch (error) {
+    if (!silent) showError(uiText("updates.checkFailed"), error);
+    return;
+  }
+  if (storeVersion) {
+    if (silent) await dialogs.whenClosed();
+    dialogs.open({ kind: "store-update" });
+  } else if (!silent) showToast({ tone: "success", title: uiText("updates.upToDate") });
+}
+
+/** Microsoft Store build: a newer version is waiting in the Store; its page has the Update button. */
+export function StoreUpdateDialog() {
+  const open = useOpenDialog()?.kind === "store-update";
+  const openStore = async () => {
+    try {
+      await invoke("open_store_page");
+      dialogs.close();
+    } catch (error) {
+      showError(uiText("errors.storeUpdates.openFailed"), error);
+    }
+  };
+  return (
+    <Dialog open={open} onClose={dialogs.close} title={uiText("updates.available.title")} className="account-dialog">
+      <p className="dialog-text">{uiText("updates.store.prompt", { version: storeVersion ?? "" })}</p>
+      <div className="dialog-actions">
+        <Button onClick={dialogs.close}>{uiText("updates.actions.later")}</Button>
+        <Button variant="primary" data-autofocus="" onClick={() => void openStore()}>{uiText("updates.store.open")}</Button>
+      </div>
+    </Dialog>
+  );
 }
 
 export function UpdateDialog() {

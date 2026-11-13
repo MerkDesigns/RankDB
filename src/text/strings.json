@@ -467,6 +467,10 @@
       "versionSeparator": " is ready to install (you have ",
       "promptSuffix": "). RankDB restarts after installation."
     },
+    "store": {
+      "prompt": "RankDB {version} is in the Microsoft Store. Update it there to get the new version.",
+      "open": "Open Microsoft Store"
+    },
     "actions": {
       "later": "Later",
       "install": "Install and restart",
@@ -476,7 +480,7 @@
   },
   "discord": {
     "activity": "Managing Overwatch accounts",
-    "githubButton": "Get RankDB on GitHub"
+    "storeButton": "Get RankDB on Microsoft Store"
   },
   "lab": {
     "panel": {
@@ -834,6 +838,10 @@
     },
     "discord": {
       "workerStopped": "Discord presence stopped."
+    },
+    "storeUpdates": {
+      "checkFailed": "The Microsoft Store could not be reached.",
+      "openFailed": "Could not open the Microsoft Store."
     },
     "credentialSecurity": {
       "cleanupFailed": "Credential protection was changed, but database cleanup failed: {error}",

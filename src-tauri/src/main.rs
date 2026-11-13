@@ -9,6 +9,7 @@ mod legacy;
 #[cfg(debug_assertions)]
 mod lab_settings;
 mod secrets;
+mod store_updates;
 mod text;
 #[cfg(windows)]
 mod resize_edges;
@@ -151,6 +152,8 @@ fn main() {
         db::installed_on,
         discord::set_discord_presence,
         updates_enabled,
+        store_updates::store_update,
+        store_updates::open_store_page,
         db::replace_roster
     ]);
     #[cfg(not(debug_assertions))]
@@ -207,7 +210,9 @@ fn main() {
         db::set_games_dodged,
         db::installed_on,
         discord::set_discord_presence,
-        updates_enabled
+        updates_enabled,
+        store_updates::store_update,
+        store_updates::open_store_page
     ]);
 
     // One copy at a time: a second start brings the running window forward instead of opening the

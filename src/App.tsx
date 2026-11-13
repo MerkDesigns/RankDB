@@ -18,11 +18,12 @@ import { AccountMenu } from "./ui/AccountMenu";
 import { ResetMenu } from "./ui/ResetMenu";
 import { DeleteGroupDialog, GroupMenu } from "./ui/GroupMenu";
 import { RankPicker } from "./ui/RankPicker";
-import { UpdateDialog, WhatsNewDialog } from "./ui/AppUpdates";
+import { StoreUpdateDialog, UpdateDialog, WhatsNewDialog } from "./ui/AppUpdates";
 import { SeasonResetDialog, UndoSeasonResetDialog } from "./ui/SeasonResetDialog";
 import { SettingsDialog } from "./ui/SettingsDialog";
 import { ToastStack } from "./ui/ToastStack";
 import { WindowControls } from "./ui/WindowControls";
+import { STORE_BUILD } from "./platform/channel";
 
 /** `problem`: why the database couldn't be opened; the app then shows only that. */
 export function App({ problem }: { readonly problem: string | null }) {
@@ -69,6 +70,7 @@ export function App({ problem }: { readonly problem: string | null }) {
         <UndoSeasonResetDialog />
         <DataTransferDialog />
         <UpdateDialog />
+        {STORE_BUILD && <StoreUpdateDialog />}
         <WhatsNewDialog />
         <ToastStack />
         </>}

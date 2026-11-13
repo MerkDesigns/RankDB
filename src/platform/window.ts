@@ -16,9 +16,21 @@ const appWindow = () => getCurrentWindow();
 
 /* ---------- Decorations ---------- */
 
+/**
+ * Switches the native title bar on or off without changing the webview's size. Windows keeps the
+ * outer rectangle, so removing the bar would grow the content by its height; the window-state
+ * plugin saves and restores that content size on a window that starts decorated, so every start
+ * grew the window by one title bar (bug fixed 2026-11-13). Putting the size back keeps it exact.
+ */
 async function applyDecorations(chrome: WindowChrome) {
+  const window_ = appWindow();
+  const decorated = chrome === "native";
   try {
-    await appWindow().setDecorations(chrome === "native");
+    if ((await window_.isDecorated()) === decorated) return;
+    const before = await window_.innerSize();
+    await window_.setDecorations(decorated);
+    const after = await window_.innerSize();
+    if (after.width !== before.width || after.height !== before.height) await window_.setSize(before);
   } catch (error) {
     console.error("Could not change window decorations", error);
   }

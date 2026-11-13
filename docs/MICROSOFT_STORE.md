@@ -24,8 +24,11 @@ It is the same source and the same app. Three things are different, all decided 
 - **Tauri: `src-tauri/tauri.store.conf.json`** gives it its own identifier, so its data folder,
   its WebView2 profile, its window position and its "one running copy" lock are its own. Both
   versions can be installed and even run at once without touching each other's files.
-- **Frontend: `VITE_RANKDB_CHANNEL=store`** (`src/platform/channel.ts`). Settings → Misc has no
-  "Check for updates" button, and the app never asks the updater anything.
+- **Frontend: `VITE_RANKDB_CHANNEL=store`** (`src/platform/channel.ts`). The app never asks the
+  updater anything. On start and from Settings → Misc → Check for updates it asks the **Store**
+  whether a newer RankDB is waiting (`src-tauri/src/store_updates.rs`, Windows.Services.Store)
+  and, if so, offers to open RankDB's Store page, where the Store's own Update button is. RankDB
+  downloads and installs nothing itself.
 
 `scripts/build-store.mjs` sets all three; there is no switch at run time.
 
@@ -133,7 +136,8 @@ trusted machine-wide), so it is still open:
 - [ ] Discord shows RankDB while it is open (Discord Rich Presence on).
 - [ ] The window: dragging, resizing by the top and bottom edge only, minimise, close, and it
       reopens where it was closed.
-- [ ] Settings → Misc has no "Check for updates"; nothing offers an update at start.
+- [ ] Settings → Misc → Check for updates says it's up to date (a package not installed from the
+      Store has no Store updates to find; the real check only works once it's in the Store).
 - [ ] `.rankdb` files show the backup icon and open RankDB.
 - [ ] With a RankDB from GitHub installed and holding accounts: the Store build's first start
       shows them all, with a "Your RankDB data is here" notification; the GitHub one still has
@@ -174,8 +178,11 @@ trusted machine-wide), so it is still open:
 - The version is `package.json`'s everywhere (`scripts/check-version.mjs`). The package's is that
   plus `.0`: MSIX versions have four parts and the Store reserves the last one.
 - Every submission needs a higher version than the one in the Store.
-- An update is a new submission with the new `.msix`. The Store delivers it; the app doesn't
-  check, download or install anything itself.
+- An update is a new submission with the new `.msix`. The Store delivers it in the background;
+  when the app starts before it has, it asks the Store, says a new version is waiting and opens
+  the Store page. It never downloads or installs anything itself. The Store only reports a
+  version once Microsoft has certified and published it, so there is no reminder for a version
+  that's only on GitHub.
 - What's New shows after a Store update exactly as after a GitHub one (it only compares the
   running version with the last one seen), so `src/text/whats-new.txt` needs notes for the version.
 - The two channels don't have to release together, but one version number should mean one state
@@ -243,7 +250,7 @@ that made it, so keep both versions up to date before moving.
 | `scripts/build-store.mjs` | the whole build (`npm run store:build`) |
 | `store/Package.appxmanifest` | the manifest template |
 | `store/identity.example.json` | what `store/identity.json` looks like |
-| `store/BackupFile.png` | the `.rankdb` file icon in the package |
+| `store/backup-file/` | the `.rankdb` file icon in the package, one PNG per size (`scripts/render-backup-icon.py`) |
 | `src-tauri/tauri.store.conf.json` | the Store build's identifier |
 | `src-tauri/src/db/store_data.rs` | the first start's copy of the GitHub version's data, with its tests |
 | `src/platform/channel.ts` | `STORE_BUILD` for the frontend |
